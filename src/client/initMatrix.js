@@ -172,6 +172,8 @@ class InitMatrix extends EventEmitter {
         threadSupport: true,
       });
 
+      this.supportExtendedProfiles = await this.matrixClient.doesServerSupportExtendedProfiles();
+
       this.matrixClient.setGlobalErrorOnUnknownDevices(false);
       return { ready: true };
     } catch (err) {
