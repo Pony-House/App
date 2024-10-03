@@ -20,6 +20,7 @@ import IMG from './tags/Img';
 import MxMaths from './tags/MxMaths';
 import IFRAME from './tags/Iframe';
 import PRE from './tags/Pre';
+import tinyAPI from '../mods';
 
 // Register Protocols
 linkify.registerCustomProtocol('matrix');
@@ -35,20 +36,13 @@ let needRegisterExtraProtocol = true;
 const registerExtraProtocols = () => {
   if (needRegisterExtraProtocol) {
     needRegisterExtraProtocol = false;
-    if (envAPI.get('IPFS')) {
-      linkify.registerCustomProtocol('ipfs');
-    }
+    const values = tinyAPI.emit('linkifyRegisterCustomProtocols');
 
-    if (envAPI.get('WEB3')) {
-      linkify.registerCustomProtocol('bitcoin');
-      linkify.registerCustomProtocol('dogecoin');
-      linkify.registerCustomProtocol('monero');
-
-      linkify.registerCustomProtocol('ethereum');
-      linkify.registerCustomProtocol('web3');
-
-      linkify.registerCustomProtocol('ar');
-      linkify.registerCustomProtocol('lbry');
+    if (Array.isArray(values.protocols)) {
+      for (const item in values.protocols) {
+        if (typeof values.protocols[item] === 'string')
+          linkify.registerCustomProtocol(values.protocols[item]);
+      }
     }
   }
 };

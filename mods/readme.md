@@ -451,6 +451,11 @@ tinyPlace is a jQuery script. Use this to insert the html for your profile tab.
 
     event (event)
 
+### linkifyRegisterCustomProtocols
+
+Add new protocols to be detected as Url into the array `data.protocols`.
+This array is not created automatically, so please always check if it exists.
+
 <hr/>
 
 ### Mod Version
