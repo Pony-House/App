@@ -197,6 +197,24 @@ export const startDb = async (tinyThis) => {
     version: tinyThis._dbVersion,
     tables: [
       {
+        name: 'encrypted',
+        columns: {
+          event_id: { primaryKey: true, autoIncrement: false },
+
+          type: { notNull: false, dataType: 'string' },
+          sender: { notNull: false, dataType: 'string' },
+          room_id: { notNull: false, dataType: 'string' },
+          thread_id: { notNull: false, dataType: 'string' },
+
+          content: { notNull: false, dataType: 'object' },
+          unsigned: { notNull: false, dataType: 'object' },
+
+          redaction: { notNull: true, dataType: 'boolean' },
+          origin_server_ts: { notNull: true, dataType: 'number' },
+        },
+      },
+
+      {
         name: 'timeline',
         columns: {
           event_id: { primaryKey: true, autoIncrement: false },

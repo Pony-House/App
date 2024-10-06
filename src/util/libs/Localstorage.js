@@ -167,6 +167,24 @@ class StorageManager extends EventEmitter {
     });
   };
 
+  _deleteDataByIdTemplate = (dbName, dbEvent, event) => {
+    const tinyThis = this;
+    return new Promise((resolve, reject) => {
+      tinyThis.storeConnection;
+      remove({
+        from: dbName,
+        where: {
+          event_id: event.getId(),
+        },
+      })
+        .then((result) => {
+          tinyThis.emit(dbEvent, result, data);
+          resolve(result);
+        })
+        .catch(reject);
+    });
+  };
+
   setCrdt(event) {
     return this._setDataTemplate('crdt', 'dbCrdtInserted', event);
   }
@@ -179,26 +197,20 @@ class StorageManager extends EventEmitter {
     return this._setDataTemplate('messages', 'dbMessageInserted', event);
   }
 
+  setEncrypted(event) {
+    return this._setDataTemplate('encrypted', 'dbEncryptedInserted', event);
+  }
+
+  deleteEncryptedById(event) {
+    return this._deleteDataByIdTemplate('encrypted', 'dbEncryptedDeleted', event);
+  }
+
   setTimeline(event) {
     return this._setDataTemplate('timeline', 'dbTimelineInserted', event);
   }
 
   deleteTimelineById(event) {
-    const tinyThis = this;
-    return new Promise((resolve, reject) => {
-      tinyThis.storeConnection;
-      remove({
-        from: 'timeline',
-        where: {
-          event_id: event.getId(),
-        },
-      })
-        .then((result) => {
-          tinyThis.emit('dbTimelineDeleted', result, data);
-          resolve(result);
-        })
-        .catch(reject);
-    });
+    return this._deleteDataByIdTemplate('timeline', 'dbTimelineDeleted', event);
   }
 
   addToTimeline(event) {
@@ -215,7 +227,7 @@ class StorageManager extends EventEmitter {
           'pony.house.crdt': () => tinyThis.setCrdt(event),
           'm.reaction': () => tinyThis.setReaction(event),
           'm.room.message': () => tinyThis.setMessage(event),
-          'm.room.encrypted': () => tinyThis.setMessage(event),
+          'm.room.encrypted': () => tinyThis.setEncrypted(event),
         };
 
         const eventType = event.getType();
