@@ -1,4 +1,5 @@
 import EventEmitter from 'events';
+import { Direction } from 'matrix-js-sdk';
 
 import { objType } from 'for-promise/utils/lib.mjs';
 
@@ -7,13 +8,15 @@ import { decryptAllEventsOfTimeline } from '@src/client/state/Timeline/functions
 
 import { startDb } from './db/indexedDb';
 
+const SYNC_TIMELINE_DOWNLOAD_LIMIT = 50;
+
 class StorageManager extends EventEmitter {
   constructor() {
     super();
     this.isPersisted = null;
 
     // Db
-    this._dbVersion = 2;
+    this._dbVersion = 6;
     this.dbName = 'pony-house-database';
     this._timelineSyncCache = this.getJson('ponyHouse-timeline-sync', 'obj');
 
@@ -37,13 +40,13 @@ class StorageManager extends EventEmitter {
         typeof checkpoint === 'string' && checkpoint.length > 0
           ? checkpoint
           : objType(this._timelineSyncCache[roomId], 'object') &&
-              typeof this._timelineSyncCache[roomId].last === 'string' &&
-              this._timelineSyncCache[roomId].last.length > 0
+            typeof this._timelineSyncCache[roomId].last === 'string' &&
+            this._timelineSyncCache[roomId].last.length > 0
             ? this._timelineSyncCache[roomId].last
             : null;
 
       /*
-        await initMatrix.paginateEventTimeline(tm, {});
+        await initMatrix.paginateEventTimeline(tm, { backwards: Direction.Forward, limit: SYNC_TIMELINE_DOWNLOAD_LIMIT });
 
               // Decrypt time
         if (room.hasEncryptionStateEvent()) await decryptAllEventsOfTimeline(this.activeTimeline);
@@ -61,6 +64,33 @@ class StorageManager extends EventEmitter {
     const events = await this.storeConnection.remove({ from: 'timeline', where });
     const members = await this.storeConnection.remove({ from: 'members', where });
     return { events, members };
+  }
+
+  _eventFilter(event, data = {}, filter = {}) {
+    const date = event.getDate();
+    const thread = event.getThread();
+    const threadId = thread && typeof thread.id === 'string' ? thread.id : null;
+
+    if (filter.event_id !== false) data.event_id = event.getId();
+    if (filter.type !== false) data.type = event.getType();
+    if (filter.sender !== false) data.sender = event.getSender();
+    if (filter.room_id !== false) data.room_id = event.getRoomId();
+    if (filter.content !== false) data.content = event.getContent();
+    if (filter.unsigned !== false) data.unsigned = event.getUnsigned();
+    if (filter.redaction !== false) data.redaction = event.isRedaction();
+
+    if (filter.thread_id !== false && typeof threadId === 'string') data.thread_id = threadId;
+    if (filter.origin_server_ts !== false && date) data.origin_server_ts = date.getTime();
+
+    if (typeof data.age !== 'number') delete data.age;
+    if (typeof data.type !== 'string') delete data.type;
+    if (typeof data.sender !== 'string') delete data.sender;
+    if (typeof data.room_id !== 'string') delete data.room_id;
+
+    if (!objType(data.content, 'object')) delete data.content;
+    if (!objType(data.unsigned, 'object')) delete data.unsigned;
+
+    return data;
   }
 
   setMember(event) {
@@ -119,6 +149,60 @@ class StorageManager extends EventEmitter {
     });
   }
 
+  setCrdt(event) {
+    const tinyThis = this;
+    return new Promise((resolve, reject) => {
+      const data = tinyThis._eventFilter(event);
+      tinyThis.storeConnection
+        .insert({
+          into: 'crdt',
+          upsert: true,
+          values: [data],
+        })
+        .then((result) => {
+          tinyThis.emit('dbCrdtInserted', result, data);
+          resolve(result);
+        })
+        .catch(reject);
+    });
+  }
+
+  setReaction(event) {
+    const tinyThis = this;
+    return new Promise((resolve, reject) => {
+      const data = tinyThis._eventFilter(event);
+      tinyThis.storeConnection
+        .insert({
+          into: 'reactions',
+          upsert: true,
+          values: [data],
+        })
+        .then((result) => {
+          tinyThis.emit('dbReactionInserted', result, data);
+          resolve(result);
+        })
+        .catch(reject);
+    });
+  }
+
+  setMessage(event) {
+    const tinyThis = this;
+    return new Promise((resolve, reject) => {
+      const data = tinyThis._eventFilter(event);
+      tinyThis.storeConnection
+        .insert({
+          into: 'messages',
+          upsert: true,
+          values: [data],
+        })
+        .then((result) => {
+          tinyThis.emit('dbMessageInserted', result, data);
+          resolve(result);
+        })
+        .catch(reject);
+    });
+  }
+
   addToTimeline(event) {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
@@ -129,42 +213,30 @@ class StorageManager extends EventEmitter {
         reject(err);
       };
       try {
-        const date = event.getDate();
-        const thread = event.getThread();
-        const threadId = thread && typeof thread.id === 'string' ? thread.id : null;
+        const insertTypes = {
+          'pony.house.crdt': () => tinyThis.setCrdt(event),
+          'm.reaction': () => tinyThis.setReaction(event),
+          'm.room.message': () => tinyThis.setMessage(event),
+        };
 
-        data.event_id = event.getId();
-        data.type = event.getType();
-        data.sender = event.getSender();
-        data.room_id = event.getRoomId();
-        data.content = event.getContent();
-        data.unsigned = event.getUnsigned();
-        data.redaction = event.isRedaction();
-
-        if (typeof threadId === 'string') data.thread_id = threadId;
-        if (date) data.origin_server_ts = date.getTime();
-
-        if (typeof data.age !== 'number') delete data.age;
-        if (typeof data.type !== 'string') delete data.type;
-        if (typeof data.sender !== 'string') delete data.sender;
-        if (typeof data.room_id !== 'string') delete data.room_id;
-
-        if (!objType(data.content, 'object')) delete data.content;
-        if (!objType(data.unsigned, 'object')) delete data.unsigned;
-
-        if (data.type === 'm.room.member') tinyThis.setMember(event);
-
-        tinyThis.storeConnection
-          .insert({
-            into: 'timeline',
-            upsert: true,
-            values: [data],
-          })
-          .then((result) => {
-            tinyThis.emit('dbTimelineInserted', result, data);
-            resolve(result);
-          })
-          .catch(tinyReject);
+        const eventType = event.getType();
+        if (typeof insertTypes[eventType] === 'function')
+          insertTypes[eventType]().then(resolve).catch(tinyReject);
+        else {
+          if (eventType === 'm.room.member') tinyThis.setMember(event);
+          tinyThis._eventFilter(event, data);
+          tinyThis.storeConnection
+            .insert({
+              into: 'timeline',
+              upsert: true,
+              values: [data],
+            })
+            .then((result) => {
+              tinyThis.emit('dbTimelineInserted', result, data);
+              resolve(result);
+            })
+            .catch(tinyReject);
+        }
       } catch (err) {
         tinyReject(err);
       }
