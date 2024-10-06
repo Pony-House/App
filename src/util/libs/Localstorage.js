@@ -149,76 +149,38 @@ class StorageManager extends EventEmitter {
     });
   }
 
-  setCrdt(event) {
+  _setDataTemplate = (dbName, dbEvent, event, filter = {}) => {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
-      const data = tinyThis._eventFilter(event);
+      const data = tinyThis._eventFilter(event, {}, filter);
       tinyThis.storeConnection
         .insert({
-          into: 'crdt',
+          into: dbName,
           upsert: true,
           values: [data],
         })
         .then((result) => {
-          tinyThis.emit('dbCrdtInserted', result, data);
+          tinyThis.emit(dbEvent, result, data);
           resolve(result);
         })
         .catch(reject);
     });
+  };
+
+  setCrdt(event) {
+    return this._setDataTemplate('crdt', 'dbCrdtInserted', event);
   }
 
   setReaction(event) {
-    const tinyThis = this;
-    return new Promise((resolve, reject) => {
-      const data = tinyThis._eventFilter(event);
-      tinyThis.storeConnection
-        .insert({
-          into: 'reactions',
-          upsert: true,
-          values: [data],
-        })
-        .then((result) => {
-          tinyThis.emit('dbReactionInserted', result, data);
-          resolve(result);
-        })
-        .catch(reject);
-    });
+    return this._setDataTemplate('reactions', 'dbReactionInserted', event);
   }
 
   setMessage(event) {
-    const tinyThis = this;
-    return new Promise((resolve, reject) => {
-      const data = tinyThis._eventFilter(event);
-      tinyThis.storeConnection
-        .insert({
-          into: 'messages',
-          upsert: true,
-          values: [data],
-        })
-        .then((result) => {
-          tinyThis.emit('dbMessageInserted', result, data);
-          resolve(result);
-        })
-        .catch(reject);
-    });
+    return this._setDataTemplate('messages', 'dbMessageInserted', event);
   }
 
   setTimeline(event) {
-    const tinyThis = this;
-    return new Promise((resolve, reject) => {
-      const data = tinyThis._eventFilter(event);
-      tinyThis.storeConnection
-        .insert({
-          into: 'timeline',
-          upsert: true,
-          values: [data],
-        })
-        .then((result) => {
-          tinyThis.emit('dbTimelineInserted', result, data);
-          resolve(result);
-        })
-        .catch(reject);
-    });
+    return this._setDataTemplate('timeline', 'dbTimelineInserted', event);
   }
 
   addToTimeline(event) {
