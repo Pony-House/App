@@ -13,6 +13,8 @@ import { rule3 } from '@src/util/tools';
 import moment from '@src/util/libs/momentjs';
 import windowEvents from '@src/util/libs/window';
 
+import { setEventTimeline } from '@src/client/state/Timeline/functions';
+
 import initMatrix from '../../../client/initMatrix';
 import cons from '../../../client/state/cons';
 import navigation from '../../../client/state/navigation';
@@ -115,16 +117,6 @@ function renderEvent(
 function useTimeline(roomTimeline, eventId, readUptoEvtStore, eventLimitRef) {
   const [timelineInfo, setTimelineInfo] = useState(null);
 
-  const setEventTimeline = async (eId) => {
-    if (typeof eId === 'string') {
-      const isLoaded = await roomTimeline.loadEventTimeline(eId);
-      if (isLoaded) return;
-      // if eventTimeline failed to load,
-      // we will load live timeline as fallback.
-    }
-    roomTimeline.loadLiveTimeline();
-  };
-
   useEffect(() => {
     const limit = eventLimitRef.current;
     if (limit) {
@@ -157,7 +149,7 @@ function useTimeline(roomTimeline, eventId, readUptoEvtStore, eventLimitRef) {
       };
 
       roomTimeline.on(cons.events.roomTimeline.READY, initTimeline);
-      setEventTimeline(eventId);
+      setEventTimeline(roomTimeline, eventId);
       return () => {
         roomTimeline.removeListener(cons.events.roomTimeline.READY, initTimeline);
         limit.setFrom(0);

@@ -3,6 +3,16 @@ import attemptDecryption from '@src/util/libs/attemptDecryption';
 
 import settings from '../settings';
 
+export const setEventTimeline = async (roomTimeline, eId) => {
+  if (typeof eId === 'string') {
+    const isLoaded = await roomTimeline.loadEventTimeline(eId);
+    if (isLoaded) return;
+    // if eventTimeline failed to load,
+    // we will load live timeline as fallback.
+  }
+  roomTimeline.loadLiveTimeline();
+};
+
 export function isEdited(mEvent) {
   return mEvent.getRelation()?.rel_type === 'm.replace';
 }

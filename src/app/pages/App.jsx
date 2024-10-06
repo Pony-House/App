@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 
 import { isAuthenticated } from '@src/client/state/auth';
 
-import { startWeb3 } from '@src/./util/web3';
+import { startWeb3 } from '@src/util/web3';
 
 import Auth from '@src/app/templates/auth/Auth';
 import Client from '@src/app/templates/client/Client';

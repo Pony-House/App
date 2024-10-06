@@ -2,15 +2,16 @@ import EventEmitter from 'events';
 
 import storageManager from '@src/util/libs/Localstorage';
 
-import { Direction, MatrixEventEvent, RoomEvent, RoomMemberEvent } from 'matrix-js-sdk';
-import initMatrix from '../initMatrix';
-import cons from './cons';
+import { Direction, MatrixEventEvent, Room, RoomEvent, RoomMemberEvent } from 'matrix-js-sdk';
+import initMatrix from '../../initMatrix';
+import cons from '../cons';
 
-import { messageIsClassicCrdt } from '../../util/libs/crdt';
+import { messageIsClassicCrdt } from '../../../util/libs/crdt';
 
-import { updateRoomInfo } from '../action/navigation';
-import urlParams from '../../util/libs/urlParams';
-import tinyFixScrollChat from '../../app/molecules/media/mediaFix';
+import { updateRoomInfo } from '../../action/navigation';
+import urlParams from '../../../util/libs/urlParams';
+import tinyFixScrollChat from '../../../app/molecules/media/mediaFix';
+import { buildRoomTimeline, startRoomTimelineRefresh } from './GuestRoomTimeline';
 import {
   isEdited,
   isReaction,
@@ -22,13 +23,11 @@ import {
   isTimelineLinked,
   decryptAllEventsOfTimeline,
 } from './Timeline/functions';
-import installYjs from './Timeline/yjs';
 
 // Class
 class RoomTimeline extends EventEmitter {
-  constructor(roomId, roomAlias = null) {
+  constructor(roomId, roomAlias = null, isGuest = false, guestId = null, refreshTime = null) {
     super();
-    installYjs(this);
 
     // These are local timelines
     this.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
@@ -37,15 +36,24 @@ class RoomTimeline extends EventEmitter {
     this.reactionTimeline = new Map();
     this.typingMembers = new Set();
 
+    // Guest Data
+    this.isGuest = isGuest;
+    this.guestId = guestId;
+    this.refreshTime = refreshTime;
+
     // Client Prepare
     this.matrixClient = initMatrix.matrixClient;
     this.roomId = roomId;
     this.roomAlias = roomAlias;
 
-    this.room = this.matrixClient.getRoom(roomId);
-    this.room.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
+    this.room = !this.isGuest
+      ? this.matrixClient.getRoom(roomId)
+      : new Room(roomId, this.matrixClient, this.guestId, {
+          lazyLoadMembers: true,
+          timelineSupport: true,
+        });
 
-    this._consoleTag = `[timeline] [${roomId}]`;
+    this.room.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
 
     // Nothing! Tiny cancel time.
     if (this.room === null) {
@@ -61,13 +69,11 @@ class RoomTimeline extends EventEmitter {
     this.ongoingDecryptionCount = 0;
     this.initialized = false;
 
+    // Is Guest
+    if (this.isGuest) buildRoomTimeline(this);
+
     // Load Members
     setTimeout(() => this.room.loadMembersIfNeeded());
-
-    // Dev
-    if (__ENV_APP__.MODE === 'development') {
-      window.selectedRoom = this;
-    }
   }
 
   static newFromThread(threadId, roomId) {
@@ -86,15 +92,13 @@ class RoomTimeline extends EventEmitter {
   }
 
   isServingLiveTimeline() {
-    console.log(`${this._consoleTag} isServingLiveTimeline`);
     return getLastLinkedTimeline(this.activeTimeline) === this.liveTimeline;
   }
 
   canPaginateBackward() {
-    console.log(`${this._consoleTag} canPaginateBackward`);
     if (this.timeline[0]?.getType() === 'm.room.create') return false;
-    /* const tm = getFirstLinkedTimeline(this.activeTimeline);
-    return tm.getPaginationToken(Direction.Backward) !== null; */
+    const tm = getFirstLinkedTimeline(this.activeTimeline);
+    return tm.getPaginationToken(Direction.Backward) !== null;
   }
 
   canPaginateForward() {
@@ -112,8 +116,7 @@ class RoomTimeline extends EventEmitter {
 
   // Add to timeline
   addToTimeline(mEvent) {
-    console.log(`${this._consoleTag} addToTimeline`, mEvent);
-    /* const evType = mEvent.getType();
+    const evType = mEvent.getType();
     if (evType !== 'pony.house.crdt' && !messageIsClassicCrdt(mEvent)) {
       // Filter Room Member Event and Matrix CRDT Events
       if (evType === 'm.room.member' && hideMemberEvents(mEvent)) {
@@ -139,15 +142,10 @@ class RoomTimeline extends EventEmitter {
       // Timeline insert
       this.timeline.push(mEvent);
     }
-
-    // CRDT
-    else this.sendCrdtToTimeline(evType, mEvent); */
   }
 
   // Populate Functions
   _populateAllLinkedEvents(timeline) {
-    console.log(`${this._consoleTag} _populateAllLinkedEvents`, timeline);
-    /* 
     const firstTimeline = getFirstLinkedTimeline(timeline);
     iterateLinkedTimelines(firstTimeline, false, (tm) => {
       tm.getEvents().forEach((mEvent) => {
@@ -155,44 +153,36 @@ class RoomTimeline extends EventEmitter {
         return this.addToTimeline(mEvent);
       });
     });
-    */
   }
 
   _populateTimelines() {
-    console.log(`${this._consoleTag} _populateTimelines`);
-    /* 
     this.clearLocalTimelines();
     this._populateAllLinkedEvents(this.activeTimeline);
-    */
   }
 
   // Reset
   async _reset() {
-    console.log(`${this._consoleTag} _reset`);
-    /* if (this.isEncrypted()) await decryptAllEventsOfTimeline(this.activeTimeline);
+    if (this.isEncrypted()) await decryptAllEventsOfTimeline(this.activeTimeline);
     this._populateTimelines();
 
     if (!this.initialized) {
       this.initialized = true;
       this._listenEvents();
-    } */
+    }
   }
 
   // Load live timeline
   async loadLiveTimeline() {
-    console.log(`${this._consoleTag} loadLiveTimeline`);
-    /* this.activeTimeline = this.liveTimeline;
+    this.activeTimeline = this.liveTimeline;
     await this._reset();
     this.emit(cons.events.roomTimeline.READY, null);
     updateRoomInfo();
     return true;
-    */
   }
 
   // Load Event timeline
   async loadEventTimeline(eventId) {
-    console.log(`${this._consoleTag} loadEventTimeline ${eventId}`);
-    /* const timelineSet = this.getUnfilteredTimelineSet();
+    const timelineSet = this.getUnfilteredTimelineSet();
 
     try {
       const eventTimeline = await this.matrixClient.getEventTimeline(timelineSet, eventId);
@@ -209,13 +199,11 @@ class RoomTimeline extends EventEmitter {
       return true;
     } catch {
       return false;
-    } */
+    }
   }
 
   // Pagination
   async paginateTimeline(backwards = false, limit = 30) {
-    console.log(`${this._consoleTag} paginateTimeline`, backwards, limit);
-    /* 
     // Initialization
     if (this.initialized === false) return false;
     if (this.isOngoingPagination) return false;
@@ -265,22 +253,19 @@ class RoomTimeline extends EventEmitter {
       this.isOngoingPagination = false;
       return false;
     }
-    */
   }
 
-  // Has Event timeline ========================================================================================
+  // Has Event timeline
   hasEventInTimeline(eventId, timeline = this.activeTimeline) {
-    console.log(`${this._consoleTag} hasEventInTimeline`, eventId, timeline);
-    /* const timelineSet = this.getUnfilteredTimelineSet();
+    const timelineSet = this.getUnfilteredTimelineSet();
     const eventTimeline = timelineSet.getTimelineForEvent(eventId);
     if (!eventTimeline) return false;
-    return isTimelineLinked(eventTimeline, timeline); */
+    return isTimelineLinked(eventTimeline, timeline);
   }
 
   // Get without filter
   getUnfilteredTimelineSet() {
-    console.log(`${this._consoleTag} getUnfilteredTimelineSet`);
-    // return this.thread?.getUnfilteredTimelineSet() ?? this.room.getUnfilteredTimelineSet();
+    return this.thread?.getUnfilteredTimelineSet() ?? this.room.getUnfilteredTimelineSet();
   }
 
   // Get User renders
@@ -325,8 +310,7 @@ class RoomTimeline extends EventEmitter {
   }
 
   getUnreadEventIndex(readUpToEventId) {
-    console.log(`${this._consoleTag} getUnreadEventIndex`, readUpToEventId);
-    /* if (!this.hasEventInTimeline(readUpToEventId)) return -1;
+    if (!this.hasEventInTimeline(readUpToEventId)) return -1;
 
     const readUpToEvent = this.findEventByIdInTimelineSet(readUpToEventId);
     if (!readUpToEvent) return -1;
@@ -337,46 +321,39 @@ class RoomTimeline extends EventEmitter {
     for (let i = 0; i < tLength; i += 1) {
       const mEvent = this.timeline[i];
       if (mEvent.getTs() > rTs) return i;
-    } */
+    }
 
     return -1;
   }
 
   getReadUpToEventId() {
-    console.log(`${this._consoleTag} getReadUpToEventId`);
-    /* const userId = this.matrixClient.getUserId();
+    const userId = this.matrixClient.getUserId();
     if (!userId) return null;
 
-    return this.thread?.getEventReadUpTo(userId) ?? this.room.getEventReadUpTo(userId); */
+    return this.thread?.getEventReadUpTo(userId) ?? this.room.getEventReadUpTo(userId);
   }
 
   getEventIndex(eventId) {
-    console.log(`${this._consoleTag} getEventIndex`, eventId);
-    // return this.timeline.findIndex((mEvent) => mEvent.getId() === eventId);
+    return this.timeline.findIndex((mEvent) => mEvent.getId() === eventId);
   }
 
   findEventByIdInTimelineSet(eventId, eventTimelineSet = this.getUnfilteredTimelineSet()) {
-    console.log(`${this._consoleTag} findEventByIdInTimelineSet`, eventId, eventTimelineSet);
-    // return eventTimelineSet.findEventById(eventId);
+    return eventTimelineSet.findEventById(eventId);
   }
 
   findEventById(eventId) {
-    console.log(`${this._consoleTag} findEventById`, eventId);
-    // return this.timeline[this.getEventIndex(eventId)] ?? null;
+    return this.timeline[this.getEventIndex(eventId)] ?? null;
   }
 
   deleteFromTimeline(eventId) {
-    console.log(`${this._consoleTag} deleteFromTimeline`, eventId);
-    /* const i = this.getEventIndex(eventId);
+    const i = this.getEventIndex(eventId);
     if (i === -1) return undefined;
     return this.timeline.splice(i, 1)[0];
-    */
   }
 
   // Active Listens
   _listenEvents() {
-    console.log(`${this._consoleTag} _listenEvents`);
-    /* this._listenRoomTimeline = (event, room, data) => {
+    this._listenRoomTimeline = (event, room, data) => {
       if (room.roomId !== this.roomId || event.threadRootId !== this.threadId) return;
       if (this.isOngoingPagination) return;
 
@@ -486,12 +463,10 @@ class RoomTimeline extends EventEmitter {
     this.matrixClient.on(MatrixEventEvent.Decrypted, this._preListenDecryptEvent);
     this.matrixClient.on(RoomMemberEvent.Typing, this._listenTypingEvent);
     this.matrixClient.on(RoomEvent.Receipt, this._listenReciptEvent);
-    */
+    startRoomTimelineRefresh(this);
   }
 
   removeInternalListeners() {
-    console.log(`${this._consoleTag} _listenEvents`);
-    /*
     if (!this.initialized) return;
     this._disableYdoc();
 
@@ -500,7 +475,8 @@ class RoomTimeline extends EventEmitter {
     this.matrixClient.removeListener(MatrixEventEvent.Decrypted, this._preListenDecryptEvent);
     this.matrixClient.removeListener(RoomMemberEvent.Typing, this._listenTypingEvent);
     this.matrixClient.removeListener(RoomEvent.Receipt, this._listenReciptEvent);
-    */
+
+    if (this.refreshTimelineInterval) clearInterval(this.refreshTimelineInterval);
   }
 }
 

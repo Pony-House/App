@@ -105,33 +105,7 @@ function Room() {
             : objType(threadData, 'object')
               ? threadData.threadId
               : null;
-        if (
-          threadId &&
-          objType(threadData, 'object') &&
-          threadData.force &&
-          roomInfo.roomTimeline
-        ) {
-          const thread = threadId ? roomInfo.roomTimeline.room.getThread(threadId) : null;
-          if (thread) {
-            setIsLoading(true);
-            roomInfo.roomTimeline.matrixClient
-              .getThreadTimeline(thread.timelineSet, threadId)
-              .then(() => {
-                setIsLoading(false);
-                setRoomSelected(roomId, threadId, eventId, forceScroll);
-              })
-              .catch((err) => {
-                console.error(err);
-                alert(err.message, 'Thread Timeline Error');
-                setIsLoading(false);
-                setRoomSelected(roomId, threadId, eventId, forceScroll);
-              });
-          } else {
-            setRoomSelected(roomId, threadId, eventId, forceScroll);
-          }
-        } else {
-          setRoomSelected(roomId, threadId, eventId, forceScroll);
-        }
+        setRoomSelected(roomId, threadId, eventId, forceScroll);
       } else {
         // TODO: add ability to join room if roomId is invalid
         sendRoomInfo({

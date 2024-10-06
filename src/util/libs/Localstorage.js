@@ -40,8 +40,8 @@ class StorageManager extends EventEmitter {
         typeof checkpoint === 'string' && checkpoint.length > 0
           ? checkpoint
           : objType(this._timelineSyncCache[roomId], 'object') &&
-            typeof this._timelineSyncCache[roomId].last === 'string' &&
-            this._timelineSyncCache[roomId].last.length > 0
+              typeof this._timelineSyncCache[roomId].last === 'string' &&
+              this._timelineSyncCache[roomId].last.length > 0
             ? this._timelineSyncCache[roomId].last
             : null;
 
@@ -203,6 +203,24 @@ class StorageManager extends EventEmitter {
     });
   }
 
+  setTimeline(event) {
+    const tinyThis = this;
+    return new Promise((resolve, reject) => {
+      const data = tinyThis._eventFilter(event);
+      tinyThis.storeConnection
+        .insert({
+          into: 'timeline',
+          upsert: true,
+          values: [data],
+        })
+        .then((result) => {
+          tinyThis.emit('dbTimelineInserted', result, data);
+          resolve(result);
+        })
+        .catch(reject);
+    });
+  }
+
   addToTimeline(event) {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
@@ -224,18 +242,7 @@ class StorageManager extends EventEmitter {
           insertTypes[eventType]().then(resolve).catch(tinyReject);
         else {
           if (eventType === 'm.room.member') tinyThis.setMember(event);
-          tinyThis._eventFilter(event, data);
-          tinyThis.storeConnection
-            .insert({
-              into: 'timeline',
-              upsert: true,
-              values: [data],
-            })
-            .then((result) => {
-              tinyThis.emit('dbTimelineInserted', result, data);
-              resolve(result);
-            })
-            .catch(tinyReject);
+          tinyThis.setTimeline(event);
         }
       } catch (err) {
         tinyReject(err);

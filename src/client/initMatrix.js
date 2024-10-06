@@ -173,6 +173,9 @@ class InitMatrix extends EventEmitter {
       });
 
       this.supportExtendedProfiles = await this.matrixClient.doesServerSupportExtendedProfiles();
+      // getExtendedProfile(userId: string)
+      // getExtendedProfileProperty(userId: string, key: string)
+      // setExtendedProfileProperty(key: string, value: unknown)
 
       this.matrixClient.setGlobalErrorOnUnknownDevices(false);
       return { ready: true };
