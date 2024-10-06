@@ -183,6 +183,24 @@ class StorageManager extends EventEmitter {
     return this._setDataTemplate('timeline', 'dbTimelineInserted', event);
   }
 
+  deleteTimelineById(event) {
+    const tinyThis = this;
+    return new Promise((resolve, reject) => {
+      tinyThis.storeConnection;
+      remove({
+        from: 'timeline',
+        where: {
+          event_id: event.getId(),
+        },
+      })
+        .then((result) => {
+          tinyThis.emit('dbTimelineDeleted', result, data);
+          resolve(result);
+        })
+        .catch(reject);
+    });
+  }
+
   addToTimeline(event) {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
@@ -197,6 +215,7 @@ class StorageManager extends EventEmitter {
           'pony.house.crdt': () => tinyThis.setCrdt(event),
           'm.reaction': () => tinyThis.setReaction(event),
           'm.room.message': () => tinyThis.setMessage(event),
+          'm.room.encrypted': () => tinyThis.setMessage(event),
         };
 
         const eventType = event.getType();
