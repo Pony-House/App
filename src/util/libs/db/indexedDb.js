@@ -4,7 +4,7 @@ const versionUpdate = {
   // Version 6
   6: async (connection) => {
     // Get messages
-    connection
+    await connection
       .select({
         from: 'timeline',
         where: {
@@ -66,7 +66,7 @@ const versionUpdate = {
       });
 
     // Get crdt
-    connection
+    await connection
       .select({
         from: 'timeline',
         where: {
@@ -126,7 +126,7 @@ const versionUpdate = {
       });
 
     // Get reactions
-    connection
+    await connection
       .select({
         from: 'timeline',
         where: {
@@ -326,8 +326,12 @@ export const startDb = async (tinyThis) => {
   });
 
   if (isDbCreated) {
-    if (typeof versionUpdate[tinyThis._dbVersion] === 'function') {
-      await versionUpdate[tinyThis._dbVersion](tinyThis.storeConnection);
+    if (tinyThis._oldDbVersion !== 0) {
+      for (let i = tinyThis._oldDbVersion; i <= tinyThis._dbVersion; i++) {
+        if (typeof versionUpdate[i] === 'function') {
+          await versionUpdate[i](tinyThis.storeConnection);
+        }
+      }
     }
   }
 

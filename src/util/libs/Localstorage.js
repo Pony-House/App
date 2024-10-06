@@ -17,6 +17,7 @@ class StorageManager extends EventEmitter {
 
     // Db
     this._dbVersion = 7;
+    this._oldDbVersion = this.getNumber('ponyHouse-db-version') || 0;
     this.dbName = 'pony-house-database';
     this._timelineSyncCache = this.getJson('ponyHouse-timeline-sync', 'obj');
 
@@ -61,9 +62,12 @@ class StorageManager extends EventEmitter {
 
   async deleteRoomDb(roomId) {
     const where = { room_id: roomId };
-    const events = await this.storeConnection.remove({ from: 'timeline', where });
+    const timeline = await this.storeConnection.remove({ from: 'timeline', where });
+    const encrypted = await this.storeConnection.remove({ from: 'encrypted', where });
+    const messages = await this.storeConnection.remove({ from: 'messages', where });
+    const reactions = await this.storeConnection.remove({ from: 'reactions', where });
     const members = await this.storeConnection.remove({ from: 'members', where });
-    return { events, members };
+    return { timeline, encrypted, messages, reactions, members };
   }
 
   _eventFilter(event, data = {}, filter = {}) {
@@ -245,6 +249,8 @@ class StorageManager extends EventEmitter {
 
   async startPonyHouseDb() {
     const isDbCreated = await startDb(this);
+    this._oldDbVersion = this._dbVersion;
+    this.setNumber('ponyHouse-db-version', this._dbVersion);
     this.emit('isDbCreated', isDbCreated);
     return isDbCreated;
   }
