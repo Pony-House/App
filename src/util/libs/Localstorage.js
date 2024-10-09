@@ -137,7 +137,6 @@ class StorageManager extends EventEmitter {
   }
 
   _syncTimelineNext() {
-    console.log(this._syncTimelineCache);
     if (this._syncTimelineCache.data.length > 0) {
       const data = this._syncTimelineCache.data.shift();
       this._syncTimelineRun(data.room, data.checkpoint, data.timeline, data.firstTime);
