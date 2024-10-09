@@ -84,7 +84,12 @@ class StorageManager extends EventEmitter {
                 this._timelineSyncCache[roomId].lastEvent,
               );
 
-              this._syncTimelineCache.data.push({ room, checkpoint: null, timeline: tm });
+              this._syncTimelineCache.data.push({
+                roomId: roomId,
+                room,
+                checkpoint: null,
+                timeline: tm,
+              });
               this._syncTimelineNext();
             }
 
@@ -103,7 +108,12 @@ class StorageManager extends EventEmitter {
             );
             console.log(`[room-db-sync] [${roomId}] Next data by event id!`, checkPoint);
 
-            this._syncTimelineCache.data.push({ room, checkpoint: null, timeline: eTimeline });
+            this._syncTimelineCache.data.push({
+              roomId: roomId,
+              room,
+              checkpoint: null,
+              timeline: eTimeline,
+            });
             this._syncTimelineNext();
           }
 
@@ -140,7 +150,13 @@ class StorageManager extends EventEmitter {
   _syncTimeline(room, checkpoint = null, timeline = null) {
     if (room && typeof room.roomId === 'string') {
       if (this._syncTimelineCache.using) {
-        this._syncTimelineCache.data.push({ room, checkpoint, timeline, firstTime: true });
+        this._syncTimelineCache.data.push({
+          roomId: room.roomId,
+          room,
+          checkpoint,
+          timeline,
+          firstTime: true,
+        });
       } else {
         this._syncTimelineCache.using = true;
         this._syncTimelineRun(room, checkpoint, timeline, true);
@@ -154,6 +170,13 @@ class StorageManager extends EventEmitter {
 
   async deleteRoomDb(roomId) {
     const where = { room_id: roomId };
+
+    let index = this._syncTimelineCache.data.findIndex((item) => item.roomId === roomId);
+    while (index > -1) {
+      this._syncTimelineCache.data.splice(index, 1);
+      index = this._syncTimelineCache.data.findIndex((item) => item.roomId === roomId);
+    }
+
     const timeline = await this.storeConnection.remove({ from: 'timeline', where });
     const encrypted = await this.storeConnection.remove({ from: 'encrypted', where });
     const messages = await this.storeConnection.remove({ from: 'messages', where });
