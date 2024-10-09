@@ -1,5 +1,6 @@
 import EventEmitter from 'events';
 import { Direction } from 'matrix-js-sdk';
+import clone from 'clone';
 
 import { objType } from 'for-promise/utils/lib.mjs';
 
@@ -8,7 +9,8 @@ import { decryptAllEventsOfTimeline } from '@src/client/state/Timeline/functions
 
 import { startDb } from './db/indexedDb';
 
-const SYNC_TIMELINE_DOWNLOAD_LIMIT = 50;
+const SYNC_TIMELINE_DOWNLOAD_LIMIT = 100;
+const SYNC_TIMELINE_DELAY = 5000;
 
 class StorageManager extends EventEmitter {
   constructor() {
@@ -32,26 +34,76 @@ class StorageManager extends EventEmitter {
     });
   }
 
+  // Sync Timeline
   async _syncTimeline(room, checkpoint = null, timeline = null) {
-    if (room && typeof room.roomId === 'string') {
-      const tm = timeline || room.getLiveTimeline();
-      const roomId = room.roomId;
+    try {
+      // Prepare data
+      if (room && typeof room.roomId === 'string') {
+        const mx = initMatrix.matrixClient;
+        const tm = timeline || room.getLiveTimeline();
+        if (room.hasEncryptionStateEvent()) await decryptAllEventsOfTimeline(tm);
+        const roomId = room.roomId;
 
-      const checkPoint =
-        typeof checkpoint === 'string' && checkpoint.length > 0
-          ? checkpoint
-          : objType(this._timelineSyncCache[roomId], 'object') &&
-              typeof this._timelineSyncCache[roomId].last === 'string' &&
-              this._timelineSyncCache[roomId].last.length > 0
-            ? this._timelineSyncCache[roomId].last
-            : null;
+        // Get checkpoint
+        const lastEventId = objType(this._timelineSyncCache[roomId], 'object') &&
+          typeof this._timelineSyncCache[roomId].lastEvent === 'string' &&
+          this._timelineSyncCache[roomId].lastEvent.length > 0
+          ? this._timelineSyncCache[roomId].lastEvent
+          : null;
 
-      /*
-        await initMatrix.paginateEventTimeline(tm, { backwards: Direction.Forward, limit: SYNC_TIMELINE_DOWNLOAD_LIMIT });
+        const checkPoint =
+          !timeline && typeof checkpoint === 'string' && checkpoint.length > 0
+            ? checkpoint
+            : lastEventId;
 
-              // Decrypt time
-        if (room.hasEncryptionStateEvent()) await decryptAllEventsOfTimeline(this.activeTimeline);
-      */
+        const events = tm.getEvents();
+        if (Array.isArray(events) && events.length > 0) {
+          this._timelineSyncCache[roomId] = { lastEvent: events[0].getId() };
+          for (const item in events) {
+            this.addToTimeline(events[item]);
+          }
+        }
+
+        // Next checkpoint
+        if (!checkPoint) {
+          // Next Timeline
+          const nextTimelineToken = tm.getPaginationToken(Direction.Backward);
+
+          // Validator
+          if (nextTimelineToken && lastEventId !== this._timelineSyncCache[roomId].lastEvent) {
+            this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
+
+            // Next page
+            await mx.paginateEventTimeline(tm, {
+              backwards: Direction.Forward,
+              limit: SYNC_TIMELINE_DOWNLOAD_LIMIT,
+            });
+
+            console.log(`[room-db-sync] [${roomId}] Next data!`, this._timelineSyncCache[roomId].lastEvent);
+            await new Promise((resolve) => setTimeout(() => resolve(), SYNC_TIMELINE_DELAY));
+            return this._syncTimeline(room, null, tm);
+          }
+
+          // Complete
+          else console.log(`[room-db-sync] [${roomId}] Complete!`);
+        }
+
+        // Next event id
+        else if (lastEventId !== this._timelineSyncCache[roomId].lastEvent) {
+          const eTimeline = await mx.getEventTimeline(room.getUnfilteredTimelineSet(), checkPoint);
+          console.log(`[room-db-sync] [${roomId}] Next data by event id!`, checkPoint);
+          await new Promise((resolve) => setTimeout(() => resolve(), SYNC_TIMELINE_DELAY));
+          return this._syncTimeline(room, null, eTimeline);
+        }
+
+        // Complete
+        else console.log(`[room-db-sync] [${roomId}] Complete!`);
+      }
+
+      // Error
+      else throw new Error(`[room-db-sync] [${roomId}] No room found to sync in the indexedDb!`);
+    } catch (err) {
+      console.error(err);
     }
     return null;
   }
@@ -79,8 +131,8 @@ class StorageManager extends EventEmitter {
     if (filter.type !== false) data.type = event.getType();
     if (filter.sender !== false) data.sender = event.getSender();
     if (filter.room_id !== false) data.room_id = event.getRoomId();
-    if (filter.content !== false) data.content = event.getContent();
-    if (filter.unsigned !== false) data.unsigned = event.getUnsigned();
+    if (filter.content !== false) data.content = clone(event.getContent());
+    if (filter.unsigned !== false) data.unsigned = clone(event.getUnsigned());
     if (filter.redaction !== false) data.redaction = event.isRedaction();
 
     if (filter.thread_id !== false && typeof threadId === 'string') data.thread_id = threadId;
@@ -155,8 +207,8 @@ class StorageManager extends EventEmitter {
 
   _setDataTemplate = (dbName, dbEvent, event, filter = {}) => {
     const tinyThis = this;
+    const data = tinyThis._eventFilter(event, {}, filter);
     return new Promise((resolve, reject) => {
-      const data = tinyThis._eventFilter(event, {}, filter);
       tinyThis.storeConnection
         .insert({
           into: dbName,
