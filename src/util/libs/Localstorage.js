@@ -36,6 +36,19 @@ class StorageManager extends EventEmitter {
 
   // Sync Timeline
   async _syncTimelineRun(room, checkpoint = null, timeline = null, firstTime = false) {
+    const tinyThis = this;
+    const loadComplete = (roomId, checkPoint, lastEventId, err) => {
+      tinyThis.emit('dbTimelineLoaded', {
+        roomId,
+        firstTime,
+        checkPoint,
+        lastEventId,
+        err,
+      });
+
+      tinyThis._syncTimelineNext();
+    };
+
     try {
       // Prepare data
       if (room && typeof room.roomId === 'string') {
@@ -90,13 +103,13 @@ class StorageManager extends EventEmitter {
                 checkpoint: null,
                 timeline: tm,
               });
-              this._syncTimelineNext();
+              loadComplete(roomId, checkPoint, lastEventId);
             }
 
             // Complete
             else {
               console.log(`[room-db-sync] [${roomId}] Complete!`);
-              this._syncTimelineNext();
+              loadComplete(roomId, checkPoint, lastEventId);
             }
           }
 
@@ -114,17 +127,17 @@ class StorageManager extends EventEmitter {
               checkpoint: null,
               timeline: eTimeline,
             });
-            this._syncTimelineNext();
+            loadComplete(roomId, checkPoint, lastEventId);
           }
 
           // Complete
           else {
             console.log(`[room-db-sync] [${roomId}] Complete!`);
-            this._syncTimelineNext();
+            loadComplete(roomId, checkPoint, lastEventId);
           }
         } else {
           console.log(`[room-db-sync] [${roomId}] Complete!`);
-          this._syncTimelineNext();
+          loadComplete(roomId, checkPoint, lastEventId);
         }
       }
 
@@ -132,14 +145,28 @@ class StorageManager extends EventEmitter {
       else throw new Error(`[room-db-sync] [${roomId}] No room found to sync in the indexedDb!`);
     } catch (err) {
       console.error(err);
-      this._syncTimelineNext();
+      loadComplete(null, null, null, err);
     }
   }
 
   _syncTimelineNext() {
     if (this._syncTimelineCache.data.length > 0) {
       const data = this._syncTimelineCache.data.shift();
-      this._syncTimelineRun(data.room, data.checkpoint, data.timeline, data.firstTime);
+      if (
+        typeof __ENV_APP__.TIMELINE_TIMEOUT !== 'number' ||
+        !Number.isFinite(__ENV_APP__.TIMELINE_TIMEOUT) ||
+        Number.isNaN(__ENV_APP__.TIMELINE_TIMEOUT) ||
+        __ENV_APP__.TIMELINE_TIMEOUT <= 0
+      )
+        this._syncTimelineRun(data.room, data.checkpoint, data.timeline, data.firstTime);
+      else {
+        const tinyThis = this;
+        setTimeout(
+          () =>
+            tinyThis._syncTimelineRun(data.room, data.checkpoint, data.timeline, data.firstTime),
+          __ENV_APP__.TIMELINE_TIMEOUT,
+        );
+      }
     } else {
       console.log(`[room-db-sync] All complete!`);
       this._syncTimelineCache.using = false;
