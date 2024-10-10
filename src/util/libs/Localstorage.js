@@ -59,10 +59,10 @@ class StorageManager extends EventEmitter {
         err,
       };
 
-      tinyThis.emit('dbTimelineLoaded', tinyData);
+      tinyThis.emit('dbTimelineLoaded', tinyData, eventId);
       if (typeof eventId === 'string')
         tinyThis.emit(`dbTimelineLoaded-${roomId}-${eventId}`, tinyData);
-      tinyThis.emit(`dbTimelineLoaded-${roomId}`, tinyData);
+      tinyThis.emit(`dbTimelineLoaded-${roomId}`, tinyData, eventId);
       tinyThis._syncTimelineNext();
     };
 

@@ -2,7 +2,7 @@ import EventEmitter from 'events';
 
 import storageManager from '@src/util/libs/Localstorage';
 
-import { Direction, RoomMemberEvent } from 'matrix-js-sdk';
+import { Direction } from 'matrix-js-sdk';
 import initMatrix from '../initMatrix';
 import cons from './cons';
 
@@ -32,6 +32,8 @@ class RoomTimeline extends EventEmitter {
     this.matrixClient = initMatrix.matrixClient;
     this.roomId = roomId;
     this.roomAlias = roomAlias;
+
+    this.timeline = [];
 
     this.room = this.matrixClient.getRoom(roomId);
     this.room.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
@@ -63,6 +65,12 @@ class RoomTimeline extends EventEmitter {
     // More data
     this.isOngoingPagination = false;
 
+    // Prepare events
+    storageManager.on('dbMessage', this._onMessage);
+    storageManager.on('dbReaction', this.onReaction);
+    storageManager.on('dbTimeline', this._onTimeline);
+    storageManager.once(`dbTimelineLoaded-${roomId}`, this._startTimeline);
+
     // Load Members
     setTimeout(() => this.room.loadMembersIfNeeded());
   }
@@ -70,7 +78,6 @@ class RoomTimeline extends EventEmitter {
   // Load live timeline
   async loadLiveTimeline() {
     this.activeTimeline = this.liveTimeline;
-    this.emit(cons.events.roomTimeline.READY, null);
     storageManager.syncTimeline(this.roomId);
     updateRoomInfo();
     return true;
@@ -79,7 +86,6 @@ class RoomTimeline extends EventEmitter {
   // Load Event timeline
   async loadEventTimeline(eventId) {
     try {
-      this.emit(cons.events.roomTimeline.READY, eventId);
       storageManager.syncTimeline(this.roomId, eventId);
       if (typeof eventId === 'string' && eventId.length > 0) urlParams.set('event_id', eventId);
       else urlParams.delete('event_id');
@@ -89,46 +95,59 @@ class RoomTimeline extends EventEmitter {
     }
   }
 
+  // Getting events
+  _startTimeline(data, eventId) {
+    this.emit(cons.events.roomTimeline.READY, eventId || null);
+  }
+
+  _onMessage(r, event) {
+    // const rEvent = this.deleteFromTimeline(mEvent.event.redacts);
+    // this.emit(cons.events.roomTimeline.EVENT_REDACTED, rEvent, mEvent);
+    // this.emit(cons.events.roomTimeline.EVENT, event);
+  }
+
+  onReaction(r, event) {
+    // const rEvent = this.deleteFromTimeline(mEvent.event.redacts);
+    // this.emit(cons.events.roomTimeline.EVENT_REDACTED, rEvent, mEvent);
+    // this.emit(cons.events.roomTimeline.EVENT, event);
+  }
+
+  _onTimeline(r, event) {
+    // const rEvent = this.deleteFromTimeline(mEvent.event.redacts);
+    // this.emit(cons.events.roomTimeline.EVENT_REDACTED, rEvent, mEvent);
+    // this.emit(cons.events.roomTimeline.EVENT, event);
+  }
+
   // Pagination
   async paginateTimeline(backwards = false, limit = 30) {
-    console.log(`${this._consoleTag} paginateTimeline`, backwards, limit);
-    /* 
     // Initialization
     if (this.isOngoingPagination) return false;
 
     this.isOngoingPagination = true;
 
-    // Get timeline
-    const timelineToPaginate = backwards
-      ? getFirstLinkedTimeline(this.activeTimeline)
-      : getLastLinkedTimeline(this.activeTimeline);
-
     // Token Type
-    if (
+    /* if (
       timelineToPaginate.getPaginationToken(backwards ? Direction.Backward : Direction.Forward) ===
       null
     ) {
       this.emit(cons.events.roomTimeline.PAGINATED, backwards, 0);
       this.isOngoingPagination = false;
       return false;
-    }
+    } */
 
     // Old Size
-    const oldSize = this.timeline.length;
+    // const oldSize = this.timeline.length;
 
     // Try time
     try {
       // Paginate time
-      await this.matrixClient.paginateEventTimeline(timelineToPaginate, { backwards, limit });
-
-      // Decrypt time
-      if (this.isEncrypted()) await decryptAllEventsOfTimeline(this.activeTimeline);
+      // await this.matrixClient.paginateEventTimeline(timelineToPaginate, { backwards, limit });
 
       // Loaded Check
-      const loaded = this.timeline.length - oldSize;
+      // const loaded = this.timeline.length - oldSize;
 
       // Complete
-      this.emit(cons.events.roomTimeline.PAGINATED, backwards, loaded);
+      // this.emit(cons.events.roomTimeline.PAGINATED, backwards, loaded);
       this.isOngoingPagination = false;
 
       updateRoomInfo();
@@ -136,11 +155,10 @@ class RoomTimeline extends EventEmitter {
       return true;
     } catch {
       // Error
-      this.emit(cons.events.roomTimeline.PAGINATED, backwards, 0);
+      // this.emit(cons.events.roomTimeline.PAGINATED, backwards, 0);
       this.isOngoingPagination = false;
       return false;
     }
-    */
   }
 
   // Get User renders
@@ -252,6 +270,9 @@ class RoomTimeline extends EventEmitter {
 
   removeInternalListeners() {
     this._disableYdoc();
+    storageManager.on('dbMessage', this._onMessage);
+    storageManager.on('dbReaction', this.onReaction);
+    storageManager.on('dbTimeline', this._onTimeline);
   }
 }
 
