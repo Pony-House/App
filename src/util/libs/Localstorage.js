@@ -38,14 +38,16 @@ class StorageManager extends EventEmitter {
   async _syncTimelineRun(room, checkpoint = null, timeline = null, firstTime = false) {
     const tinyThis = this;
     const loadComplete = (roomId, checkPoint, lastEventId, err) => {
-      tinyThis.emit('dbTimelineLoaded', {
+      const tinyData = {
         roomId,
         firstTime,
         checkPoint,
         lastEventId,
         err,
-      });
+      };
 
+      tinyThis.emit('dbTimelineLoaded', tinyData);
+      tinyThis.emit(`dbTimelineLoaded-${roomId}`, tinyData);
       tinyThis._syncTimelineNext();
     };
 
@@ -244,7 +246,7 @@ class StorageManager extends EventEmitter {
       const data = {};
       const tinyReject = (err) => {
         console.log('[indexed-db] ERROR SAVING MEMBER DATA!', data);
-        tinyThis.emit('dbMemberInserted-Error', err, data);
+        tinyThis.emit('dbMember-Error', err, data);
         reject(err);
       };
       try {
@@ -281,7 +283,7 @@ class StorageManager extends EventEmitter {
                   values: [data],
                 })
                 .then((result) => {
-                  tinyThis.emit('dbMemberInserted', result, data);
+                  tinyThis.emit('dbMember', result, data);
                   resolve(result);
                 })
                 .catch(tinyReject);
@@ -331,19 +333,19 @@ class StorageManager extends EventEmitter {
   };
 
   setCrdt(event) {
-    return this._setDataTemplate('crdt', 'dbCrdtInserted', event);
+    return this._setDataTemplate('crdt', 'dbCrdt', event);
   }
 
   setReaction(event) {
-    return this._setDataTemplate('reactions', 'dbReactionInserted', event);
+    return this._setDataTemplate('reactions', 'dbReaction', event);
   }
 
   setMessage(event) {
-    return this._setDataTemplate('messages', 'dbMessageInserted', event);
+    return this._setDataTemplate('messages', 'dbMessage', event);
   }
 
   setEncrypted(event) {
-    return this._setDataTemplate('encrypted', 'dbEncryptedInserted', event);
+    return this._setDataTemplate('encrypted', 'dbEncrypted', event);
   }
 
   deleteEncryptedById(event) {
@@ -351,7 +353,7 @@ class StorageManager extends EventEmitter {
   }
 
   setTimeline(event) {
-    return this._setDataTemplate('timeline', 'dbTimelineInserted', event);
+    return this._setDataTemplate('timeline', 'dbTimeline', event);
   }
 
   deleteTimelineById(event) {
@@ -364,7 +366,7 @@ class StorageManager extends EventEmitter {
       const data = {};
       const tinyReject = (err) => {
         console.log('[indexed-db] ERROR SAVING TIMELINE DATA!', data);
-        tinyThis.emit('dbTimelineInserted-Error', err, data);
+        tinyThis.emit('dbTimeline-Error', err, data);
         reject(err);
       };
       try {
