@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import { RoomEvent } from 'matrix-js-sdk';
 
 import initMatrix from '../../../client/initMatrix';
 import cons from '../../../client/state/cons';
@@ -23,10 +24,30 @@ function FollowingMembers({ roomTimeline }) {
       setFollowingMembers(roomTimeline.getLiveReaders());
     };
     updateFollowingMembers();
-    roomTimeline.on(cons.events.roomTimeline.LIVE_RECEIPT, updateFollowingMembers);
+
+    const listenReciptEvent = (event, room) => {
+      // we only process receipt for latest message here.
+      if (room.roomId !== roomId) return;
+      const receiptContent = event.getContent();
+
+      const mEvents = roomTimeline.getEvents();
+      const lastMEvent = mEvents[mEvents.length - 1];
+
+      if (lastMEvent) {
+        const lastEventId = lastMEvent.getId();
+        const lastEventRecipt = receiptContent[lastEventId];
+
+        if (typeof lastEventRecipt === 'undefined') return;
+        if (lastEventRecipt['m.read']) {
+          updateFollowingMembers();
+        }
+      }
+    };
+
+    mx.on(RoomEvent.Receipt, listenReciptEvent);
     if (roomsInput) roomsInput.on(cons.events.roomsInput.MESSAGE_SENT, handleOnMessageSent);
     return () => {
-      roomTimeline.removeListener(cons.events.roomTimeline.LIVE_RECEIPT, updateFollowingMembers);
+      mx.off(RoomEvent.Receipt, listenReciptEvent);
       if (roomsInput)
         roomsInput.removeListener(cons.events.roomsInput.MESSAGE_SENT, handleOnMessageSent);
     };

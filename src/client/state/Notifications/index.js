@@ -24,7 +24,6 @@ import { updateName } from '../../../util/roomName';
 
 import { html, plain } from '../../../util/markdown';
 import { getAccountStatus } from '../../../app/organisms/navigation/ProfileAvatarMenu';
-import { messageIsClassicCrdt } from '../../../util/libs/crdt';
 import favIconManager from '../../../util/libs/favicon';
 import { getPrivacyRefuseRoom } from '../../../app/organisms/navigation/Sidebar/InviteSidebar';
 // import { insertEvent } from '../eventsDelay';
@@ -507,11 +506,6 @@ class Notifications extends EventEmitter {
       let highlight = 0;
       let stopNotification = false;
 
-      // Is Classic Crdt
-      if (messageIsClassicCrdt(mEvent)) {
-        stopNotification = true;
-      }
-
       // Is Space
       if (!stopNotification && room.isSpaceRoom()) {
         stopNotification = true;
@@ -613,6 +607,10 @@ class Notifications extends EventEmitter {
       insertEvent(() => this._listenRoomTimeline(mEvent, room)),
     );
     */
+
+    this.matrixClient.on(RoomEvent.Redaction, (mEvent) => {
+      storageManager.addToTimeline(mEvent);
+    });
 
     this.matrixClient.on(ClientEvent.AccountData, (mEvent, oldMEvent) => {
       if (mEvent.getType() === 'm.push_rules') {

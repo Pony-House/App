@@ -10,6 +10,8 @@ import { getClientYjs, enableyJsItem } from './functions';
 const delayYdocUpdate = 100;
 const hashTryLimit = 10;
 
+const crdtEvent = 'pony.house.crdt';
+
 if (__ENV_APP__.MODE === 'development') {
   global.Y = Y;
 }
@@ -36,12 +38,12 @@ export default function installYjs(tinyThis) {
     init_cache: [],
   };
 
-  tinyThis.sendCrdtToTimeline = function (evType, mEvent) {
+  tinyThis.sendCrdtToTimeline = function (mEvent) {
     // CRDT
     if (tinyThis._ydoc.initialized) {
-      tinyThis.addCrdtToTimeline(evType, mEvent);
+      tinyThis.addCrdtToTimeline(mEvent);
     } else {
-      tinyThis._ydoc.init_cache.push({ evType, mEvent });
+      tinyThis._ydoc.init_cache.push(mEvent);
     }
   };
 
@@ -243,54 +245,49 @@ export default function installYjs(tinyThis) {
   };
 
   // Add CRDT to timeline
-  tinyThis.addCrdtToTimeline = function (evType, mEvent) {
-    if (evType === 'pony.house.crdt') {
-      const content = mEvent.getContent();
-      if (objType(content, 'object')) {
-        // Content Type
-        if (typeof content.store === 'string' && content.store.length > 0) {
-          if (!Array.isArray(tinyThis.crdt[content.store])) tinyThis.crdt[content.store] = [];
-          tinyThis.crdt[content.store].push(mEvent);
+  tinyThis.addCrdtToTimeline = function (mEvent) {
+    const { content, origin_server_ts } = mEvent;
+    if (objType(content, 'object')) {
+      // Content Type
+      if (typeof content.store === 'string' && content.store.length > 0) {
+        if (!Array.isArray(tinyThis.crdt[content.store])) tinyThis.crdt[content.store] = [];
+        tinyThis.crdt[content.store].push(mEvent);
+      }
+
+      // Classic values
+      else {
+        if (!Array.isArray(tinyThis.crdt.DEFAULT)) tinyThis.crdt.DEFAULT = [];
+        tinyThis.crdt.DEFAULT.push(mEvent);
+      }
+
+      // Send to Crdt
+      const eventDate = moment(origin_server_ts);
+
+      // No Reset
+      if (!content.resetAll) {
+        // Single
+        if (!Array.isArray(content.multiData)) {
+          tinyThis._addCrdt(content, eventDate.toDate());
         }
 
-        // Classic values
+        // Multi
         else {
-          if (!Array.isArray(tinyThis.crdt.DEFAULT)) tinyThis.crdt.DEFAULT = [];
-          tinyThis.crdt.DEFAULT.push(mEvent);
-        }
-
-        // Send to Crdt
-        const eventDate = moment(mEvent.getDate());
-
-        // No Reset
-        if (!content.resetAll) {
-          // Single
-          if (!Array.isArray(content.multiData)) {
-            tinyThis._addCrdt(content, eventDate.toDate());
-          }
-
-          // Multi
-          else {
-            for (const item in content.multiData) {
-              if (objType(content.multiData[item], 'object')) {
-                tinyThis._addCrdt(
-                  content.multiData[item],
-                  eventDate.clone().add(Number(item), 'seconds').toDate(),
-                );
-              }
+          for (const item in content.multiData) {
+            if (objType(content.multiData[item], 'object')) {
+              tinyThis._addCrdt(
+                content.multiData[item],
+                eventDate.clone().add(Number(item), 'seconds').toDate(),
+              );
             }
           }
         }
-
-        // Reset
-        else {
-          tinyThis._disableYdoc();
-          tinyThis._ydocEnable(new Y.Doc());
-        }
       }
-    } else {
-      if (!Array.isArray(tinyThis.crdt.CLASSIC)) tinyThis.crdt.CLASSIC = [];
-      tinyThis.crdt.CLASSIC.push(mEvent);
+
+      // Reset
+      else {
+        tinyThis._disableYdoc();
+        tinyThis._ydocEnable(new Y.Doc());
+      }
     }
   };
 
@@ -311,7 +308,7 @@ export default function installYjs(tinyThis) {
 
   tinyThis.getCrdtIndex = function (eventId, where = 'DEFAULT') {
     if (Array.isArray(tinyThis.crdt[where])) {
-      return tinyThis.crdt[where].findIndex((mEvent) => mEvent.getId() === eventId);
+      return tinyThis.crdt[where].findIndex((mEvent) => mEvent.event_id === eventId);
     }
   };
 
@@ -350,7 +347,7 @@ export default function installYjs(tinyThis) {
           tinyThis._ydoc.sending_event = true;
 
           tinyThis.matrixClient
-            .sendEvent(tinyThis.roomId, 'pony.house.crdt', newData)
+            .sendEvent(tinyThis.roomId, crdtEvent, newData)
             .then(() => {
               tinyThis._ydoc.sending_event = false;
               tinyThis._ydoc.error_hash = null;
@@ -396,7 +393,7 @@ export default function installYjs(tinyThis) {
         tinyThis._ydoc.sending_event = true;
 
         tinyThis.matrixClient
-          .sendEvent(tinyThis.roomId, 'pony.house.crdt', newData)
+          .sendEvent(tinyThis.roomId, crdtEvent, newData)
           .then(() => {
             tinyThis._ydoc.sending_event = false;
             tinyThis._ydoc.error_hash = null;
@@ -423,7 +420,7 @@ export default function installYjs(tinyThis) {
         tinyThis._ydoc.sending_event = true;
 
         tinyThis.matrixClient
-          .sendEvent(tinyThis.roomId, 'pony.house.crdt', newData)
+          .sendEvent(tinyThis.roomId, crdtEvent, newData)
           .then(() => {
             tinyThis._ydoc.sending_event = false;
             tinyThis._ydoc.error_hash = null;
@@ -450,7 +447,7 @@ export default function installYjs(tinyThis) {
         tinyThis._ydoc.sending_event = true;
 
         tinyThis.matrixClient
-          .sendEvent(tinyThis.roomId, 'pony.house.crdt', newData)
+          .sendEvent(tinyThis.roomId, crdtEvent, newData)
           .then(() => {
             tinyThis._ydoc.sending_event = false;
             tinyThis._ydoc.error_hash = null;
@@ -477,7 +474,7 @@ export default function installYjs(tinyThis) {
         tinyThis._ydoc.sending_event = true;
 
         tinyThis.matrixClient
-          .sendEvent(tinyThis.roomId, 'pony.house.crdt', newData)
+          .sendEvent(tinyThis.roomId, crdtEvent, newData)
           .then(() => {
             tinyThis._ydoc.sending_event = false;
             tinyThis._ydoc.error_hash = null;
@@ -638,14 +635,14 @@ export default function installYjs(tinyThis) {
       const initLength = tinyThis._ydoc.init_cache.length;
       if (initLength > 0) {
         for (let i = 0; i < initLength; i++) {
-          let initData;
+          let mEvent;
           try {
-            initData = tinyThis._ydoc.init_cache.shift();
+            mEvent = tinyThis._ydoc.init_cache.shift();
           } catch {
-            initData = null;
+            mEvent = null;
           }
 
-          if (initData) tinyThis.addCrdtToTimeline(initData.evType, initData.mEvent);
+          if (mEvent) tinyThis.addCrdtToTimeline(mEvent);
         }
       }
     }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import $ from 'jquery';
+import { RoomMemberEvent } from 'matrix-js-sdk';
 
 import initMatrix from '../../../client/initMatrix';
 import cons from '../../../client/state/cons';
@@ -48,18 +49,26 @@ function useJumpToEvent(roomTimeline) {
 
 function useTypingMembers(roomTimeline) {
   const [typingMembers, setTypingMembers] = useState(new Set());
+  const mx = initMatrix.matrixClient;
 
   const updateTyping = (members) => {
-    const mx = initMatrix.matrixClient;
     members.delete(mx.getUserId());
     setTypingMembers(members);
   };
 
   useEffect(() => {
     setTypingMembers(new Set());
-    roomTimeline.on(cons.events.roomTimeline.TYPING_MEMBERS_UPDATED, updateTyping);
+    const listenTypingEvent = (event, member) => {
+      if (member.roomId !== this.roomId) return;
+      // const isTyping = member.typing;
+      // if (isTyping) typingMembers.add(member.userId);
+      // else typingMembers.delete(member.userId);
+      updateTyping(new Set([...this.typingMembers]));
+    };
+
+    mx.on(RoomMemberEvent.Typing, listenTypingEvent);
     return () => {
-      roomTimeline?.removeListener(cons.events.roomTimeline.TYPING_MEMBERS_UPDATED, updateTyping);
+      mx.off(RoomMemberEvent.Typing, listenTypingEvent);
     };
   }, [roomTimeline]);
 
