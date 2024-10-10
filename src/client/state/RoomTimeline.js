@@ -56,13 +56,9 @@ class RoomTimeline extends EventEmitter {
 
     // Load Members
     setTimeout(() => this.room.loadMembersIfNeeded());
-
-    // Dev
-    if (__ENV_APP__.MODE === 'development') {
-      window.selectedRoom = this;
-    }
   }
 
+  // Read thread
   static newFromThread(threadId, roomId) {
     const roomTimeline = new RoomTimeline(roomId);
     roomTimeline.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
@@ -154,15 +150,6 @@ class RoomTimeline extends EventEmitter {
     */
   }
 
-  // Has Event timeline
-  hasEventInTimeline(eventId, timeline = this.activeTimeline) {
-    console.log(`${this._consoleTag} hasEventInTimeline`, eventId, timeline);
-    /* const timelineSet = this.getUnfilteredTimelineSet();
-    const eventTimeline = timelineSet.getTimelineForEvent(eventId);
-    if (!eventTimeline) return false;
-    return isTimelineLinked(eventTimeline, timeline); */
-  }
-
   // Get User renders
   getEventReaders(mEvent) {
     const liveEvents = this.liveTimeline.getEvents();
@@ -204,9 +191,20 @@ class RoomTimeline extends EventEmitter {
     return this.getEventReaders(getLatestVisibleEvent());
   }
 
+  //////////////////// Has Event timeline
+  hasEventInTimeline(eventId, timeline = this.activeTimeline) {
+    console.log(`${this._consoleTag} hasEventInTimeline`, eventId, timeline);
+    const timelineSet = this.getUnfilteredTimelineSet();
+    const eventTimeline = timelineSet.getTimelineForEvent(eventId);
+    if (!eventTimeline) return false;
+    return isTimelineLinked(eventTimeline, timeline);
+  }
+
+  ///////////////////////////////////////
+  // Get Event data
   getUnreadEventIndex(readUpToEventId) {
     console.log(`${this._consoleTag} getUnreadEventIndex`, readUpToEventId);
-    /* if (!this.hasEventInTimeline(readUpToEventId)) return -1;
+    if (!this.hasEventInTimeline(readUpToEventId)) return -1;
 
     const readUpToEvent = this.findEventByIdInTimelineSet(readUpToEventId);
     if (!readUpToEvent) return -1;
@@ -217,12 +215,12 @@ class RoomTimeline extends EventEmitter {
     for (let i = 0; i < tLength; i += 1) {
       const mEvent = this.timeline[i];
       if (mEvent.getTs() > rTs) return i;
-    } */
+    }
 
     return -1;
   }
 
-  // Get without filter
+  // Simpler scripts
   getUnfilteredTimelineSet() {
     return this.thread?.getUnfilteredTimelineSet() ?? this.room.getUnfilteredTimelineSet();
   }
