@@ -35,7 +35,7 @@ class StorageManager extends EventEmitter {
   }
 
   // Sync Timeline
-  async _syncTimelineRun(room, checkpoint = null, timeline = null, firstTime = false) {
+  async _syncTimelineRun(room, eventId, checkpoint = null, timeline = null, firstTime = false) {
     const tinyThis = this;
     const loadComplete = (roomId, checkPoint, lastEventId, err) => {
       const tinyData = {
@@ -47,6 +47,8 @@ class StorageManager extends EventEmitter {
       };
 
       tinyThis.emit('dbTimelineLoaded', tinyData);
+      if (typeof eventId === 'string')
+        tinyThis.emit(`dbTimelineLoaded-${roomId}-${eventId}`, tinyData);
       tinyThis.emit(`dbTimelineLoaded-${roomId}`, tinyData);
       tinyThis._syncTimelineNext();
     };
@@ -100,6 +102,7 @@ class StorageManager extends EventEmitter {
               );
 
               this._syncTimelineCache.data.push({
+                eventId,
                 roomId: roomId,
                 room,
                 checkpoint: null,
@@ -128,6 +131,7 @@ class StorageManager extends EventEmitter {
               room,
               checkpoint: null,
               timeline: eTimeline,
+              eventId,
             });
             loadComplete(roomId, checkPoint, lastEventId);
           }
@@ -160,12 +164,24 @@ class StorageManager extends EventEmitter {
         Number.isNaN(__ENV_APP__.TIMELINE_TIMEOUT) ||
         __ENV_APP__.TIMELINE_TIMEOUT <= 0
       )
-        this._syncTimelineRun(data.room, data.checkpoint, data.timeline, data.firstTime);
+        this._syncTimelineRun(
+          data.room,
+          data.eventId,
+          data.checkpoint,
+          data.timeline,
+          data.firstTime,
+        );
       else {
         const tinyThis = this;
         setTimeout(
           () =>
-            tinyThis._syncTimelineRun(data.room, data.checkpoint, data.timeline, data.firstTime),
+            tinyThis._syncTimelineRun(
+              data.room,
+              data.eventId,
+              data.checkpoint,
+              data.timeline,
+              data.firstTime,
+            ),
           __ENV_APP__.TIMELINE_TIMEOUT,
         );
       }
@@ -175,11 +191,12 @@ class StorageManager extends EventEmitter {
     }
   }
 
-  _syncTimeline(room, checkpoint = null, timeline = null) {
+  _syncTimeline(room, eventId, checkpoint = null, timeline = null) {
     if (room && typeof room.roomId === 'string') {
       if (this._syncTimelineCache.using) {
         this._syncTimelineCache.data.push({
           roomId: room.roomId,
+          eventId,
           room,
           checkpoint,
           timeline,
@@ -187,13 +204,13 @@ class StorageManager extends EventEmitter {
         });
       } else {
         this._syncTimelineCache.using = true;
-        this._syncTimelineRun(room, checkpoint, timeline, true);
+        this._syncTimelineRun(room, eventId, checkpoint, timeline, true);
       }
     }
   }
 
-  syncTimeline(roomId, checkpoint = null) {
-    this._syncTimeline(initMatrix.matrixClient.getRoom(roomId), checkpoint);
+  syncTimeline(roomId, eventId, checkpoint = null) {
+    this._syncTimeline(initMatrix.matrixClient.getRoom(roomId), eventId, checkpoint);
   }
 
   async deleteRoomDb(roomId) {
