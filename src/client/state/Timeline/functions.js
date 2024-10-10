@@ -52,18 +52,6 @@ export function getRelateToId(mEvent) {
   return relation && (relation.event_id ?? null);
 }
 
-export function addToMap(myMap, mEvent) {
-  const relateToId = getRelateToId(mEvent);
-  if (relateToId === null) return null;
-  const mEventId = mEvent.getId();
-
-  if (!myMap.has(relateToId)) myMap.set(relateToId, []);
-  const mEvents = myMap.get(relateToId);
-  if (mEvents.find((ev) => ev.getId() === mEventId)) return mEvent;
-  mEvents.push(mEvent);
-  return mEvent;
-}
-
 export function getFirstLinkedTimeline(timeline) {
   let prevTimeline = timeline;
   let tm = prevTimeline;
@@ -81,24 +69,6 @@ export function getLastLinkedTimeline(timeline) {
     nextTimeline = nextTimeline.getNeighbouringTimeline(EventTimeline.FORWARDS);
   }
   return tm;
-}
-
-export function iterateLinkedTimelines(timeline, backwards, callback) {
-  let tm = timeline;
-  while (tm) {
-    callback(tm);
-    if (backwards) tm = tm.getNeighbouringTimeline(EventTimeline.BACKWARDS);
-    else tm = tm.getNeighbouringTimeline(EventTimeline.FORWARDS);
-  }
-}
-
-export function isTimelineLinked(tm1, tm2) {
-  let tm = getFirstLinkedTimeline(tm1);
-  while (tm) {
-    if (tm === tm2) return true;
-    tm = tm.getNeighbouringTimeline(EventTimeline.FORWARDS);
-  }
-  return false;
 }
 
 export const getClientYjs = (updateInfo, callback) => {

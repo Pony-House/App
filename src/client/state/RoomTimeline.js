@@ -13,12 +13,8 @@ import {
   isEdited,
   isReaction,
   hideMemberEvents,
-  addToMap,
   getFirstLinkedTimeline,
   getLastLinkedTimeline,
-  iterateLinkedTimelines,
-  isTimelineLinked,
-  decryptAllEventsOfTimeline,
 } from './Timeline/functions';
 import installYjs from './Timeline/yjs';
 
@@ -191,10 +187,6 @@ class RoomTimeline extends EventEmitter {
   //////////////////// Has Event inside the visible timeline
   hasEventInTimeline(eventId, timeline = this.activeTimeline) {
     console.log(`${this._consoleTag} hasEventInTimeline`, eventId, timeline);
-    const timelineSet = this.getUnfilteredTimelineSet();
-    const eventTimeline = timelineSet.getTimelineForEvent(eventId);
-    if (!eventTimeline) return false;
-    return isTimelineLinked(eventTimeline, timeline);
   }
 
   /////////////////////////////////////// Get Event data

@@ -263,7 +263,7 @@ const MessageReplyWrapper = React.memo(({ roomTimeline, eventId }) => {
       try {
         const eTimeline = await mx.getEventTimeline(timelineSet, eventId);
         if (!eTimeline) return;
-        await roomTimeline.decryptAllEventsOfTimeline(eTimeline);
+        // await roomTimeline.decryptAllEventsOfTimeline(eTimeline);
 
         let mEvent = eTimeline.getTimelineSet().findEventById(eventId);
 
