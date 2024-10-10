@@ -31,9 +31,6 @@ class RoomTimeline extends EventEmitter {
     // These are local timelines
     this.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
     this.timeline = [];
-    this.editedTimeline = new Map();
-    this.reactionTimeline = new Map();
-    this.typingMembers = new Set();
 
     // Client Prepare
     this.matrixClient = initMatrix.matrixClient;
@@ -56,7 +53,6 @@ class RoomTimeline extends EventEmitter {
 
     // More data
     this.isOngoingPagination = false;
-    this.ongoingDecryptionCount = 0;
 
     // Load Members
     setTimeout(() => this.room.loadMembersIfNeeded());
