@@ -24,7 +24,7 @@ import installYjs from './Timeline/yjs';
 
 // Class
 class RoomTimeline extends EventEmitter {
-  constructor(roomId, roomAlias = null) {
+  constructor(roomId, threadId, roomAlias = null) {
     super();
     installYjs(this);
 
@@ -51,27 +51,24 @@ class RoomTimeline extends EventEmitter {
     this.liveTimeline = this.room.getLiveTimeline();
     this.activeTimeline = this.liveTimeline;
 
+    // Thread Data
+    if (threadId) {
+      this.threadId = threadId;
+      this.thread = thread;
+
+      const thread = this.room.getThread(threadId);
+      if (!thread) this.threadId = null;
+      else thread.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
+    } else {
+      this.threadId = null;
+      this.thread = null;
+    }
+
     // More data
     this.isOngoingPagination = false;
 
     // Load Members
     setTimeout(() => this.room.loadMembersIfNeeded());
-  }
-
-  // Read thread
-  static newFromThread(threadId, roomId) {
-    const roomTimeline = new RoomTimeline(roomId);
-    roomTimeline.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
-    const thread = roomTimeline.room.getThread(threadId);
-    if (!thread) return null;
-    thread.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
-
-    roomTimeline.liveTimeline = thread.liveTimeline;
-    roomTimeline.activeTimeline = thread.liveTimeline;
-    roomTimeline.threadId = threadId;
-    roomTimeline.thread = thread;
-
-    return roomTimeline;
   }
 
   // Load live timeline
@@ -191,7 +188,7 @@ class RoomTimeline extends EventEmitter {
     return this.getEventReaders(getLatestVisibleEvent());
   }
 
-  //////////////////// Has Event timeline
+  //////////////////// Has Event inside the visible timeline
   hasEventInTimeline(eventId, timeline = this.activeTimeline) {
     console.log(`${this._consoleTag} hasEventInTimeline`, eventId, timeline);
     const timelineSet = this.getUnfilteredTimelineSet();
@@ -200,8 +197,7 @@ class RoomTimeline extends EventEmitter {
     return isTimelineLinked(eventTimeline, timeline);
   }
 
-  ///////////////////////////////////////
-  // Get Event data
+  /////////////////////////////////////// Get Event data
   getUnreadEventIndex(readUpToEventId) {
     console.log(`${this._consoleTag} getUnreadEventIndex`, readUpToEventId);
     if (!this.hasEventInTimeline(readUpToEventId)) return -1;

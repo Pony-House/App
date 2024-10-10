@@ -74,8 +74,7 @@ function Room() {
       setIsRoomMode(roomType === 'room' ? true : false);
     };
     const setRoomSelected = (roomId, threadId, eventId, forceScroll) => {
-      const threadTimeline = threadId ? RoomTimeline.newFromThread(threadId, roomId) : null;
-      const roomTimeline = threadTimeline ?? new RoomTimeline(roomId);
+      const roomTimeline = new RoomTimeline(roomId, threadId);
 
       sendRoomInfo({
         roomTimeline,

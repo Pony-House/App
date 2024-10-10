@@ -201,6 +201,7 @@ function ChatRoom({ roomId, homeserver = null, joinGuest, refreshTime, theme, us
                   });
                 } else {
                   const newTimeline = new RoomTimeline(
+                    null,
                     aliasData.room_id,
                     roomId,
                     true,
