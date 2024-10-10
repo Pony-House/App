@@ -6,6 +6,7 @@ import { objType } from 'for-promise/utils/lib.mjs';
 
 import initMatrix from '@src/client/initMatrix';
 import { decryptAllEventsOfTimeline } from '@src/client/state/Timeline/functions';
+// import cons from '@src/client/state/cons';
 
 import { startDb } from './db/indexedDb';
 
@@ -28,7 +29,19 @@ class StorageManager extends EventEmitter {
     this.content.isPersistedLocal =
       typeof this.content.isPersistedLocal === 'boolean' ? this.content.isPersistedLocal : true;
 
+    // Timeline Inserts
     const tinyThis = this;
+    this._timelineInsertTypes = {
+      'pony.house.crdt': (event) => tinyThis.setCrdt(event),
+      'm.reaction': (event) => tinyThis.setReaction(event),
+      'm.room.encrypted': (event) => tinyThis.setEncrypted(event),
+      'm.room.message': (event) => tinyThis.setMessage(event),
+    };
+
+    /* for (const item in cons.supportMessageTypes) {
+      this._timelineInsertTypes[cons.supportMessageTypes[item]] = (event) => this.setMessage(event);
+    } */
+
     window.addEventListener('storage', function (e) {
       tinyThis.emit('storage', e);
     });
@@ -342,7 +355,7 @@ class StorageManager extends EventEmitter {
         },
       })
         .then((result) => {
-          tinyThis.emit(dbEvent, result, data);
+          tinyThis.emit(dbEvent, result);
           resolve(result);
         })
         .catch(reject);
@@ -353,12 +366,24 @@ class StorageManager extends EventEmitter {
     return this._setDataTemplate('crdt', 'dbCrdt', event);
   }
 
+  deleteCrdtById(event) {
+    return this._deleteDataByIdTemplate('crdt', 'dbCrdtDeleted', event);
+  }
+
   setReaction(event) {
     return this._setDataTemplate('reactions', 'dbReaction', event);
   }
 
+  deleteReactionById(event) {
+    return this._deleteDataByIdTemplate('reactions', 'dbReactionDeleted', event);
+  }
+
   setMessage(event) {
     return this._setDataTemplate('messages', 'dbMessage', event);
+  }
+
+  deleteMessageById(event) {
+    return this._deleteDataByIdTemplate('messages', 'dbMessageDeleted', event);
   }
 
   setEncrypted(event) {
@@ -387,16 +412,9 @@ class StorageManager extends EventEmitter {
         reject(err);
       };
       try {
-        const insertTypes = {
-          'pony.house.crdt': () => tinyThis.setCrdt(event),
-          'm.reaction': () => tinyThis.setReaction(event),
-          'm.room.message': () => tinyThis.setMessage(event),
-          'm.room.encrypted': () => tinyThis.setEncrypted(event),
-        };
-
         const eventType = event.getType();
-        if (typeof insertTypes[eventType] === 'function')
-          insertTypes[eventType]().then(resolve).catch(tinyReject);
+        if (typeof tinyThis._timelineInsertTypes[eventType] === 'function')
+          tinyThis._timelineInsertTypes[eventType](event).then(resolve).catch(tinyReject);
         else {
           if (eventType === 'm.room.member') tinyThis.setMember(event);
           tinyThis.setTimeline(event);
