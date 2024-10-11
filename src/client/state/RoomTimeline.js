@@ -68,15 +68,51 @@ class RoomTimeline extends EventEmitter {
 
     // More data
     this.isOngoingPagination = false;
+    this._activeEvents();
+
+    // Load Members
+    setTimeout(() => this.room.loadMembersIfNeeded());
+  }
+
+  _activeEvents() {
+    const tinyThis = this;
+
+    // Start timeline events
+    this._startTimeline = (data, eventId) => {
+      // data.firstTime
+      tinyThis.emit(cons.events.roomTimeline.READY, eventId || null);
+    };
+
+    // Message events
+    this._onMessage = (r, event) => {
+      if (!tinyThis._belongToRoom(event)) return;
+      // Fix event type
+      event.type = 'm.room.message';
+
+      // Check isEdited
+
+      // Send into the timeline
+      tinyThis._insertIntoTimeline(event);
+    };
+
+    // Reaction events
+    this._onReaction = (r, event) => {
+      if (!tinyThis._belongToRoom(event)) return;
+      // Reactions
+    };
+
+    // Timeline events
+    this._onTimeline = (r, event) => {
+      if (!tinyThis._belongToRoom(event)) return;
+      if (event.type !== 'm.room.redaction') tinyThis._insertIntoTimeline(event);
+      else tinyThis._deletingEvent(event);
+    };
 
     // Prepare events
     storageManager.on('dbMessage', this._onMessage);
     storageManager.on('dbReaction', this._onReaction);
     storageManager.on('dbTimeline', this._onTimeline);
-    storageManager.on(`dbTimelineLoaded-${roomId}`, this._startTimeline);
-
-    // Load Members
-    setTimeout(() => this.room.loadMembersIfNeeded());
+    storageManager.on(`dbTimelineLoaded-${this.roomId}`, this._startTimeline);
   }
 
   // Load live timeline
@@ -113,7 +149,7 @@ class RoomTimeline extends EventEmitter {
     mEvent.getDate = () => new Date(mEvent.origin_server_ts);
     mEvent.getId = () => mEvent?.event_id || null;
     // mEvent.getPrevContent = () => mEvent?.unsigned && mEvent.unsigned?.age || null;
-    mEvent.getRelation = () => (mEvent?.content && mEvent?.content.m.relates_to) || null;
+    mEvent.getRelation = () => (mEvent?.content && mEvent?.content.relates_to) || null;
     mEvent.getRoomId = () => mEvent?.room_id || null;
     mEvent.getSender = () => mEvent?.sender || null;
     mEvent.getTs = () => mEvent?.origin_server_ts;
@@ -142,37 +178,6 @@ class RoomTimeline extends EventEmitter {
     this.editedTimeline.delete(redacts);
     this.reactionTimeline.delete(redacts);
     this.emit(cons.events.roomTimeline.EVENT_REDACTED, rEvent, mEvent);
-  }
-
-  // Start timeline events
-  _startTimeline(data, eventId) {
-    // data.firstTime
-    this.emit(cons.events.roomTimeline.READY, eventId || null);
-  }
-
-  // Message events
-  _onMessage(r, event) {
-    if (!this._belongToRoom(event)) return;
-    // Fix event type
-    event.type = 'm.room.message';
-
-    // Check isEdited
-
-    // Send into the timeline
-    this._insertIntoTimeline(event);
-  }
-
-  // Reaction events
-  _onReaction(r, event) {
-    if (!this._belongToRoom(event)) return;
-    // Reactions
-  }
-
-  // Timeline events
-  _onTimeline(r, event) {
-    if (!this._belongToRoom(event)) return;
-    if (event.type !== 'm.room.redaction') this._insertIntoTimeline(event);
-    else this._deletingEvent(event);
   }
 
   // Pagination
