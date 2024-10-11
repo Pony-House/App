@@ -59,11 +59,11 @@ function useTypingMembers(roomTimeline) {
   useEffect(() => {
     setTypingMembers(new Set());
     const listenTypingEvent = (event, member) => {
-      if (member.roomId !== this.roomId) return;
-      // const isTyping = member.typing;
-      // if (isTyping) typingMembers.add(member.userId);
-      // else typingMembers.delete(member.userId);
-      updateTyping(new Set([...this.typingMembers]));
+      if (member.roomId !== roomTimeline?.roomId) return;
+      const isTyping = member.typing;
+      if (isTyping) typingMembers.add(member.userId);
+      else typingMembers.delete(member.userId);
+      updateTyping(new Set([...typingMembers]));
     };
 
     mx.on(RoomMemberEvent.Typing, listenTypingEvent);

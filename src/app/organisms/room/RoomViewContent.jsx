@@ -229,7 +229,7 @@ function usePaginate(
             forceUpdateLimit();
           } else if (roomTimeline.canPaginateForward()) {
             // paginate from server.
-            await roomTimeline.paginateTimeline(false, pageLimit);
+            await roomTimeline.paginateTimeline(false);
             setMediaHeight();
             setLoadingTimeline(false);
             return;
@@ -243,7 +243,7 @@ function usePaginate(
             forceUpdateLimit();
           } else if (roomTimeline.canPaginateBackward()) {
             // paginate from server.
-            await roomTimeline.paginateTimeline(true, pageLimit);
+            await roomTimeline.paginateTimeline(true);
           }
         }
       }

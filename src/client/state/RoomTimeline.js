@@ -264,6 +264,10 @@ class RoomTimeline extends EventEmitter {
     return this.getEventReaders(getLatestVisibleEvent());
   }
 
+  getEvents() {
+    return this.timeline;
+  }
+
   //////////////////// Has Event inside the visible timeline
   hasEventInTimeline(eventId, timeline = this.activeTimeline) {
     console.log(`${this._consoleTag} hasEventInTimeline`, eventId, timeline);
