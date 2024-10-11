@@ -402,6 +402,29 @@ class StorageManager extends EventEmitter {
     return this._deleteDataByIdTemplate('timeline', 'dbTimelineDeleted', event);
   }
 
+  _setRedaction(event, dbName, isRedacted = false) {
+    const tinyThis = this;
+    return new Promise((resolve, reject) => {
+      const eventId = event.getId();
+      tinyThis.storeConnection
+        .update({
+          in: dbName,
+          set: {
+            redaction: isRedacted,
+          },
+          where: {
+            event_id: eventId,
+          },
+        })
+        .then((noOfRowsUpdated) => {
+          if (typeof noOfRowsUpdated === 'number' && noOfRowsUpdated > 0)
+            tinyThis.emit('dbEventRedaction', { in: dbName, eventId, noOfRowsUpdated, isRedacted });
+          resolve(noOfRowsUpdated);
+        })
+        .catch(reject);
+    });
+  }
+
   addToTimeline(event) {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
@@ -416,6 +439,7 @@ class StorageManager extends EventEmitter {
         if (typeof tinyThis._timelineInsertTypes[eventType] === 'function')
           tinyThis._timelineInsertTypes[eventType](event).then(resolve).catch(tinyReject);
         else {
+          if (eventType === 'm.room.redaction') tinyThis._setRedaction(event, 'timeline', true);
           if (eventType === 'm.room.member') tinyThis.setMember(event);
           tinyThis.setTimeline(event);
         }
