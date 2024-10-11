@@ -7,7 +7,6 @@ import storageManager from '@src/util/libs/Localstorage';
 
 import { isMobile } from '@src/util/libs/mobile';
 import { cyrb128 } from '@src/util/tools';
-import tinyAPI from '@src/util/mods';
 import { getAppearance } from '@src/util/libs/appearance';
 import attemptDecryption from '@src/util/libs/attemptDecryption';
 import soundFiles from '@src/util/soundFiles';

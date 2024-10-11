@@ -108,9 +108,15 @@ class RoomTimeline extends EventEmitter {
       else tinyThis._deletingEvent(event);
     };
 
+    // Message edit events
+    this._onMessageEdit = (r, event) => {
+      if (!tinyThis._belongToRoom(event)) return;
+    };
+
     // Prepare events
     storageManager.on('dbMessage', this._onMessage);
     storageManager.on('dbReaction', this._onReaction);
+    storageManager.on('dbMessageEdit', this._onMessageEdit);
     storageManager.on('dbTimeline', this._onTimeline);
     storageManager.on(`dbTimelineLoaded-${this.roomId}`, this._startTimeline);
   }
@@ -149,7 +155,7 @@ class RoomTimeline extends EventEmitter {
     mEvent.getDate = () => new Date(mEvent.origin_server_ts);
     mEvent.getId = () => mEvent?.event_id || null;
     // mEvent.getPrevContent = () => mEvent?.unsigned && mEvent.unsigned?.age || null;
-    mEvent.getRelation = () => (mEvent?.content && mEvent?.content.relates_to) || null;
+    mEvent.getRelation = () => (mEvent?.content && mEvent?.content['m.relates_to']) || null;
     mEvent.getRoomId = () => mEvent?.room_id || null;
     mEvent.getSender = () => mEvent?.sender || null;
     mEvent.getTs = () => mEvent?.origin_server_ts;
@@ -344,6 +350,7 @@ class RoomTimeline extends EventEmitter {
     this._disableYdoc();
     storageManager.off('dbMessage', this._onMessage);
     storageManager.off('dbReaction', this._onReaction);
+    storageManager.off('dbMessageEdit', this._onMessageEdit);
     storageManager.off('dbTimeline', this._onTimeline);
     storageManager.off(`dbTimelineLoaded-${this.roomId}`, this._startTimeline);
   }

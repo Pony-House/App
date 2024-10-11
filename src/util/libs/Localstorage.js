@@ -18,7 +18,7 @@ class StorageManager extends EventEmitter {
     this.isPersisted = null;
 
     // Db
-    this._dbVersion = 7;
+    this._dbVersion = 9;
     this._oldDbVersion = this.getNumber('ponyHouse-db-version') || 0;
     this.dbName = 'pony-house-database';
     this._timelineSyncCache = this.getJson('ponyHouse-timeline-sync', 'obj');
@@ -240,10 +240,12 @@ class StorageManager extends EventEmitter {
     const messages = await this.storeConnection.remove({ from: 'messages', where });
     const reactions = await this.storeConnection.remove({ from: 'reactions', where });
     const members = await this.storeConnection.remove({ from: 'members', where });
-    return { timeline, encrypted, messages, reactions, members };
+    const messagesEdit = await this.storeConnection.remove({ from: 'messages_edit', where });
+
+    return { timeline, encrypted, messages, reactions, members, messagesEdit };
   }
 
-  _eventFilter(event, data = {}, filter = {}) {
+  _eventFilter(event, data = {}, extraValue = null, filter = {}) {
     const date = event.getDate();
     const thread = event.getThread();
     const threadId = thread && typeof thread.id === 'string' ? thread.id : null;
@@ -266,6 +268,7 @@ class StorageManager extends EventEmitter {
 
     if (!objType(data.content, 'object')) delete data.content;
     if (!objType(data.unsigned, 'object')) delete data.unsigned;
+    if (typeof extraValue === 'function') extraValue(data);
 
     return data;
   }
@@ -326,9 +329,9 @@ class StorageManager extends EventEmitter {
     });
   }
 
-  _setDataTemplate = (dbName, dbEvent, event, filter = {}) => {
+  _setDataTemplate = (dbName, dbEvent, event, extraValue = null, filter = {}) => {
     const tinyThis = this;
-    const data = tinyThis._eventFilter(event, {}, filter);
+    const data = tinyThis._eventFilter(event, {}, extraValue, filter);
     return new Promise((resolve, reject) => {
       tinyThis.storeConnection
         .insert({
@@ -344,15 +347,17 @@ class StorageManager extends EventEmitter {
     });
   };
 
-  _deleteDataByIdTemplate = (dbName, dbEvent, event) => {
+  _deleteDataByIdTemplate = (dbName, dbEvent, event, where) => {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
       tinyThis.storeConnection;
       remove({
         from: dbName,
-        where: {
-          event_id: event.getId(),
-        },
+        where: where
+          ? where
+          : {
+              event_id: event.getId(),
+            },
       })
         .then((result) => {
           tinyThis.emit(dbEvent, result);
@@ -361,6 +366,39 @@ class StorageManager extends EventEmitter {
         .catch(reject);
     });
   };
+
+  setMessageEdit(event) {
+    const msgRelative = event.getRelation();
+    return this._setDataTemplate('messages_edit', 'dbMessageEdit', event, (data) => {
+      data.replace_event_id = msgRelative.event_id;
+    });
+  }
+
+  deleteMessageEditById(event) {
+    return this._deleteDataByIdTemplate('messages_edit', 'dbMessageEditDeleted', event);
+  }
+
+  deleteMessageEditByReplaceId(event) {
+    return this._deleteDataByIdTemplate('messages_edit', 'dbMessageEditDeleted', event, {
+      replace_event_id: event.getId(),
+    });
+  }
+
+  setMessage(event) {
+    const msgRelative = event.getRelation();
+    if (
+      !msgRelative ||
+      typeof msgRelative.event_id !== 'string' ||
+      typeof msgRelative.rel_type !== 'string'
+    )
+      return this._setDataTemplate('messages', 'dbMessage', event);
+    else if (msgRelative.rel_type === 'm.replace') return this.setMessageEdit(event);
+    else return this._setDataTemplate('messages', 'dbMessage', event);
+  }
+
+  deleteMessageById(event) {
+    return this._deleteDataByIdTemplate('messages', 'dbMessageDeleted', event);
+  }
 
   setCrdt(event) {
     return this._setDataTemplate('crdt', 'dbCrdt', event);
@@ -376,14 +414,6 @@ class StorageManager extends EventEmitter {
 
   deleteReactionById(event) {
     return this._deleteDataByIdTemplate('reactions', 'dbReactionDeleted', event);
-  }
-
-  setMessage(event) {
-    return this._setDataTemplate('messages', 'dbMessage', event);
-  }
-
-  deleteMessageById(event) {
-    return this._deleteDataByIdTemplate('messages', 'dbMessageDeleted', event);
   }
 
   setEncrypted(event) {

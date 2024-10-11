@@ -267,6 +267,35 @@ export const startDb = async (tinyThis) => {
       },
 
       {
+        name: 'messages_edit',
+        columns: {
+          event_id: { primaryKey: true, autoIncrement: false },
+          replace_event_id: { notNull: false, dataType: 'string' },
+
+          sender: { notNull: false, dataType: 'string' },
+          room_id: { notNull: false, dataType: 'string' },
+          thread_id: { notNull: false, dataType: 'string' },
+
+          content: { notNull: false, dataType: 'object' },
+          unsigned: { notNull: false, dataType: 'object' },
+          embeds: { notNull: false, dataType: 'array' },
+
+          redaction: { notNull: true, dataType: 'boolean' },
+          origin_server_ts: { notNull: true, dataType: 'number' },
+        },
+        alter: {
+          9: {
+            add: {
+              original_event_id: {
+                notNull: false,
+                dataType: 'string',
+              },
+            },
+          },
+        },
+      },
+
+      {
         name: 'messages',
         columns: {
           event_id: { primaryKey: true, autoIncrement: false },
