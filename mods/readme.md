@@ -115,17 +115,6 @@ The difference is that the methods below will update the url in real time, and w
 
 <hr/>
 
-`src/client/state/Notifications/index.js`
-
-### roomNotification
-
-    mEvent
-    room
-
-All `Room.Timeline` events will appear here already decrypted.
-
-<hr/>
-
 `src/app/organisms/room/RoomViewContent.jsx`
 
 ### emptyTimeline

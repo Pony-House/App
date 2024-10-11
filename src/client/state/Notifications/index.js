@@ -332,48 +332,49 @@ class Notifications extends EventEmitter {
     favIconManager.checkerFavIcon();
 
     // Tiny API
-    tinyAPI.emit('roomNotification', mEvent, room);
+    const notificationAllowed =
+      !stopNotification && this.hasNoti(room.roomId, mEvent.thread ? mEvent.thread.id : null);
 
     // Decrypt Notification
-    if (!stopNotification && this.hasNoti(room.roomId, mEvent.thread ? mEvent.thread.id : null)) {
-      const content = mEvent.getContent();
-      const msgType = content?.msgtype;
-      if (msgType !== 'm.bad.encrypted') {
-        this._sendDisplayPopupNoti(mEvent, content, room);
-      }
+    const content = mEvent.getContent();
+    const msgType = content?.msgtype;
+    if (msgType !== 'm.bad.encrypted') {
+      storageManager.addToTimeline(mEvent);
+      if (notificationAllowed) this._sendDisplayPopupNoti(mEvent, content, room);
+    }
 
-      // Fail Decrypt 1
-      else {
-        const tinyThis = this;
-        let decryptTimeout;
-        const decryptFunction = (mEvent2) => {
-          if (decryptTimeout) {
-            clearTimeout(decryptTimeout);
-            decryptTimeout = null;
-          }
+    // Fail Decrypt 1
+    else {
+      const tinyThis = this;
+      let decryptTimeout;
+      const decryptFunction = (mEvent2) => {
+        if (decryptTimeout) {
+          clearTimeout(decryptTimeout);
+          decryptTimeout = null;
+        }
 
-          // Decrypt Notification 2
-          const content2 = mEvent2.getContent();
-          const msgType2 = content2?.msgtype;
-          if (msgType2 !== 'm.bad.encrypted') {
-            tinyThis._sendDisplayPopupNoti(mEvent2, content2, room);
-          }
+        // Decrypt Notification 2
+        const content2 = mEvent2.getContent();
+        const msgType2 = content2?.msgtype;
+        if (msgType2 !== 'm.bad.encrypted') {
+          storageManager.addToTimeline(mEvent2);
+          if (notificationAllowed) tinyThis._sendDisplayPopupNoti(mEvent2, content2, room);
+        }
 
-          // Fail Decrypt 2
-          else {
-            decryptTimeout = setTimeout(() => {
-              mEvent2.off(MatrixEventEvent.Decrypted, decryptFunction);
-            }, 60000);
-            mEvent2.once(MatrixEventEvent.Decrypted, decryptFunction);
-          }
-        };
+        // Fail Decrypt 2
+        else {
+          decryptTimeout = setTimeout(() => {
+            mEvent2.off(MatrixEventEvent.Decrypted, decryptFunction);
+          }, 60000);
+          mEvent2.once(MatrixEventEvent.Decrypted, decryptFunction);
+        }
+      };
 
-        // Try decrypt again
-        decryptTimeout = setTimeout(() => {
-          mEvent.off(MatrixEventEvent.Decrypted, decryptFunction);
-        }, 60000);
-        mEvent.once(MatrixEventEvent.Decrypted, decryptFunction);
-      }
+      // Try decrypt again
+      decryptTimeout = setTimeout(() => {
+        mEvent.off(MatrixEventEvent.Decrypted, decryptFunction);
+      }, 60000);
+      mEvent.once(MatrixEventEvent.Decrypted, decryptFunction);
     }
   }
 
@@ -595,8 +596,9 @@ class Notifications extends EventEmitter {
       }
 
       storageManager.addToTimeline(mEvent);
-      if (this.matrixClient.getSyncState() === 'SYNCING')
-        return this._displayPopupNoti(mEvent, room, stopNotification, total, highlight);
+      if (this.matrixClient.getSyncState() !== 'SYNCING') stopNotification = true;
+
+      return this._displayPopupNoti(mEvent, room, stopNotification, total, highlight);
     };
 
     this.matrixClient.on(RoomEvent.Timeline, (mEvent, room) =>
