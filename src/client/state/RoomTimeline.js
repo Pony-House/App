@@ -1,8 +1,10 @@
 import EventEmitter from 'events';
+import { Direction } from 'matrix-js-sdk';
+import clone from 'clone';
 
 import storageManager from '@src/util/libs/Localstorage';
+import { getAppearance } from '@src/util/libs/appearance';
 
-import { Direction } from 'matrix-js-sdk';
 import initMatrix from '../initMatrix';
 import cons from './cons';
 
@@ -34,6 +36,8 @@ class RoomTimeline extends EventEmitter {
     this.roomAlias = roomAlias;
 
     this.timeline = [];
+    this.editedTimeline = new Map();
+    this.reactionTimeline = new Map();
 
     this.room = this.matrixClient.getRoom(roomId);
     this.room.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
@@ -67,9 +71,9 @@ class RoomTimeline extends EventEmitter {
 
     // Prepare events
     storageManager.on('dbMessage', this._onMessage);
-    storageManager.on('dbReaction', this.onReaction);
+    storageManager.on('dbReaction', this._onReaction);
     storageManager.on('dbTimeline', this._onTimeline);
-    storageManager.once(`dbTimelineLoaded-${roomId}`, this._startTimeline);
+    storageManager.on(`dbTimelineLoaded-${roomId}`, this._startTimeline);
 
     // Load Members
     setTimeout(() => this.room.loadMembersIfNeeded());
@@ -95,31 +99,84 @@ class RoomTimeline extends EventEmitter {
     }
   }
 
-  // Getting events
+  // Belong to Room
+  _belongToRoom(event) {
+    return event.room_id === this.roomId && (!this.threadId || event.thread_id === this.threadId);
+  }
+
+  // Convert event format
+  _convertEventFormat(event) {
+    const mEvent = clone(event);
+
+    mEvent.getAge = () => (mEvent?.unsigned && mEvent.unsigned?.age) || null;
+    mEvent.getContent = () => mEvent?.content || null;
+    mEvent.getDate = () => new Date(mEvent.origin_server_ts);
+    mEvent.getId = () => mEvent?.event_id || null;
+    // mEvent.getPrevContent = () => mEvent?.unsigned && mEvent.unsigned?.age || null;
+    mEvent.getRelation = () => (mEvent?.content && mEvent?.content.m.relates_to) || null;
+    mEvent.getRoomId = () => mEvent?.room_id || null;
+    mEvent.getSender = () => mEvent?.sender || null;
+    mEvent.getTs = () => mEvent?.origin_server_ts;
+    // mEvent.getThread = () => mEvent?.thread_id ? mEvent?.thread : null;
+    mEvent.getType = () => mEvent?.type || null;
+    mEvent.getUnsigned = () => mEvent?.unsigned || null;
+    mEvent.isRedacted = () => mEvent?.redaction || false;
+    mEvent.isRedaction = () => mEvent?.type === 'm.room.redaction' || false;
+
+    return mEvent;
+  }
+
+  // Insert into timeline
+  _insertIntoTimeline(event) {
+    const pageLimit = getAppearance('pageLimit');
+    const mEvent = this._convertEventFormat(event);
+
+    this.emit(cons.events.roomTimeline.EVENT, mEvent);
+  }
+
+  // Deleting events
+  _deletingEvent(event) {
+    const mEvent = this._convertEventFormat(event);
+    const redacts = mEvent.getContent()?.redacts;
+    const rEvent = this.deleteFromTimeline(redacts);
+    this.editedTimeline.delete(redacts);
+    this.reactionTimeline.delete(redacts);
+    this.emit(cons.events.roomTimeline.EVENT_REDACTED, rEvent, mEvent);
+  }
+
+  // Start timeline events
   _startTimeline(data, eventId) {
+    // data.firstTime
     this.emit(cons.events.roomTimeline.READY, eventId || null);
   }
 
+  // Message events
   _onMessage(r, event) {
-    // const rEvent = this.deleteFromTimeline(mEvent.event.redacts);
-    // this.emit(cons.events.roomTimeline.EVENT_REDACTED, rEvent, mEvent);
-    // this.emit(cons.events.roomTimeline.EVENT, event);
+    if (!this._belongToRoom(event)) return;
+    // Fix event type
+    event.type = 'm.room.message';
+
+    // Check isEdited
+
+    // Send into the timeline
+    this._insertIntoTimeline(event);
   }
 
-  onReaction(r, event) {
-    // const rEvent = this.deleteFromTimeline(mEvent.event.redacts);
-    // this.emit(cons.events.roomTimeline.EVENT_REDACTED, rEvent, mEvent);
-    // this.emit(cons.events.roomTimeline.EVENT, event);
+  // Reaction events
+  _onReaction(r, event) {
+    if (!this._belongToRoom(event)) return;
+    // Reactions
   }
 
+  // Timeline events
   _onTimeline(r, event) {
-    // const rEvent = this.deleteFromTimeline(mEvent.event.redacts);
-    // this.emit(cons.events.roomTimeline.EVENT_REDACTED, rEvent, mEvent);
-    // this.emit(cons.events.roomTimeline.EVENT, event);
+    if (!this._belongToRoom(event)) return;
+    if (event.type !== 'm.room.redaction') this._insertIntoTimeline(event);
+    else this._deletingEvent(event);
   }
 
   // Pagination
-  async paginateTimeline(backwards = false, limit = 30) {
+  async paginateTimeline(backwards = false) {
     // Initialization
     if (this.isOngoingPagination) return false;
 
@@ -227,6 +284,12 @@ class RoomTimeline extends EventEmitter {
   }
 
   // Simpler scripts
+  deleteFromTimeline(eventId) {
+    const i = this.getEventIndex(eventId);
+    if (i === -1) return undefined;
+    return this.timeline.splice(i, 1)[0];
+  }
+
   getUnfilteredTimelineSet() {
     return this.thread?.getUnfilteredTimelineSet() ?? this.room.getUnfilteredTimelineSet();
   }
@@ -270,9 +333,10 @@ class RoomTimeline extends EventEmitter {
 
   removeInternalListeners() {
     this._disableYdoc();
-    storageManager.on('dbMessage', this._onMessage);
-    storageManager.on('dbReaction', this.onReaction);
-    storageManager.on('dbTimeline', this._onTimeline);
+    storageManager.off('dbMessage', this._onMessage);
+    storageManager.off('dbReaction', this._onReaction);
+    storageManager.off('dbTimeline', this._onTimeline);
+    storageManager.off(`dbTimelineLoaded-${this.roomId}`, this._startTimeline);
   }
 }
 
