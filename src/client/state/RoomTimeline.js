@@ -1,5 +1,5 @@
 import EventEmitter from 'events';
-import { Direction } from 'matrix-js-sdk';
+import { Direction, UNSIGNED_THREAD_ID_FIELD } from 'matrix-js-sdk';
 import clone from 'clone';
 
 import storageManager from '@src/util/libs/Localstorage';
@@ -148,22 +148,73 @@ class RoomTimeline extends EventEmitter {
 
   // Convert event format
   _convertEventFormat(event) {
-    const mEvent = clone(event);
+    const mEvent = { event: clone(event) };
+    mEvent.threadId = mEvent.event.thread_id;
 
-    mEvent.getAge = () => (mEvent?.unsigned && mEvent.unsigned?.age) || null;
-    mEvent.getContent = () => mEvent?.content || null;
-    mEvent.getDate = () => new Date(mEvent.origin_server_ts);
-    mEvent.getId = () => mEvent?.event_id || null;
-    // mEvent.getPrevContent = () => mEvent?.unsigned && mEvent.unsigned?.age || null;
-    mEvent.getRelation = () => (mEvent?.content && mEvent?.content['m.relates_to']) || null;
-    mEvent.getRoomId = () => mEvent?.room_id || null;
-    mEvent.getSender = () => mEvent?.sender || null;
-    mEvent.getTs = () => mEvent?.origin_server_ts;
+    mEvent.threadRootId = () => {
+      const relatesTo = mEvent.getWireContent()?.['m.relates_to'];
+      if (relatesTo?.rel_type === THREAD_RELATION_TYPE.name) {
+        return relatesTo.event_id;
+      }
+      if (mEvent.thread) {
+        return mEvent.thread.id;
+      }
+      if (mEvent.threadId !== undefined) {
+        return mEvent.threadId;
+      }
+      const unsigned = mEvent.getUnsigned();
+      if (typeof unsigned[UNSIGNED_THREAD_ID_FIELD.name] === 'string') {
+        return unsigned[UNSIGNED_THREAD_ID_FIELD.name];
+      }
+      return undefined;
+    };
+
+    mEvent.getRelation = () => {
+      if (!mEvent.isRelation()) {
+        return null;
+      }
+      return mEvent.getWireContent()['m.relates_to'] ?? null;
+    };
+
+    ////////////////////////////////////////
+    mEvent.getContent = () => {
+      if (this._replacingEvent) {
+        return this._replacingEvent.getContent()['m.new_content'] || {};
+      } else {
+        return this.getOriginalContent();
+      }
+    };
+
+    mEvent.isRelation = (relType) => {
+      const relation = this.getWireContent()?.['m.relates_to'];
+      return !!(
+        relation?.rel_type &&
+        relation.event_id &&
+        (relType ? relation.rel_type === relType : true)
+      );
+    };
+
     // mEvent.getThread = () => mEvent?.thread_id ? mEvent?.thread : null;
-    mEvent.getType = () => mEvent?.type || null;
-    mEvent.getUnsigned = () => mEvent?.unsigned || null;
-    mEvent.isRedacted = () => mEvent?.redaction || false;
-    mEvent.isRedaction = () => mEvent?.type === 'm.room.redaction' || false;
+
+    mEvent.getPrevContent = () => mEvent?.getUnsigned().prev_content || {};
+    mEvent.getWireContent = () => mEvent.event?.content || {};
+    mEvent.getOriginalContent = () => mEvent.event.content || {};
+
+    mEvent.getId = () => mEvent.event?.event_id || null;
+    mEvent.getRoomId = () => mEvent.event?.room_id || null;
+    mEvent.getSender = () => mEvent.event?.sender || null;
+    mEvent.getType = () => mEvent.event?.type || null;
+
+    mEvent.getAge = () => (mEvent.event?.unsigned && mEvent.event.unsigned?.age) || null;
+    mEvent.getTs = () => mEvent.event?.origin_server_ts;
+    mEvent.getDate = () =>
+      mEvent.event.origin_server_ts ? new Date(mEvent.event.origin_server_ts) : null;
+
+    mEvent.getUnsigned = () => mEvent.event?.unsigned || null;
+
+    mEvent.isRedacted = () =>
+      mEvent.getUnsigned().redacted_because || mEvent.event?.redaction || false;
+    mEvent.isRedaction = () => mEvent.event?.type === 'm.room.redaction' || false;
 
     return mEvent;
   }
