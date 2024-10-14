@@ -56,9 +56,10 @@ class RoomTimeline extends EventEmitter {
     // Thread Data
     if (threadId) {
       this.threadId = threadId;
-      this.thread = thread;
 
       const thread = this.room.getThread(threadId);
+      this.thread = thread;
+
       if (!thread) this.threadId = null;
       else thread.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
     } else {
@@ -178,15 +179,15 @@ class RoomTimeline extends EventEmitter {
 
     ////////////////////////////////////////
     mEvent.getContent = () => {
-      if (this._replacingEvent) {
-        return this._replacingEvent.getContent()['m.new_content'] || {};
+      if (mEvent._replacingEvent) {
+        return mEvent._replacingEvent.getContent()['m.new_content'] || {};
       } else {
-        return this.getOriginalContent();
+        return mEvent.getOriginalContent();
       }
     };
 
     mEvent.isRelation = (relType) => {
-      const relation = this.getWireContent()?.['m.relates_to'];
+      const relation = mEvent.getWireContent()?.['m.relates_to'];
       return !!(
         relation?.rel_type &&
         relation.event_id &&
@@ -325,9 +326,9 @@ class RoomTimeline extends EventEmitter {
     return this.timeline;
   }
 
-  //////////////////// Has Event inside the visible timeline
-  hasEventInTimeline(eventId, timeline = this.activeTimeline) {
-    console.log(`${this._consoleTag} hasEventInTimeline`, eventId, timeline);
+  // Has Event inside the visible timeline
+  hasEventInTimeline(eventId) {
+    return this.getEventIndex(eventId) > -1 ? true : false;
   }
 
   /////////////////////////////////////// Get Event data
@@ -356,10 +357,12 @@ class RoomTimeline extends EventEmitter {
     return this.timeline.splice(i, 1)[0];
   }
 
+  // Checar se isso ainda vai continuar sendo usado.
   getUnfilteredTimelineSet() {
-    return this.thread?.getUnfilteredTimelineSet() ?? this.room.getUnfilteredTimelineSet();
+    return this.room.getUnfilteredTimelineSet();
   }
 
+  // Checar se isso ainda vai continuar sendo usado.
   isServingLiveTimeline() {
     return getLastLinkedTimeline(this.activeTimeline) === this.liveTimeline;
   }
@@ -381,7 +384,6 @@ class RoomTimeline extends EventEmitter {
   getReadUpToEventId() {
     const userId = this.matrixClient.getUserId();
     if (!userId) return null;
-
     return this.thread?.getEventReadUpTo(userId) ?? this.room.getEventReadUpTo(userId);
   }
 
@@ -389,8 +391,8 @@ class RoomTimeline extends EventEmitter {
     return this.timeline.findIndex((mEvent) => mEvent.getId() === eventId);
   }
 
-  findEventByIdInTimelineSet(eventId, eventTimelineSet = this.getUnfilteredTimelineSet()) {
-    return eventTimelineSet.findEventById(eventId);
+  findEventByIdInTimelineSet(eventId) {
+    return this.timeline[this.getEventIndex(eventId)] ?? null;
   }
 
   findEventById(eventId) {
