@@ -6,7 +6,7 @@ import { objType } from 'for-promise/utils/lib.mjs';
 
 import initMatrix from '@src/client/initMatrix';
 import { decryptAllEventsOfTimeline } from '@src/client/state/Timeline/functions';
-// import cons from '@src/client/state/cons';
+import cons from '@src/client/state/cons';
 
 import { startDb } from './db/indexedDb';
 
@@ -18,7 +18,7 @@ class StorageManager extends EventEmitter {
     this.isPersisted = null;
 
     // Db
-    this._dbVersion = 9;
+    this._dbVersion = 10;
     this._oldDbVersion = this.getNumber('ponyHouse-db-version') || 0;
     this.dbName = 'pony-house-database';
     this._timelineSyncCache = this.getJson('ponyHouse-timeline-sync', 'obj');
@@ -35,12 +35,11 @@ class StorageManager extends EventEmitter {
       'pony.house.crdt': (event) => tinyThis.setCrdt(event),
       'm.reaction': (event) => tinyThis.setReaction(event),
       'm.room.encrypted': (event) => tinyThis.setEncrypted(event),
-      'm.room.message': (event) => tinyThis.setMessage(event),
     };
 
-    /* for (const item in cons.supportMessageTypes) {
+    for (const item in cons.supportMessageTypes) {
       this._timelineInsertTypes[cons.supportMessageTypes[item]] = (event) => this.setMessage(event);
-    } */
+    }
 
     window.addEventListener('storage', function (e) {
       tinyThis.emit('storage', e);
