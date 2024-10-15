@@ -367,19 +367,17 @@ class StorageManager extends EventEmitter {
     });
   };
 
-  _eventsDataTemplate({
+  async _eventsDataTemplate({
     from = '',
     roomId = null,
     type = null,
     limit = null,
     page = null,
-    order = {
-      by: 'origin_server_ts',
-      type: 'asc',
-    },
+    orderBy = 'origin_server_ts',
   }) {
-    const data = { from, order };
+    const data = { from };
     data.where = { room_id: roomId };
+    data.order = { type: 'desc', by: orderBy };
 
     if (typeof type === 'string') data.where.type = type;
 
@@ -392,7 +390,8 @@ class StorageManager extends EventEmitter {
       }
     }
 
-    return this.storeConnection.select(data);
+    const result = await this.storeConnection.select(data);
+    return Array.isArray(result) ? result.reverse() : [];
   }
 
   setMessageEdit(event) {
