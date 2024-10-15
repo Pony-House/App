@@ -2,6 +2,7 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import $ from 'jquery';
 import { ClientEvent, MatrixEventEvent, NotificationCountType, RoomEvent } from 'matrix-js-sdk';
 import EventEmitter from 'events';
+import { objType } from 'for-promise/utils/lib.mjs';
 
 import storageManager from '@src/util/libs/Localstorage';
 
@@ -603,11 +604,27 @@ class Notifications extends EventEmitter {
     this.matrixClient.on(RoomEvent.Timeline, (mEvent, room) =>
       this._listenRoomTimeline(mEvent, room),
     );
-    /* 
-    this.matrixClient.on(RoomEvent.Timeline, (mEvent, room) =>
-      insertEvent(() => this._listenRoomTimeline(mEvent, room)),
-    );
-    */
+
+    this.matrixClient.on(RoomEvent.Receipt, (mEvent) => {
+      const type = mEvent.getType();
+      if (type === 'm.receipt') {
+        const roomId = mEvent.getRoomId();
+        if (typeof roomId === 'string' && roomId.length > 0) {
+          const content = mEvent.getContent();
+          if (content) {
+            for (const eventId in content) {
+              if (objType(content[eventId]['m.read'], 'object'))
+                for (const userId in content[eventId]['m.read']) {
+                  const ts = content[eventId]['m.read'][userId].ts;
+                  if (typeof ts === 'number' && !Number.isNaN(ts) && Number.isFinite(ts)) {
+                    storageManager.setReceipt(roomId, userId, ts);
+                  }
+                }
+            }
+          }
+        }
+      }
+    });
 
     this.matrixClient.on(RoomEvent.Redaction, (mEvent) => {
       storageManager.addToTimeline(mEvent);

@@ -18,7 +18,7 @@ class StorageManager extends EventEmitter {
     this.isPersisted = null;
 
     // Db
-    this._dbVersion = 10;
+    this._dbVersion = 11;
     this._oldDbVersion = this.getNumber('ponyHouse-db-version') || 0;
     this.dbName = 'pony-house-database';
     this._timelineSyncCache = this.getJson('ponyHouse-timeline-sync', 'obj');
@@ -240,8 +240,9 @@ class StorageManager extends EventEmitter {
     const reactions = await this.storeConnection.remove({ from: 'reactions', where });
     const members = await this.storeConnection.remove({ from: 'members', where });
     const messagesEdit = await this.storeConnection.remove({ from: 'messages_edit', where });
+    const receipt = await this.deleteReceiptByRoomId(roomId);
 
-    return { timeline, encrypted, messages, reactions, members, messagesEdit };
+    return { timeline, encrypted, messages, reactions, members, messagesEdit, receipt };
   }
 
   _eventFilter(event, data = {}, extraValue = null, filter = {}) {
@@ -381,6 +382,61 @@ class StorageManager extends EventEmitter {
     return this._deleteDataByIdTemplate('messages_edit', 'dbMessageEditDeleted', event, {
       replace_event_id: event.getId(),
     });
+  }
+
+  setReceipt(roomId, userId, ts) {
+    const tinyThis = this;
+    return new Promise((resolve, reject) => {
+      const data = {
+        id: `${roomId}_${userId}`,
+        room_id: roomId,
+        user_id: userId,
+        origin_server_ts: ts,
+      };
+
+      tinyThis.storeConnection
+        .insert({
+          into: 'receipt',
+          upsert: true,
+          values: [data],
+        })
+        .then((result) => {
+          tinyThis.emit('dbReceipt', result, data);
+          resolve(result);
+        })
+        .catch(reject);
+    });
+  }
+
+  _deleteReceiptTemplate(where, id) {
+    const tinyThis = this;
+    const whereData = {};
+    whereData[where] = id;
+
+    return new Promise((resolve, reject) => {
+      tinyThis.storeConnection;
+      remove({
+        from: 'receipt',
+        where: whereData,
+      })
+        .then((result) => {
+          tinyThis.emit('dbReceiptDeleted', result);
+          resolve(result);
+        })
+        .catch(reject);
+    });
+  }
+
+  deleteReceiptById(id) {
+    return this._deleteReceiptTemplate('id', id);
+  }
+
+  deleteReceiptByUserId(id) {
+    return this._deleteReceiptTemplate('user_id', id);
+  }
+
+  deleteReceiptByRoomId(id) {
+    return this._deleteReceiptTemplate('room_id', id);
   }
 
   setMessage(event) {

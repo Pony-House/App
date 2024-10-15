@@ -17,6 +17,16 @@ export const startDb = async (tinyThis) => {
     version: tinyThis._dbVersion,
     tables: [
       {
+        name: 'receipt',
+        columns: {
+          id: { primaryKey: true, autoIncrement: false },
+          room_id: { notNull: true, dataType: 'string' },
+          user_id: { notNull: true, dataType: 'string' },
+          origin_server_ts: { notNull: true, dataType: 'number' },
+        },
+      },
+
+      {
         name: 'encrypted',
         columns: {
           event_id: { primaryKey: true, autoIncrement: false },
