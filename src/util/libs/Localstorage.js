@@ -367,6 +367,34 @@ class StorageManager extends EventEmitter {
     });
   };
 
+  _eventsDataTemplate({
+    from = '',
+    roomId = null,
+    type = null,
+    limit = null,
+    page = null,
+    order = {
+      by: 'origin_server_ts',
+      type: 'asc',
+    },
+  }) {
+    const data = { from, order };
+    data.where = { room_id: roomId };
+
+    if (typeof type === 'string') data.where.type = type;
+
+    if (typeof limit === 'number') {
+      if (!Number.isNaN(limit) && Number.isFinite(limit) && limit > -1) data.limit = limit;
+      else data.limit = 0;
+
+      if (typeof page === 'number') {
+        if (page !== 1) data.skip = limit * Number(page - 1);
+      }
+    }
+
+    return this.storeConnection.select(data);
+  }
+
   setMessageEdit(event) {
     const msgRelative = event.getRelation();
     return this._setDataTemplate('messages_edit', 'dbMessageEdit', event, (data) => {
@@ -437,6 +465,16 @@ class StorageManager extends EventEmitter {
 
   deleteReceiptByRoomId(id) {
     return this._deleteReceiptTemplate('room_id', id);
+  }
+
+  getMessages({ roomId = null, type = null, limit = null, page = null }) {
+    return this._eventsDataTemplate({
+      from: 'messages',
+      roomId,
+      type,
+      limit,
+      page,
+    });
   }
 
   setMessage(event) {
