@@ -29,6 +29,7 @@ class RoomTimeline extends EventEmitter {
     // These are local timelines
     this.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
     this.timeline = [];
+    this._page = 1;
 
     // Client Prepare
     this.matrixClient = initMatrix.matrixClient;
@@ -73,6 +74,10 @@ class RoomTimeline extends EventEmitter {
 
     // Load Members
     setTimeout(() => this.room.loadMembersIfNeeded());
+  }
+
+  getPage() {
+    return this._page;
   }
 
   _activeEvents() {
@@ -239,11 +244,16 @@ class RoomTimeline extends EventEmitter {
   }
 
   // Pagination
-  async paginateTimeline(backwards = false) {
+  async paginateTimeline(backwards = false, page = null) {
     // Initialization
     if (this.isOngoingPagination) return false;
 
     this.isOngoingPagination = true;
+
+    /*
+      Número para ser página exata.
+      String para ser da posição de um determinado evento.
+    */
 
     // Token Type
     /* if (
