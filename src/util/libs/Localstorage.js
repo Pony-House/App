@@ -370,6 +370,7 @@ class StorageManager extends EventEmitter {
   async _eventsDataTemplate({
     from = '',
     roomId = null,
+    threadId = null,
     type = null,
     limit = null,
     page = null,
@@ -379,6 +380,7 @@ class StorageManager extends EventEmitter {
     data.where = { room_id: roomId };
     data.order = { type: 'desc', by: orderBy };
 
+    if (typeof threadId === 'string') data.where.thread_id = threadId;
     if (typeof type === 'string') data.where.type = type;
 
     if (typeof limit === 'number') {
@@ -392,6 +394,14 @@ class StorageManager extends EventEmitter {
 
     const result = await this.storeConnection.select(data);
     return Array.isArray(result) ? result.reverse() : [];
+  }
+
+  async _eventsPaginationCount({ from = '', threadId = null, roomId = null, type = null }) {
+    const data = { from };
+    data.where = { room_id: roomId };
+    if (typeof threadId === 'string') data.where.thread_id = threadId;
+    if (typeof type === 'string') data.where.type = type;
+    return this.storeConnection.count(data);
   }
 
   setMessageEdit(event) {
@@ -466,14 +476,37 @@ class StorageManager extends EventEmitter {
     return this._deleteReceiptTemplate('room_id', id);
   }
 
-  getMessages({ roomId = null, type = null, limit = null, page = null }) {
+  getMessages({ roomId = null, threadId = null, type = null, limit = null, page = null }) {
     return this._eventsDataTemplate({
       from: 'messages',
       roomId,
+      threadId,
       type,
       limit,
       page,
     });
+  }
+
+  getMessageCount({ roomId = null, threadId = null, type = null }) {
+    return this._eventsPaginationCount({
+      from: 'messages',
+      roomId,
+      threadId,
+      type,
+    });
+  }
+
+  async getMessagePagination({ roomId = null, threadId = null, type = null }, itemsPerPage) {
+    const count = await this.getMessageCount({
+      from: 'messages',
+      roomId,
+      threadId,
+      type,
+    });
+
+    if (itemsPerPage >= count) return 1;
+    if (count / 2 < itemsPerPage) return 2;
+    return Math.floor(count / itemsPerPage);
   }
 
   setMessage(event) {
