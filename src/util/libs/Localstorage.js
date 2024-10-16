@@ -12,6 +12,14 @@ import { startDb } from './db/indexedDb';
 
 const SYNC_TIMELINE_DOWNLOAD_LIMIT = 100;
 
+const insertObjWhere = (data, name, obj) => {
+  if (objType(obj, 'object')) {
+    for (const item in obj) {
+      data.where[`${name}.${item}`] = obj[item];
+    }
+  }
+};
+
 class StorageManager extends EventEmitter {
   constructor() {
     super();
@@ -76,8 +84,8 @@ class StorageManager extends EventEmitter {
         // Get checkpoint
         const lastEventId =
           objType(this._timelineSyncCache[roomId], 'object') &&
-          typeof this._timelineSyncCache[roomId].lastEvent === 'string' &&
-          this._timelineSyncCache[roomId].lastEvent.length > 0
+            typeof this._timelineSyncCache[roomId].lastEvent === 'string' &&
+            this._timelineSyncCache[roomId].lastEvent.length > 0
             ? this._timelineSyncCache[roomId].lastEvent
             : null;
 
@@ -356,8 +364,8 @@ class StorageManager extends EventEmitter {
         where: where
           ? where
           : {
-              event_id: event.getId(),
-            },
+            event_id: event.getId(),
+          },
       })
         .then((result) => {
           tinyThis.emit(dbEvent, result);
@@ -372,6 +380,8 @@ class StorageManager extends EventEmitter {
     roomId = null,
     threadId = null,
     type = null,
+    content = null,
+    unsigned = null,
     limit = null,
     page = null,
     orderBy = 'origin_server_ts',
@@ -380,6 +390,8 @@ class StorageManager extends EventEmitter {
     data.where = { room_id: roomId };
     data.order = { type: 'desc', by: orderBy };
 
+    insertObjWhere(data, 'content', content);
+    insertObjWhere(data, 'unsigned', unsigned);
     if (typeof threadId === 'string') data.where.thread_id = threadId;
     if (typeof type === 'string') data.where.type = type;
 
@@ -392,13 +404,23 @@ class StorageManager extends EventEmitter {
       }
     }
 
+    console.log(data);
     const result = await this.storeConnection.select(data);
     return Array.isArray(result) ? result.reverse() : [];
   }
 
-  async _eventsCounter({ from = '', threadId = null, roomId = null, type = null }) {
+  async _eventsCounter({
+    from = '',
+    threadId = null,
+    roomId = null,
+    unsigned = null,
+    content = null,
+    type = null,
+  }) {
     const data = { from };
     data.where = { room_id: roomId };
+    insertObjWhere(data, 'content', content);
+    insertObjWhere(data, 'unsigned', unsigned);
     if (typeof threadId === 'string') data.where.thread_id = threadId;
     if (typeof type === 'string') data.where.type = type;
     return this.storeConnection.count(data);
@@ -408,6 +430,8 @@ class StorageManager extends EventEmitter {
     from = '',
     roomId = null,
     threadId = null,
+    unsigned = null,
+    content = null,
     type = null,
     limit = null,
   }) {
@@ -415,6 +439,8 @@ class StorageManager extends EventEmitter {
       from,
       roomId,
       threadId,
+      unsigned,
+      content,
       type,
     });
 
@@ -431,11 +457,15 @@ class StorageManager extends EventEmitter {
     roomId = null,
     type = null,
     limit = null,
+    unsigned = null,
+    content = null,
   }) {
     const pages = await this._eventsPaginationCount({
       from,
       threadId,
       roomId,
+      unsigned,
+      content,
       type,
       limit,
     });
@@ -447,6 +477,8 @@ class StorageManager extends EventEmitter {
         from,
         roomId,
         threadId,
+        unsigned,
+        content,
         type,
         limit,
         page: p,
@@ -545,6 +577,8 @@ class StorageManager extends EventEmitter {
     eventId = null,
     threadId = null,
     roomId = null,
+    unsigned = null,
+    content = null,
     type = null,
     limit = null,
   }) {
@@ -553,12 +587,22 @@ class StorageManager extends EventEmitter {
       eventId,
       threadId,
       roomId,
+      unsigned,
+      content,
       type,
       limit,
     });
   }
 
-  getMessages({ roomId = null, threadId = null, type = null, limit = null, page = null }) {
+  getMessages({
+    roomId = null,
+    threadId = null,
+    type = null,
+    limit = null,
+    page = null,
+    content = null,
+    unsigned = null,
+  }) {
     return this._eventsDataTemplate({
       from: 'messages',
       roomId,
@@ -566,23 +610,42 @@ class StorageManager extends EventEmitter {
       type,
       limit,
       page,
+      content,
+      unsigned,
     });
   }
 
-  getMessageCount({ roomId = null, threadId = null, type = null }) {
+  getMessageCount({
+    roomId = null,
+    threadId = null,
+    unsigned = null,
+    content = null,
+    type = null,
+  }) {
     return this._eventsCounter({
       from: 'messages',
       roomId,
       threadId,
+      unsigned,
+      content,
       type,
     });
   }
 
-  getMessagePagination({ roomId = null, threadId = null, type = null, limit = null }) {
+  getMessagePagination({
+    roomId = null,
+    threadId = null,
+    unsigned = null,
+    content = null,
+    type = null,
+    limit = null,
+  }) {
     return this._eventsPaginationCount({
       from: 'messages',
       roomId,
       threadId,
+      unsigned,
+      content,
       type,
       limit,
     });
