@@ -7484,6 +7484,11 @@ sprintf-js@~1.0.2:
   resolved "https://registry.npmjs.org/sprintf-js/-/sprintf-js-1.0.3.tgz"
   integrity sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==
 
+sqlweb@1.6.2:
+  version "1.6.2"
+  resolved "https://registry.yarnpkg.com/sqlweb/-/sqlweb-1.6.2.tgz#9a3c3c06e2f85ad2276e015f2a34a45255d5c104"
+  integrity sha512-fTqmRVJwmSmtMuBxMhQ9AeweNALFJCyKgZv6I/TabVGvwS7B/oegoNbxHDtGnQjrcEu/ENH0t3Czf8+D2Vdb9w==
+
 ssri@^9.0.0:
   version "9.0.1"
   resolved "https://registry.npmjs.org/ssri/-/ssri-9.0.1.tgz"

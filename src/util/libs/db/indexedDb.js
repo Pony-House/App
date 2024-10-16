@@ -1,4 +1,6 @@
-import { Connection } from 'jsstore';
+import { Connection, DATA_TYPE } from 'jsstore';
+import SqlWeb from 'sqlweb';
+
 import version10 from './versions/10';
 import version6 from './versions/6';
 
@@ -10,6 +12,7 @@ const versionUpdate = {
 export const startDb = async (tinyThis) => {
   // Prepare script
   tinyThis.storeConnection = new Connection(new Worker('jsstore.worker.min.js'));
+  tinyThis.storeConnection.addPlugin(SqlWeb);
 
   // Complete
   const isDbCreated = await tinyThis.storeConnection.initDb({
@@ -20,9 +23,9 @@ export const startDb = async (tinyThis) => {
         name: 'receipt',
         columns: {
           id: { primaryKey: true, autoIncrement: false },
-          room_id: { notNull: true, dataType: 'string' },
-          user_id: { notNull: true, dataType: 'string' },
-          origin_server_ts: { notNull: true, dataType: 'number' },
+          room_id: { notNull: true, dataType: DATA_TYPE.String },
+          user_id: { notNull: true, dataType: DATA_TYPE.String },
+          origin_server_ts: { notNull: true, dataType: DATA_TYPE.Number },
         },
       },
 
@@ -31,16 +34,16 @@ export const startDb = async (tinyThis) => {
         columns: {
           event_id: { primaryKey: true, autoIncrement: false },
 
-          type: { notNull: false, dataType: 'string' },
-          sender: { notNull: false, dataType: 'string' },
-          room_id: { notNull: false, dataType: 'string' },
-          thread_id: { notNull: false, dataType: 'string' },
+          type: { notNull: false, dataType: DATA_TYPE.String },
+          sender: { notNull: false, dataType: DATA_TYPE.String },
+          room_id: { notNull: false, dataType: DATA_TYPE.String },
+          thread_id: { notNull: false, dataType: DATA_TYPE.String },
 
-          content: { notNull: false, dataType: 'object' },
-          unsigned: { notNull: false, dataType: 'object' },
+          content: { notNull: false, dataType: DATA_TYPE.Object },
+          unsigned: { notNull: false, dataType: DATA_TYPE.Object },
 
-          redaction: { notNull: true, dataType: 'boolean' },
-          origin_server_ts: { notNull: true, dataType: 'number' },
+          redaction: { notNull: true, dataType: DATA_TYPE.Boolean },
+          origin_server_ts: { notNull: true, dataType: DATA_TYPE.Number },
         },
       },
 
@@ -49,16 +52,16 @@ export const startDb = async (tinyThis) => {
         columns: {
           event_id: { primaryKey: true, autoIncrement: false },
 
-          type: { notNull: false, dataType: 'string' },
-          sender: { notNull: false, dataType: 'string' },
-          room_id: { notNull: false, dataType: 'string' },
-          thread_id: { notNull: false, dataType: 'string' },
+          type: { notNull: false, dataType: DATA_TYPE.String },
+          sender: { notNull: false, dataType: DATA_TYPE.String },
+          room_id: { notNull: false, dataType: DATA_TYPE.String },
+          thread_id: { notNull: false, dataType: DATA_TYPE.String },
 
-          content: { notNull: false, dataType: 'object' },
-          unsigned: { notNull: false, dataType: 'object' },
+          content: { notNull: false, dataType: DATA_TYPE.Object },
+          unsigned: { notNull: false, dataType: DATA_TYPE.Object },
 
-          redaction: { notNull: true, dataType: 'boolean' },
-          origin_server_ts: { notNull: true, dataType: 'number' },
+          redaction: { notNull: true, dataType: DATA_TYPE.Boolean },
+          origin_server_ts: { notNull: true, dataType: DATA_TYPE.Number },
         },
         alter: {
           4: {
@@ -74,22 +77,22 @@ export const startDb = async (tinyThis) => {
         columns: {
           event_id: { primaryKey: true, autoIncrement: false },
 
-          sender: { notNull: false, dataType: 'string' },
-          room_id: { notNull: false, dataType: 'string' },
-          thread_id: { notNull: false, dataType: 'string' },
+          sender: { notNull: false, dataType: DATA_TYPE.String },
+          room_id: { notNull: false, dataType: DATA_TYPE.String },
+          thread_id: { notNull: false, dataType: DATA_TYPE.String },
 
-          content: { notNull: false, dataType: 'object' },
-          unsigned: { notNull: false, dataType: 'object' },
+          content: { notNull: false, dataType: DATA_TYPE.Object },
+          unsigned: { notNull: false, dataType: DATA_TYPE.Object },
 
-          redaction: { notNull: true, dataType: 'boolean' },
-          origin_server_ts: { notNull: true, dataType: 'number' },
+          redaction: { notNull: true, dataType: DATA_TYPE.Boolean },
+          origin_server_ts: { notNull: true, dataType: DATA_TYPE.Number },
         },
         alter: {
           6: {
             add: {
               thread_id: {
                 notNull: false,
-                dataType: 'string',
+                dataType: DATA_TYPE.String,
               },
             },
           },
@@ -100,26 +103,26 @@ export const startDb = async (tinyThis) => {
         name: 'messages_edit',
         columns: {
           event_id: { primaryKey: true, autoIncrement: false },
-          replace_event_id: { notNull: false, dataType: 'string' },
+          replace_event_id: { notNull: false, dataType: DATA_TYPE.String },
 
-          type: { notNull: false, dataType: 'string' },
-          sender: { notNull: false, dataType: 'string' },
-          room_id: { notNull: false, dataType: 'string' },
-          thread_id: { notNull: false, dataType: 'string' },
+          type: { notNull: false, dataType: DATA_TYPE.String },
+          sender: { notNull: false, dataType: DATA_TYPE.String },
+          room_id: { notNull: false, dataType: DATA_TYPE.String },
+          thread_id: { notNull: false, dataType: DATA_TYPE.String },
 
-          content: { notNull: false, dataType: 'object' },
-          unsigned: { notNull: false, dataType: 'object' },
-          embeds: { notNull: false, dataType: 'array' },
+          content: { notNull: false, dataType: DATA_TYPE.Object },
+          unsigned: { notNull: false, dataType: DATA_TYPE.Object },
+          embeds: { notNull: false, dataType: DATA_TYPE.Array },
 
-          redaction: { notNull: true, dataType: 'boolean' },
-          origin_server_ts: { notNull: true, dataType: 'number' },
+          redaction: { notNull: true, dataType: DATA_TYPE.Boolean },
+          origin_server_ts: { notNull: true, dataType: DATA_TYPE.Number },
         },
         alter: {
           9: {
             add: {
               original_event_id: {
                 notNull: false,
-                dataType: 'string',
+                dataType: DATA_TYPE.String,
               },
             },
           },
@@ -127,7 +130,7 @@ export const startDb = async (tinyThis) => {
             add: {
               type: {
                 notNull: false,
-                dataType: 'string',
+                dataType: DATA_TYPE.String,
               },
             },
           },
@@ -139,24 +142,24 @@ export const startDb = async (tinyThis) => {
         columns: {
           event_id: { primaryKey: true, autoIncrement: false },
 
-          type: { notNull: false, dataType: 'string' },
-          sender: { notNull: false, dataType: 'string' },
-          room_id: { notNull: false, dataType: 'string' },
-          thread_id: { notNull: false, dataType: 'string' },
+          type: { notNull: false, dataType: DATA_TYPE.String },
+          sender: { notNull: false, dataType: DATA_TYPE.String },
+          room_id: { notNull: false, dataType: DATA_TYPE.String },
+          thread_id: { notNull: false, dataType: DATA_TYPE.String },
 
-          content: { notNull: false, dataType: 'object' },
-          unsigned: { notNull: false, dataType: 'object' },
-          embeds: { notNull: false, dataType: 'array' },
+          content: { notNull: false, dataType: DATA_TYPE.Object },
+          unsigned: { notNull: false, dataType: DATA_TYPE.Object },
+          embeds: { notNull: false, dataType: DATA_TYPE.Array },
 
-          redaction: { notNull: true, dataType: 'boolean' },
-          origin_server_ts: { notNull: true, dataType: 'number' },
+          redaction: { notNull: true, dataType: DATA_TYPE.Boolean },
+          origin_server_ts: { notNull: true, dataType: DATA_TYPE.Number },
         },
         alter: {
           10: {
             add: {
               type: {
                 notNull: false,
-                dataType: 'string',
+                dataType: DATA_TYPE.String,
               },
             },
           },
@@ -168,22 +171,22 @@ export const startDb = async (tinyThis) => {
         columns: {
           event_id: { primaryKey: true, autoIncrement: false },
 
-          sender: { notNull: false, dataType: 'string' },
-          room_id: { notNull: false, dataType: 'string' },
-          thread_id: { notNull: false, dataType: 'string' },
+          sender: { notNull: false, dataType: DATA_TYPE.String },
+          room_id: { notNull: false, dataType: DATA_TYPE.String },
+          thread_id: { notNull: false, dataType: DATA_TYPE.String },
 
-          content: { notNull: false, dataType: 'object' },
-          unsigned: { notNull: false, dataType: 'object' },
+          content: { notNull: false, dataType: DATA_TYPE.Object },
+          unsigned: { notNull: false, dataType: DATA_TYPE.Object },
 
-          redaction: { notNull: true, dataType: 'boolean' },
-          origin_server_ts: { notNull: true, dataType: 'number' },
+          redaction: { notNull: true, dataType: DATA_TYPE.Boolean },
+          origin_server_ts: { notNull: true, dataType: DATA_TYPE.Number },
         },
         alter: {
           6: {
             add: {
               thread_id: {
                 notNull: false,
-                dataType: 'string',
+                dataType: DATA_TYPE.String,
               },
             },
           },
@@ -194,11 +197,11 @@ export const startDb = async (tinyThis) => {
         name: 'members',
         columns: {
           id: { primaryKey: true, autoIncrement: false },
-          type: { notNull: false, dataType: 'string' },
+          type: { notNull: false, dataType: DATA_TYPE.String },
 
-          user_id: { notNull: false, dataType: 'string' },
-          room_id: { notNull: false, dataType: 'string' },
-          origin_server_ts: { notNull: true, dataType: 'number' },
+          user_id: { notNull: false, dataType: DATA_TYPE.String },
+          room_id: { notNull: false, dataType: DATA_TYPE.String },
+          origin_server_ts: { notNull: true, dataType: DATA_TYPE.Number },
         },
       },
     ],
