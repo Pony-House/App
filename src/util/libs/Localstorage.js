@@ -396,12 +396,77 @@ class StorageManager extends EventEmitter {
     return Array.isArray(result) ? result.reverse() : [];
   }
 
-  async _eventsPaginationCount({ from = '', threadId = null, roomId = null, type = null }) {
+  async _eventsCounter({ from = '', threadId = null, roomId = null, type = null }) {
     const data = { from };
     data.where = { room_id: roomId };
     if (typeof threadId === 'string') data.where.thread_id = threadId;
     if (typeof type === 'string') data.where.type = type;
     return this.storeConnection.count(data);
+  }
+
+  async _eventsPaginationCount({
+    from = '',
+    roomId = null,
+    threadId = null,
+    type = null,
+    limit = null,
+  }) {
+    const count = await this._eventsCounter({
+      from,
+      roomId,
+      threadId,
+      type,
+    });
+
+    if (limit >= count) return 1;
+    if (count / 2 < limit) return 2;
+    return Math.floor(count / limit);
+  }
+
+  async _findEventIdInPagination({
+    eventId = null,
+    valueName = 'event_id',
+    from = '',
+    threadId = null,
+    roomId = null,
+    type = null,
+    limit = null,
+  }) {
+    const pages = await this._eventsPaginationCount({
+      from,
+      threadId,
+      roomId,
+      type,
+      limit,
+    });
+
+    const data = { success: false, items: [], page: null };
+    for (let i = 0; i < pages; i++) {
+      const p = i + 1;
+      const items = await this._eventsDataTemplate({
+        from,
+        roomId,
+        threadId,
+        type,
+        limit,
+        page: p,
+      });
+
+      if (Array.isArray(items)) {
+        for (const item in items) {
+          if (items[item][valueName] === eventId) {
+            data.success = true;
+            data.page = p;
+            data.items = items;
+            break;
+          }
+        }
+      }
+
+      if (data.success) break;
+    }
+
+    return data;
   }
 
   setMessageEdit(event) {
@@ -476,6 +541,23 @@ class StorageManager extends EventEmitter {
     return this._deleteReceiptTemplate('room_id', id);
   }
 
+  getLocationMessageId({
+    eventId = null,
+    threadId = null,
+    roomId = null,
+    type = null,
+    limit = null,
+  }) {
+    return this._findEventIdInPagination({
+      from: 'messages',
+      eventId,
+      threadId,
+      roomId,
+      type,
+      limit,
+    });
+  }
+
   getMessages({ roomId = null, threadId = null, type = null, limit = null, page = null }) {
     return this._eventsDataTemplate({
       from: 'messages',
@@ -488,7 +570,7 @@ class StorageManager extends EventEmitter {
   }
 
   getMessageCount({ roomId = null, threadId = null, type = null }) {
-    return this._eventsPaginationCount({
+    return this._eventsCounter({
       from: 'messages',
       roomId,
       threadId,
@@ -496,17 +578,14 @@ class StorageManager extends EventEmitter {
     });
   }
 
-  async getMessagePagination({ roomId = null, threadId = null, type = null }, itemsPerPage) {
-    const count = await this.getMessageCount({
+  getMessagePagination({ roomId = null, threadId = null, type = null, limit = null }) {
+    return this._eventsPaginationCount({
       from: 'messages',
       roomId,
       threadId,
       type,
+      limit,
     });
-
-    if (itemsPerPage >= count) return 1;
-    if (count / 2 < itemsPerPage) return 2;
-    return Math.floor(count / itemsPerPage);
   }
 
   setMessage(event) {
