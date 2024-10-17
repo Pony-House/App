@@ -663,7 +663,7 @@ class StorageManager extends EventEmitter {
     url = null,
   }) {
     return this._eventsDataTemplate({
-      from: 'messages',
+      from: 'messages_search',
       roomId,
       threadId,
       type,
