@@ -40,7 +40,7 @@ class StorageManager extends EventEmitter {
     this.isPersisted = null;
 
     // Db
-    this._dbVersion = 12;
+    this._dbVersion = 15;
     this._oldDbVersion = this.getNumber('ponyHouse-db-version') || 0;
     this.dbName = 'pony-house-database';
     this._timelineSyncCache = this.getJson('ponyHouse-timeline-sync', 'obj');
@@ -262,9 +262,19 @@ class StorageManager extends EventEmitter {
     const reactions = await this.storeConnection.remove({ from: 'reactions', where });
     const members = await this.storeConnection.remove({ from: 'members', where });
     const messagesEdit = await this.storeConnection.remove({ from: 'messages_edit', where });
+    const messagesSearch = await this.storeConnection.remove({ from: 'messages_search', where });
     const receipt = await this.deleteReceiptByRoomId(roomId);
 
-    return { timeline, encrypted, messages, reactions, members, messagesEdit, receipt };
+    return {
+      timeline,
+      encrypted,
+      messages,
+      reactions,
+      members,
+      messagesEdit,
+      messagesSearch,
+      receipt,
+    };
   }
 
   _eventFilter(event, data = {}, extraValue = null, filter = {}) {
@@ -400,10 +410,12 @@ class StorageManager extends EventEmitter {
     page = null,
     orderBy = 'origin_server_ts',
     customWhere = null,
+    join = null,
   }) {
     const data = { from };
     data.where = { room_id: roomId };
     data.order = { type: 'desc', by: orderBy };
+    if (join) data.join = join;
 
     insertObjWhere(data, 'content', content);
     insertObjWhere(data, 'unsigned', unsigned);
@@ -432,9 +444,11 @@ class StorageManager extends EventEmitter {
     content = null,
     type = null,
     customWhere = null,
+    join = null,
   }) {
     const data = { from };
     data.where = { room_id: roomId };
+    if (join) data.join = join;
     insertObjWhere(data, 'content', content);
     insertObjWhere(data, 'unsigned', unsigned);
     addCustomSearch(data.where, customWhere);
@@ -452,6 +466,7 @@ class StorageManager extends EventEmitter {
     type = null,
     limit = null,
     customWhere = null,
+    join = null,
   }) {
     const count = await this._eventsCounter({
       from,
@@ -461,6 +476,7 @@ class StorageManager extends EventEmitter {
       content,
       type,
       customWhere,
+      join,
     });
 
     if (limit >= count) return 1;
@@ -479,6 +495,7 @@ class StorageManager extends EventEmitter {
     unsigned = null,
     content = null,
     customWhere = null,
+    join = null,
   }) {
     const pages = await this._eventsPaginationCount({
       from,
@@ -489,6 +506,7 @@ class StorageManager extends EventEmitter {
       type,
       limit,
       customWhere,
+      join,
     });
 
     const data = { success: false, items: [], page: null };
@@ -504,6 +522,7 @@ class StorageManager extends EventEmitter {
         limit,
         page: p,
         customWhere,
+        join,
       });
 
       if (Array.isArray(items)) {
@@ -602,6 +621,8 @@ class StorageManager extends EventEmitter {
     type = null,
     limit = null,
     body = null,
+    formattedBody = null,
+    format = null,
     mimeType = null,
     url = null,
   }) {
@@ -612,7 +633,7 @@ class StorageManager extends EventEmitter {
       roomId,
       type,
       limit,
-      customWhere: { body, mimetype: mimeType, url },
+      customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
     });
   }
 
@@ -621,6 +642,8 @@ class StorageManager extends EventEmitter {
     threadId = null,
     type = null,
     body = null,
+    formattedBody = null,
+    format = null,
     mimeType = null,
     url = null,
   }) {
@@ -629,7 +652,7 @@ class StorageManager extends EventEmitter {
       roomId,
       threadId,
       type,
-      customWhere: { body, mimetype: mimeType, url },
+      customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
     });
   }
 
@@ -639,6 +662,8 @@ class StorageManager extends EventEmitter {
     type = null,
     limit = null,
     body = null,
+    formattedBody = null,
+    format = null,
     mimeType = null,
     url = null,
   }) {
@@ -648,7 +673,7 @@ class StorageManager extends EventEmitter {
       threadId,
       type,
       limit,
-      customWhere: { body, mimetype: mimeType, url },
+      customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
     });
   }
 
@@ -659,6 +684,8 @@ class StorageManager extends EventEmitter {
     limit = null,
     page = null,
     body = null,
+    formattedBody = null,
+    format = null,
     mimeType = null,
     url = null,
   }) {
@@ -669,7 +696,7 @@ class StorageManager extends EventEmitter {
       type,
       limit,
       page,
-      customWhere: { body, mimetype: mimeType, url },
+      customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
     });
   }
 
@@ -741,6 +768,9 @@ class StorageManager extends EventEmitter {
             if (data.content) {
               if (typeof data.content.msgtype === 'string') tinyItem.type = data.content.msgtype;
               if (typeof data.content.body === 'string') tinyItem.body = data.content.body;
+              if (typeof data.content.formatted_body === 'string')
+                tinyItem.formatted_body = data.content.formatted_body;
+              if (typeof data.content.format === 'string') tinyItem.format = data.content.format;
 
               if (data.content.file) {
                 if (typeof data.content.file.mimetype === 'string')
@@ -781,6 +811,10 @@ class StorageManager extends EventEmitter {
 
               if (typeof newContent.msgtype === 'string') tinyItem.type = newContent.msgtype;
               if (typeof newContent.body === 'string') tinyItem.body = newContent.body;
+              if (typeof newContent.formatted_body === 'string')
+                tinyItem.formatted_body = newContent.formatted_body;
+              if (typeof newContent.format === 'string') tinyItem.format = newContent.format;
+
               if (typeof data.sender === 'string') tinyItem.sender = data.sender;
               if (typeof data.room_id === 'string') tinyItem.room_id = data.room_id;
               if (typeof data.thread_id === 'string') tinyItem.thread_id = data.thread_id;
