@@ -3,10 +3,12 @@ import SqlWeb from 'sqlweb';
 
 import version10 from './versions/10';
 import version6 from './versions/6';
+import version12 from './versions/12';
 
 const versionUpdate = {
   6: version6,
   10: version10,
+  12: version12,
 };
 
 export const startDb = async (tinyThis) => {
@@ -163,6 +165,26 @@ export const startDb = async (tinyThis) => {
               },
             },
           },
+        },
+      },
+
+      {
+        name: 'messages_search',
+        columns: {
+          event_id: { primaryKey: true, autoIncrement: false },
+
+          type: { notNull: false, dataType: DATA_TYPE.String },
+          mimetype: { notNull: false, dataType: DATA_TYPE.String },
+
+          sender: { notNull: false, dataType: DATA_TYPE.String },
+          room_id: { notNull: false, dataType: DATA_TYPE.String },
+          thread_id: { notNull: false, dataType: DATA_TYPE.String },
+
+          body: { notNull: false, dataType: DATA_TYPE.String },
+          url: { notNull: false, dataType: DATA_TYPE.String },
+
+          redaction: { notNull: true, dataType: DATA_TYPE.Boolean },
+          origin_server_ts: { notNull: true, dataType: DATA_TYPE.Number },
         },
       },
 

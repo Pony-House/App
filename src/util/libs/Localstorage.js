@@ -26,7 +26,7 @@ class StorageManager extends EventEmitter {
     this.isPersisted = null;
 
     // Db
-    this._dbVersion = 11;
+    this._dbVersion = 12;
     this._oldDbVersion = this.getNumber('ponyHouse-db-version') || 0;
     this.dbName = 'pony-house-database';
     this._timelineSyncCache = this.getJson('ponyHouse-timeline-sync', 'obj');
@@ -84,8 +84,8 @@ class StorageManager extends EventEmitter {
         // Get checkpoint
         const lastEventId =
           objType(this._timelineSyncCache[roomId], 'object') &&
-            typeof this._timelineSyncCache[roomId].lastEvent === 'string' &&
-            this._timelineSyncCache[roomId].lastEvent.length > 0
+          typeof this._timelineSyncCache[roomId].lastEvent === 'string' &&
+          this._timelineSyncCache[roomId].lastEvent.length > 0
             ? this._timelineSyncCache[roomId].lastEvent
             : null;
 
@@ -364,8 +364,8 @@ class StorageManager extends EventEmitter {
         where: where
           ? where
           : {
-            event_id: event.getId(),
-          },
+              event_id: event.getId(),
+            },
       })
         .then((result) => {
           tinyThis.emit(dbEvent, result);
@@ -404,7 +404,6 @@ class StorageManager extends EventEmitter {
       }
     }
 
-    console.log(data);
     const result = await this.storeConnection.select(data);
     return Array.isArray(result) ? result.reverse() : [];
   }
@@ -577,8 +576,6 @@ class StorageManager extends EventEmitter {
     eventId = null,
     threadId = null,
     roomId = null,
-    unsigned = null,
-    content = null,
     type = null,
     limit = null,
   }) {
@@ -587,22 +584,12 @@ class StorageManager extends EventEmitter {
       eventId,
       threadId,
       roomId,
-      unsigned,
-      content,
       type,
       limit,
     });
   }
 
-  getMessages({
-    roomId = null,
-    threadId = null,
-    type = null,
-    limit = null,
-    page = null,
-    content = null,
-    unsigned = null,
-  }) {
+  getMessages({ roomId = null, threadId = null, type = null, limit = null, page = null }) {
     return this._eventsDataTemplate({
       from: 'messages',
       roomId,
@@ -610,57 +597,122 @@ class StorageManager extends EventEmitter {
       type,
       limit,
       page,
-      content,
-      unsigned,
     });
   }
 
-  getMessageCount({
-    roomId = null,
-    threadId = null,
-    unsigned = null,
-    content = null,
-    type = null,
-  }) {
+  getMessageCount({ roomId = null, threadId = null, type = null }) {
     return this._eventsCounter({
       from: 'messages',
       roomId,
       threadId,
-      unsigned,
-      content,
       type,
     });
   }
 
-  getMessagePagination({
-    roomId = null,
-    threadId = null,
-    unsigned = null,
-    content = null,
-    type = null,
-    limit = null,
-  }) {
+  getMessagePagination({ roomId = null, threadId = null, type = null, limit = null }) {
     return this._eventsPaginationCount({
       from: 'messages',
       roomId,
       threadId,
-      unsigned,
-      content,
       type,
       limit,
     });
   }
 
   setMessage(event) {
+    const tinyThis = this;
+    const setMessage = () =>
+      new Promise((resolve, reject) => {
+        tinyThis
+          ._setDataTemplate('messages', 'dbMessage', event)
+          .then((result) => {
+            const data = tinyThis._eventFilter(event);
+            const tinyItem = {
+              event_id: data.event_id,
+              redaction: data.redaction,
+              origin_server_ts: data.origin_server_ts,
+            };
+
+            if (typeof data.sender === 'string') tinyItem.sender = data.sender;
+            if (typeof data.room_id === 'string') tinyItem.room_id = data.room_id;
+            if (typeof data.thread_id === 'string') tinyItem.thread_id = data.thread_id;
+
+            if (data.content) {
+              if (typeof data.content.msgtype === 'string') tinyItem.type = data.content.msgtype;
+              if (typeof data.content.body === 'string') tinyItem.body = data.content.body;
+
+              if (data.content.file) {
+                if (typeof data.content.file.mimetype === 'string')
+                  tinyItem.mimetype = data.content.file.mimetype;
+
+                if (typeof data.content.file.url === 'string') tinyItem.url = data.content.file.url;
+              }
+            }
+
+            tinyThis.storeConnection
+              .insert({
+                into: 'messages_search',
+                upsert: true,
+                values: [tinyItem],
+              })
+              .then(() => resolve(result))
+              .catch(reject);
+          })
+          .catch(reject);
+      });
+
+    const setMessageEdit = () =>
+      new Promise((resolve, reject) => {
+        tinyThis
+          .setMessageEdit(event)
+          .then((result) => {
+            const data = tinyThis._eventFilter(event);
+            const content = event.getWireContent();
+            const relatesTo = content?.['m.relates_to'];
+            const newContent = content?.['m.new_content'];
+
+            if (relatesTo && newContent) {
+              const tinyItem = {
+                event_id: relatesTo.event_id,
+                redaction: data.redaction,
+                origin_server_ts: data.origin_server_ts,
+              };
+
+              if (typeof newContent.msgtype === 'string') tinyItem.type = newContent.msgtype;
+              if (typeof newContent.body === 'string') tinyItem.body = newContent.body;
+              if (typeof data.sender === 'string') tinyItem.sender = data.sender;
+              if (typeof data.room_id === 'string') tinyItem.room_id = data.room_id;
+              if (typeof data.thread_id === 'string') tinyItem.thread_id = data.thread_id;
+
+              if (newContent.file) {
+                if (typeof newContent.file.mimetype === 'string')
+                  tinyItem.mimetype = newContent.file.mimetype;
+
+                if (typeof newContent.file.url === 'string') tinyItem.url = newContent.file.url;
+              }
+
+              tinyThis.storeConnection
+                .insert({
+                  into: 'messages_search',
+                  upsert: true,
+                  values: [tinyItem],
+                })
+                .then(() => resolve(result))
+                .catch(reject);
+            } else resolve(result);
+          })
+          .catch(reject);
+      });
+
     const msgRelative = event.getRelation();
     if (
       !msgRelative ||
       typeof msgRelative.event_id !== 'string' ||
       typeof msgRelative.rel_type !== 'string'
     )
-      return this._setDataTemplate('messages', 'dbMessage', event);
-    else if (msgRelative.rel_type === 'm.replace') return this.setMessageEdit(event);
-    else return this._setDataTemplate('messages', 'dbMessage', event);
+      return setMessage();
+    else if (msgRelative.rel_type === 'm.replace') return setMessageEdit();
+    else return setMessage();
   }
 
   deleteMessageById(event) {
