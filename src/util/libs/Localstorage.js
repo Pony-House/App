@@ -20,6 +20,20 @@ const insertObjWhere = (data, name, obj) => {
   }
 };
 
+const addCustomSearch = (where, items) => {
+  if (objType(items)) {
+    for (const name in items) {
+      const type = objType(items[name]);
+      if (type === 'string' || type === 'array' || type === 'object') where[name] = items[name];
+      else if (type === 'object') {
+        for (const item in items[name]) {
+          where[name] = items[name][item];
+        }
+      }
+    }
+  }
+};
+
 class StorageManager extends EventEmitter {
   constructor() {
     super();
@@ -385,6 +399,7 @@ class StorageManager extends EventEmitter {
     limit = null,
     page = null,
     orderBy = 'origin_server_ts',
+    customWhere = null,
   }) {
     const data = { from };
     data.where = { room_id: roomId };
@@ -392,6 +407,7 @@ class StorageManager extends EventEmitter {
 
     insertObjWhere(data, 'content', content);
     insertObjWhere(data, 'unsigned', unsigned);
+    addCustomSearch(data.where, customWhere);
     if (typeof threadId === 'string') data.where.thread_id = threadId;
     if (typeof type === 'string') data.where.type = type;
 
@@ -415,11 +431,13 @@ class StorageManager extends EventEmitter {
     unsigned = null,
     content = null,
     type = null,
+    customWhere = null,
   }) {
     const data = { from };
     data.where = { room_id: roomId };
     insertObjWhere(data, 'content', content);
     insertObjWhere(data, 'unsigned', unsigned);
+    addCustomSearch(data.where, customWhere);
     if (typeof threadId === 'string') data.where.thread_id = threadId;
     if (typeof type === 'string') data.where.type = type;
     return this.storeConnection.count(data);
@@ -433,6 +451,7 @@ class StorageManager extends EventEmitter {
     content = null,
     type = null,
     limit = null,
+    customWhere = null,
   }) {
     const count = await this._eventsCounter({
       from,
@@ -441,6 +460,7 @@ class StorageManager extends EventEmitter {
       unsigned,
       content,
       type,
+      customWhere,
     });
 
     if (limit >= count) return 1;
@@ -458,6 +478,7 @@ class StorageManager extends EventEmitter {
     limit = null,
     unsigned = null,
     content = null,
+    customWhere = null,
   }) {
     const pages = await this._eventsPaginationCount({
       from,
@@ -467,6 +488,7 @@ class StorageManager extends EventEmitter {
       content,
       type,
       limit,
+      customWhere,
     });
 
     const data = { success: false, items: [], page: null };
@@ -481,6 +503,7 @@ class StorageManager extends EventEmitter {
         type,
         limit,
         page: p,
+        customWhere,
       });
 
       if (Array.isArray(items)) {
@@ -570,6 +593,84 @@ class StorageManager extends EventEmitter {
 
   deleteReceiptByRoomId(id) {
     return this._deleteReceiptTemplate('room_id', id);
+  }
+
+  getLocationMessageSearchId({
+    eventId = null,
+    threadId = null,
+    roomId = null,
+    type = null,
+    limit = null,
+    body = null,
+    mimeType = null,
+    url = null,
+  }) {
+    return this._findEventIdInPagination({
+      from: 'messages_search',
+      eventId,
+      threadId,
+      roomId,
+      type,
+      limit,
+      customWhere: { body, mimetype: mimeType, url },
+    });
+  }
+
+  getMessageSearchCount({
+    roomId = null,
+    threadId = null,
+    type = null,
+    body = null,
+    mimeType = null,
+    url = null,
+  }) {
+    return this._eventsCounter({
+      from: 'messages_search',
+      roomId,
+      threadId,
+      type,
+      customWhere: { body, mimetype: mimeType, url },
+    });
+  }
+
+  getMessageSearchPagination({
+    roomId = null,
+    threadId = null,
+    type = null,
+    limit = null,
+    body = null,
+    mimeType = null,
+    url = null,
+  }) {
+    return this._eventsPaginationCount({
+      from: 'messages_search',
+      roomId,
+      threadId,
+      type,
+      limit,
+      customWhere: { body, mimetype: mimeType, url },
+    });
+  }
+
+  getMessagesSearch({
+    roomId = null,
+    threadId = null,
+    type = null,
+    limit = null,
+    page = null,
+    body = null,
+    mimeType = null,
+    url = null,
+  }) {
+    return this._eventsDataTemplate({
+      from: 'messages',
+      roomId,
+      threadId,
+      type,
+      limit,
+      page,
+      customWhere: { body, mimetype: mimeType, url },
+    });
   }
 
   getLocationMessageId({
