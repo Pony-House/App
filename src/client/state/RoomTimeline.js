@@ -92,9 +92,6 @@ class RoomTimeline extends EventEmitter {
     // Message events
     this._onMessage = (r, event) => {
       if (!tinyThis._belongToRoom(event)) return;
-      // Fix event type
-      event.type = 'm.room.message';
-
       // Check isEdited
 
       // Send into the timeline
@@ -176,10 +173,9 @@ class RoomTimeline extends EventEmitter {
       return mEvent.getWireContent()['m.relates_to'] ?? null;
     };
 
-    ////////////////////////////////////////
     mEvent.getContent = () => {
-      if (mEvent._replacingEvent) {
-        return mEvent._replacingEvent.getContent()['m.new_content'] || {};
+      if (mEvent.replace_to) {
+        return mEvent.replace_to['m.new_content'] || {};
       } else {
         return mEvent.getOriginalContent();
       }
