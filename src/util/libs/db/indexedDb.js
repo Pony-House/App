@@ -116,7 +116,6 @@ export const startDb = async (tinyThis) => {
 
           content: { notNull: false, dataType: DATA_TYPE.Object },
           unsigned: { notNull: false, dataType: DATA_TYPE.Object },
-          embeds: { notNull: false, dataType: DATA_TYPE.Array },
 
           redaction: { notNull: true, dataType: DATA_TYPE.Boolean },
           origin_server_ts: { notNull: true, dataType: DATA_TYPE.Number },
@@ -138,6 +137,11 @@ export const startDb = async (tinyThis) => {
               },
             },
           },
+          16: {
+            drop: {
+              embeds: {},
+            },
+          },
         },
       },
 
@@ -155,6 +159,10 @@ export const startDb = async (tinyThis) => {
           unsigned: { notNull: false, dataType: DATA_TYPE.Object },
           embeds: { notNull: false, dataType: DATA_TYPE.Array },
 
+          replace_to_ts: { notNull: false, dataType: DATA_TYPE.Number },
+          replace_to_id: { notNull: false, dataType: DATA_TYPE.String },
+          replace_to: { notNull: false, dataType: DATA_TYPE.Object },
+
           redaction: { notNull: true, dataType: DATA_TYPE.Boolean },
           origin_server_ts: { notNull: true, dataType: DATA_TYPE.Number },
         },
@@ -164,6 +172,22 @@ export const startDb = async (tinyThis) => {
               type: {
                 notNull: false,
                 dataType: DATA_TYPE.String,
+              },
+            },
+          },
+          16: {
+            add: {
+              replace_to_ts: {
+                notNull: false,
+                dataType: DATA_TYPE.Number,
+              },
+              replace_to_id: {
+                notNull: false,
+                dataType: DATA_TYPE.String,
+              },
+              replace_to: {
+                notNull: false,
+                dataType: DATA_TYPE.Object,
               },
             },
           },

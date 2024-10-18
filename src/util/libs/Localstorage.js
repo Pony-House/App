@@ -40,7 +40,7 @@ class StorageManager extends EventEmitter {
     this.isPersisted = null;
 
     // Db
-    this._dbVersion = 15;
+    this._dbVersion = 16;
     this._oldDbVersion = this.getNumber('ponyHouse-db-version') || 0;
     this.dbName = 'pony-house-database';
     this._timelineSyncCache = this.getJson('ponyHouse-timeline-sync', 'obj');
@@ -798,7 +798,7 @@ class StorageManager extends EventEmitter {
           .setMessageEdit(event)
           .then((result) => {
             const data = tinyThis._eventFilter(event);
-            const content = event.getWireContent();
+            const content = event.getContent();
             const relatesTo = content?.['m.relates_to'];
             const newContent = content?.['m.new_content'];
 
@@ -825,6 +825,38 @@ class StorageManager extends EventEmitter {
 
                 if (typeof newContent.file.url === 'string') tinyItem.url = newContent.file.url;
               }
+
+              tinyThis.storeConnection
+                .select({
+                  from: 'messages',
+                  limit: 1,
+                  where: { event_id: relatesTo.event_id },
+                })
+                .then((messages2) => {
+                  if (Array.isArray(messages2) && messages2[0]) {
+                    // Message migration
+                    const msgTs = messages2[0].replace_to_ts;
+                    const data2 = {};
+                    data2.replace_to_ts = data.origin_server_ts;
+                    data2.replace_to_id = data.event_id;
+                    data2.replace_to = content;
+                    if (
+                      typeof msgTs !== 'number' ||
+                      Number.isNaN(msgTs) ||
+                      !Number.isFinite(msgTs) ||
+                      msgTs <= 0 ||
+                      data2.replace_to_ts >= msgTs
+                    ) {
+                      tinyThis.storeConnection.update({
+                        in: 'messages',
+                        set: data2,
+                        where: {
+                          event_id: relatesTo.event_id,
+                        },
+                      });
+                    }
+                  }
+                });
 
               tinyThis.storeConnection
                 .insert({
