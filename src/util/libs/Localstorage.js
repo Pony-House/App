@@ -44,7 +44,7 @@ class StorageManager extends EventEmitter {
     this._oldDbVersion = this.getNumber('ponyHouse-db-version') || 0;
     this.dbName = 'pony-house-database';
     this._timelineSyncCache = this.getJson('ponyHouse-timeline-sync', 'obj');
-    this._syncTimelineCache = { using: false, data: [] };
+    this._syncTimelineCache = { using: false, used: false, data: [] };
 
     // Get Content
     this.content = this.getJson('ponyHouse-storage-manager', 'obj');
@@ -125,6 +125,7 @@ class StorageManager extends EventEmitter {
         if (Array.isArray(events) && events.length > 0) {
           this._timelineSyncCache[roomId] = { lastEvent: events[0].getId() };
           this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
+          this._syncTimelineCache.used = true;
           for (const item in events) {
             this.addToTimeline(events[item]);
           }
@@ -234,23 +235,26 @@ class StorageManager extends EventEmitter {
       }
     } else {
       console.log(`[room-db-sync] All complete!`);
-      const tinyThis = this;
-      tinyThis.storeConnection
-        .select({
-          from: 'timeline',
-          where: { type: 'm.room.redaction' },
-        })
-        .then((redactions) => {
-          for (const item in redactions) {
-            if (redactions[item].content && typeof redactions[item].content.redacts === 'string')
-              tinyThis._sendSetReaction({
-                getContent: () => ({ redacts: redactions[item].content.redacts }),
-              });
-          }
-        })
-        .catch(console.error);
+      if (this._syncTimelineCache.used) {
+        const tinyThis = this;
+        tinyThis.storeConnection
+          .select({
+            from: 'timeline',
+            where: { type: 'm.room.redaction' },
+          })
+          .then((redactions) => {
+            for (const item in redactions) {
+              if (redactions[item].content && typeof redactions[item].content.redacts === 'string')
+                tinyThis._sendSetReaction({
+                  getContent: () => ({ redacts: redactions[item].content.redacts }),
+                });
+            }
+          })
+          .catch(console.error);
+      }
 
       this._syncTimelineCache.using = false;
+      this._syncTimelineCache.used = false;
     }
   }
 
