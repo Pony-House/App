@@ -1,16 +1,10 @@
 import { Connection, DATA_TYPE } from 'jsstore';
 import SqlWeb from 'sqlweb';
 
-import version10 from './versions/10';
-import version6 from './versions/6';
-import version12 from './versions/12';
-import version15 from './versions/15';
+import version19 from './versions/19';
 
 const versionUpdate = {
-  6: version6,
-  10: version10,
-  12: version12,
-  15: version15,
+  19: version19,
 };
 
 export const startDb = async (tinyThis) => {

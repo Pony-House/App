@@ -40,7 +40,7 @@ class StorageManager extends EventEmitter {
     this.isPersisted = null;
 
     // Db
-    this._dbVersion = 16;
+    this._dbVersion = 19;
     this._oldDbVersion = this.getNumber('ponyHouse-db-version') || 0;
     this.dbName = 'pony-house-database';
     this._timelineSyncCache = this.getJson('ponyHouse-timeline-sync', 'obj');
@@ -68,6 +68,19 @@ class StorageManager extends EventEmitter {
     });
   }
 
+  resetTimelineSyncData(roomId) {
+    if (roomId && this._timelineSyncCache[roomId]) {
+      delete this._timelineSyncCache[roomId];
+      this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
+      return true;
+    } else return false;
+  }
+
+  resetAllTimelineSyncData() {
+    this.removeItem('ponyHouse-timeline-sync');
+    this._timelineSyncCache = {};
+  }
+
   // Sync Timeline
   async _syncTimelineRun(room, eventId, checkpoint = null, timeline = null, firstTime = false) {
     const tinyThis = this;
@@ -84,7 +97,7 @@ class StorageManager extends EventEmitter {
       if (typeof eventId === 'string')
         tinyThis.emit(`dbTimelineLoaded-${roomId}-${eventId}`, tinyData);
       tinyThis.emit(`dbTimelineLoaded-${roomId}`, tinyData, eventId);
-      tinyThis._syncTimelineNext();
+      tinyThis._syncTimelineNext(firstTime);
     };
 
     try {
@@ -182,14 +195,14 @@ class StorageManager extends EventEmitter {
       }
 
       // Error
-      else throw new Error(`[room-db-sync] [${roomId}] No room found to sync in the indexedDb!`);
+      else throw new Error(`[room-db-sync] No room found to sync in the indexedDb!`);
     } catch (err) {
       console.error(err);
       loadComplete(null, null, null, err);
     }
   }
 
-  _syncTimelineNext() {
+  _syncTimelineNext(firstTime) {
     if (this._syncTimelineCache.data.length > 0) {
       const data = this._syncTimelineCache.data.shift();
       if (
@@ -221,6 +234,24 @@ class StorageManager extends EventEmitter {
       }
     } else {
       console.log(`[room-db-sync] All complete!`);
+      if (firstTime) {
+        const tinyThis = this;
+        tinyThis.storeConnection
+          .select({
+            from: 'timeline',
+            where: { type: 'm.room.redaction' },
+          })
+          .then((redactions) => {
+            for (const item in redactions) {
+              if (redactions[item].content && typeof redactions[item].content.redacts === 'string')
+                tinyThis._sendSetReaction({
+                  getContent: () => ({ redacts: redactions[item].content.redacts }),
+                });
+            }
+          })
+          .catch(console.error);
+      }
+
       this._syncTimelineCache.using = false;
     }
   }
@@ -960,6 +991,21 @@ class StorageManager extends EventEmitter {
     });
   }
 
+  _sendSetReaction(event) {
+    const dbs = [
+      'reactions',
+      'messages_search',
+      'messages',
+      'messages_edit',
+      'crdt',
+      'timeline',
+      'encrypted',
+    ];
+    for (const dbIndex in dbs) {
+      this._setRedaction(event, dbs[dbIndex], true);
+    }
+  }
+
   addToTimeline(event) {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
@@ -974,20 +1020,8 @@ class StorageManager extends EventEmitter {
         if (typeof tinyThis._timelineInsertTypes[eventType] === 'function')
           tinyThis._timelineInsertTypes[eventType](event).then(resolve).catch(tinyReject);
         else {
-          if (eventType === 'm.room.redaction') {
-            const dbs = [
-              'reactions',
-              'messages_search',
-              'messages',
-              'messages_edit',
-              'crdt',
-              'timeline',
-              'encrypted',
-            ];
-            for (const dbIndex in dbs) {
-              tinyThis._setRedaction(event, dbs[dbIndex], true);
-            }
-          } else if (eventType === 'm.room.member') tinyThis.setMember(event);
+          if (eventType === 'm.room.redaction') tinyThis._sendSetReaction(event);
+          if (eventType === 'm.room.member') tinyThis.setMember(event);
           tinyThis.setTimeline(event);
         }
       } catch (err) {
