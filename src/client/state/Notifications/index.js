@@ -595,7 +595,6 @@ class Notifications extends EventEmitter {
         await attemptDecryption.exec(mEvent, null, true);
       }
 
-      storageManager.addToTimeline(mEvent);
       if (this.matrixClient.getSyncState() !== 'SYNCING') stopNotification = true;
 
       return this._displayPopupNoti(mEvent, room, stopNotification, total, highlight);

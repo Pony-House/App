@@ -894,6 +894,17 @@ class StorageManager extends EventEmitter {
     return this._deleteDataByIdTemplate('crdt', 'dbCrdtDeleted', event);
   }
 
+  getReactions({ roomId = null, threadId = null, type = null, limit = null, page = null }) {
+    return this._eventsDataTemplate({
+      from: 'reactions',
+      roomId,
+      threadId,
+      type,
+      limit,
+      page,
+    });
+  }
+
   setReaction(event) {
     return this._setDataTemplate('reactions', 'dbReaction', event);
   }
@@ -921,23 +932,31 @@ class StorageManager extends EventEmitter {
   _setRedaction(event, dbName, isRedacted = false) {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
-      const eventId = event.getId();
-      tinyThis.storeConnection
-        .update({
-          in: dbName,
-          set: {
-            redaction: isRedacted,
-          },
-          where: {
-            event_id: eventId,
-          },
-        })
-        .then((noOfRowsUpdated) => {
-          if (typeof noOfRowsUpdated === 'number' && noOfRowsUpdated > 0)
-            tinyThis.emit('dbEventRedaction', { in: dbName, eventId, noOfRowsUpdated, isRedacted });
-          resolve(noOfRowsUpdated);
-        })
-        .catch(reject);
+      const content = event.getContent();
+      if (content && typeof content.redacts === 'string') {
+        const eventId = content.redacts;
+        tinyThis.storeConnection
+          .update({
+            in: dbName,
+            set: {
+              redaction: isRedacted,
+            },
+            where: {
+              event_id: eventId,
+            },
+          })
+          .then((noOfRowsUpdated) => {
+            if (typeof noOfRowsUpdated === 'number' && noOfRowsUpdated > 0)
+              tinyThis.emit('dbEventRedaction', {
+                in: dbName,
+                eventId,
+                noOfRowsUpdated,
+                isRedacted,
+              });
+            resolve(noOfRowsUpdated);
+          })
+          .catch(reject);
+      }
     });
   }
 
@@ -955,8 +974,20 @@ class StorageManager extends EventEmitter {
         if (typeof tinyThis._timelineInsertTypes[eventType] === 'function')
           tinyThis._timelineInsertTypes[eventType](event).then(resolve).catch(tinyReject);
         else {
-          if (eventType === 'm.room.redaction') tinyThis._setRedaction(event, 'timeline', true);
-          if (eventType === 'm.room.member') tinyThis.setMember(event);
+          if (eventType === 'm.room.redaction') {
+            const dbs = [
+              'reactions',
+              'messages_search',
+              'messages',
+              'messages_edit',
+              'crdt',
+              'timeline',
+              'encrypted',
+            ];
+            for (const dbIndex in dbs) {
+              tinyThis._setRedaction(event, dbs[dbIndex], true);
+            }
+          } else if (eventType === 'm.room.member') tinyThis.setMember(event);
           tinyThis.setTimeline(event);
         }
       } catch (err) {
