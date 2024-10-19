@@ -111,10 +111,16 @@ class RoomTimeline extends EventEmitter {
       else tinyThis._deletingEvent(event);
     };
 
+    // Thread added events
+    this._onIsThreadEvent = (r, event) => {
+      if (!tinyThis._belongToRoom(event)) return;
+    };
+
     // Prepare events
     storageManager.on('dbMessage', this._onMessage);
     storageManager.on('dbReaction', this._onReaction);
     storageManager.on('dbTimeline', this._onTimeline);
+    storageManager.on('dbEventIsThread', this._onIsThreadEvent);
     storageManager.on(`dbTimelineLoaded-${this.roomId}`, this._startTimeline);
   }
 
@@ -404,6 +410,7 @@ class RoomTimeline extends EventEmitter {
     storageManager.off('dbMessage', this._onMessage);
     storageManager.off('dbReaction', this._onReaction);
     storageManager.off('dbTimeline', this._onTimeline);
+    storageManager.off('dbEventIsThread', this._onIsThreadEvent);
     storageManager.off(`dbTimelineLoaded-${this.roomId}`, this._startTimeline);
   }
 }
