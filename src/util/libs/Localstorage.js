@@ -569,9 +569,9 @@ class StorageManager extends EventEmitter {
     from = '',
     roomId = null,
     threadId = null,
-    threadsOnly = false,
-    noThreads = false,
+    showThreads = null,
     type = null,
+    showRedaction = null,
     content = null,
     unsigned = null,
     limit = null,
@@ -591,8 +591,16 @@ class StorageManager extends EventEmitter {
     if (typeof threadId === 'string' && data.where.thread_id !== 'NULL')
       data.where.thread_id = threadId;
     if (typeof type === 'string') data.where.type = type;
-    if (threadsOnly) data.where.thread_id = { '!=': 'NULL' };
-    else if (noThreads) data.where.thread_id = 'NULL';
+
+    if (typeof showThreads === 'boolean') {
+      if (showThreads) data.where.thread_id = { '!=': 'NULL' };
+      else if (!showThreads) data.where.thread_id = 'NULL';
+    }
+
+    if (typeof showRedaction === 'boolean') {
+      if (showRedaction) data.where.redaction = true;
+      else if (!showRedaction) data.where.redaction = false;
+    }
 
     if (typeof limit === 'number') {
       if (!Number.isNaN(limit) && Number.isFinite(limit) && limit > -1) data.limit = limit;
@@ -610,8 +618,8 @@ class StorageManager extends EventEmitter {
   async _eventsCounter({
     from = '',
     threadId = null,
-    threadsOnly = false,
-    noThreads = false,
+    showThreads = null,
+    showRedaction = null,
     roomId = null,
     unsigned = null,
     content = null,
@@ -621,8 +629,17 @@ class StorageManager extends EventEmitter {
   }) {
     const data = { from };
     data.where = { room_id: roomId };
-    if (threadsOnly) data.where.thread_id = { '!=': 'NULL' };
-    else if (noThreads) data.where.thread_id = 'NULL';
+
+    if (typeof showThreads === 'boolean') {
+      if (showThreads) data.where.thread_id = { '!=': 'NULL' };
+      else if (!showThreads) data.where.thread_id = 'NULL';
+    }
+
+    if (typeof showRedaction === 'boolean') {
+      if (showRedaction) data.where.redaction = true;
+      else if (!showRedaction) data.where.redaction = false;
+    }
+
     if (join) data.join = join;
     insertObjWhere(data, 'content', content);
     insertObjWhere(data, 'unsigned', unsigned);
@@ -636,8 +653,8 @@ class StorageManager extends EventEmitter {
     from = '',
     roomId = null,
     threadId = null,
-    threadsOnly = false,
-    noThreads = false,
+    showThreads = null,
+    showRedaction = null,
     unsigned = null,
     content = null,
     type = null,
@@ -649,8 +666,8 @@ class StorageManager extends EventEmitter {
       from,
       roomId,
       threadId,
-      threadsOnly,
-      noThreads,
+      showThreads,
+      showRedaction,
       unsigned,
       content,
       type,
@@ -668,8 +685,8 @@ class StorageManager extends EventEmitter {
     valueName = 'event_id',
     from = '',
     threadId = null,
-    threadsOnly = false,
-    noThreads = false,
+    showThreads = null,
+    showRedaction = null,
     roomId = null,
     type = null,
     limit = null,
@@ -681,8 +698,8 @@ class StorageManager extends EventEmitter {
     const pages = await this._eventsPaginationCount({
       from,
       threadId,
-      threadsOnly,
-      noThreads,
+      showThreads,
+      showRedaction,
       roomId,
       unsigned,
       content,
@@ -699,8 +716,8 @@ class StorageManager extends EventEmitter {
         from,
         roomId,
         threadId,
-        threadsOnly,
-        noThreads,
+        showThreads,
+        showRedaction,
         unsigned,
         content,
         type,
@@ -802,8 +819,8 @@ class StorageManager extends EventEmitter {
   getLocationMessageSearchId({
     eventId = null,
     threadId = null,
-    threadsOnly = false,
-    noThreads = false,
+    showThreads = null,
+    showRedaction = null,
     roomId = null,
     type = null,
     limit = null,
@@ -817,8 +834,8 @@ class StorageManager extends EventEmitter {
       from: 'messages_search',
       eventId,
       threadId,
-      threadsOnly,
-      noThreads,
+      showThreads,
+      showRedaction,
       roomId,
       type,
       limit,
@@ -829,8 +846,8 @@ class StorageManager extends EventEmitter {
   getMessageSearchCount({
     roomId = null,
     threadId = null,
-    threadsOnly = false,
-    noThreads = false,
+    showThreads = null,
+    showRedaction = null,
     type = null,
     body = null,
     formattedBody = null,
@@ -842,8 +859,8 @@ class StorageManager extends EventEmitter {
       from: 'messages_search',
       roomId,
       threadId,
-      threadsOnly,
-      noThreads,
+      showThreads,
+      showRedaction,
       type,
       customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
     });
@@ -852,8 +869,8 @@ class StorageManager extends EventEmitter {
   getMessageSearchPagination({
     roomId = null,
     threadId = null,
-    threadsOnly = false,
-    noThreads = false,
+    showThreads = null,
+    showRedaction = null,
     type = null,
     limit = null,
     body = null,
@@ -866,8 +883,8 @@ class StorageManager extends EventEmitter {
       from: 'messages_search',
       roomId,
       threadId,
-      threadsOnly,
-      noThreads,
+      showThreads,
+      showRedaction,
       type,
       limit,
       customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
@@ -877,8 +894,8 @@ class StorageManager extends EventEmitter {
   getMessagesSearch({
     roomId = null,
     threadId = null,
-    threadsOnly = false,
-    noThreads = false,
+    showThreads = null,
+    showRedaction = null,
     type = null,
     limit = null,
     page = null,
@@ -892,8 +909,8 @@ class StorageManager extends EventEmitter {
       from: 'messages_search',
       roomId,
       threadId,
-      threadsOnly,
-      noThreads,
+      showThreads,
+      showRedaction,
       type,
       limit,
       page,
@@ -904,8 +921,8 @@ class StorageManager extends EventEmitter {
   getLocationMessageId({
     eventId = null,
     threadId = null,
-    threadsOnly = false,
-    noThreads = false,
+    showThreads = null,
+    showRedaction = null,
     roomId = null,
     type = null,
     limit = null,
@@ -914,8 +931,8 @@ class StorageManager extends EventEmitter {
       from: 'messages',
       eventId,
       threadId,
-      threadsOnly,
-      noThreads,
+      showThreads,
+      showRedaction,
       roomId,
       type,
       limit,
@@ -925,8 +942,8 @@ class StorageManager extends EventEmitter {
   getMessages({
     roomId = null,
     threadId = null,
-    threadsOnly = false,
-    noThreads = false,
+    showThreads = null,
+    showRedaction = null,
     type = null,
     limit = null,
     page = null,
@@ -935,8 +952,8 @@ class StorageManager extends EventEmitter {
       from: 'messages',
       roomId,
       threadId,
-      threadsOnly,
-      noThreads,
+      showThreads,
+      showRedaction,
       type,
       limit,
       page,
@@ -946,16 +963,16 @@ class StorageManager extends EventEmitter {
   getMessageCount({
     roomId = null,
     threadId = null,
-    threadsOnly = false,
-    noThreads = false,
+    showThreads = null,
+    showRedaction = null,
     type = null,
   }) {
     return this._eventsCounter({
       from: 'messages',
       roomId,
       threadId,
-      threadsOnly,
-      noThreads,
+      showThreads,
+      showRedaction,
       type,
     });
   }
@@ -963,8 +980,8 @@ class StorageManager extends EventEmitter {
   getMessagePagination({
     roomId = null,
     threadId = null,
-    threadsOnly = false,
-    noThreads = false,
+    showThreads = null,
+    showRedaction = null,
     type = null,
     limit = null,
   }) {
@@ -972,8 +989,8 @@ class StorageManager extends EventEmitter {
       from: 'messages',
       roomId,
       threadId,
-      threadsOnly,
-      noThreads,
+      showThreads,
+      showRedaction,
       type,
       limit,
     });
@@ -1131,8 +1148,8 @@ class StorageManager extends EventEmitter {
   getReactions({
     roomId = null,
     threadId = null,
-    threadsOnly = false,
-    noThreads = false,
+    showThreads = null,
+    showRedaction = null,
     type = null,
     limit = null,
     page = null,
@@ -1140,8 +1157,8 @@ class StorageManager extends EventEmitter {
     return this._eventsDataTemplate({
       from: 'reactions',
       roomId,
-      threadsOnly,
-      noThreads,
+      showThreads,
+      showRedaction,
       threadId,
       type,
       limit,
