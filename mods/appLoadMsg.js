@@ -70,6 +70,8 @@ export default {
       'I found a bit coin in equestria. Bitcoin? Nope. Bits!',
 
       'The generation of AIs is the most solid filter of humanity and will come to separate the wicked from the righteous.',
+      'The new main definition of a famous person in the AI generation will not be for your talent, but for your personality.',
+      'Creating an AI detector isn\'t a good idea. The evolution of the AIs will eventually make this bot revolt against you.',
 
       'Someone up there wants to help you.',
       'Have you ever thought that he can forgive you?',
