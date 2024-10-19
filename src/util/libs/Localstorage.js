@@ -68,6 +68,87 @@ class StorageManager extends EventEmitter {
     });
   }
 
+  convertToEventFormat(event) {
+    const mEvent = { event: clone(event) };
+    mEvent.threadId =
+      typeof mEvent.event?.thread_id === 'string' && mEvent.event?.thread_id !== 'NULL'
+        ? mEvent.event?.thread_id
+        : null;
+
+    mEvent.threadRootId = () => {
+      const relatesTo = mEvent.getWireContent()?.['m.relates_to'];
+      if (relatesTo?.rel_type === THREAD_RELATION_TYPE.name) {
+        return relatesTo.event_id;
+      }
+      if (mEvent.thread) {
+        return mEvent.thread.id;
+      }
+      if (mEvent.threadId !== null) {
+        return mEvent.threadId;
+      }
+      const unsigned = mEvent.getUnsigned();
+      if (typeof unsigned[UNSIGNED_THREAD_ID_FIELD.name] === 'string') {
+        return unsigned[UNSIGNED_THREAD_ID_FIELD.name];
+      }
+      return undefined;
+    };
+
+    mEvent.getRelation = () => {
+      if (!mEvent.isRelation()) {
+        return null;
+      }
+      return mEvent.getWireContent()['m.relates_to'] ?? null;
+    };
+
+    mEvent.getContent = () => {
+      if (mEvent.replace_to) {
+        return mEvent.replace_to['m.new_content'] || {};
+      } else {
+        return mEvent.getOriginalContent();
+      }
+    };
+
+    mEvent.isRelation = (relType) => {
+      const relation = mEvent.getWireContent()?.['m.relates_to'];
+      return !!(
+        relation?.rel_type &&
+        relation.event_id &&
+        (relType ? relation.rel_type === relType : true)
+      );
+    };
+
+    mEvent.getThreadId = () => mEvent.threadId;
+    mEvent.isThread = () =>
+      typeof mEvent.event?.is_thread === 'boolean'
+        ? mEvent.event.is_thread
+        : mEvent.threadId === mEvent.event?.event_id
+          ? true
+          : false;
+    mEvent.getThread = () => (mEvent.threadId ? { id: mEvent.threadId } : null);
+
+    mEvent.getPrevContent = () => mEvent?.getUnsigned().prev_content || {};
+    mEvent.getWireContent = () => mEvent.event?.content || {};
+    mEvent.getOriginalContent = () => mEvent.event.content || {};
+
+    mEvent.getId = () => mEvent.event?.event_id || null;
+    mEvent.getRoomId = () => mEvent.event?.room_id || null;
+    mEvent.getSender = () => mEvent.event?.sender || null;
+    mEvent.getType = () => mEvent.event?.type || null;
+
+    mEvent.getAge = () => (mEvent.event?.unsigned && mEvent.event.unsigned?.age) || null;
+    mEvent.getTs = () => mEvent.event?.origin_server_ts;
+    mEvent.getDate = () =>
+      mEvent.event.origin_server_ts ? new Date(mEvent.event.origin_server_ts) : null;
+
+    mEvent.getUnsigned = () => mEvent.event?.unsigned || null;
+
+    mEvent.isRedacted = () =>
+      mEvent.getUnsigned().redacted_because || mEvent.event?.redaction || false;
+    mEvent.isRedaction = () => mEvent.event?.type === 'm.room.redaction' || false;
+
+    return mEvent;
+  }
+
   resetTimelineSyncData(roomId) {
     if (roomId && this._timelineSyncCache[roomId]) {
       delete this._timelineSyncCache[roomId];
@@ -245,8 +326,9 @@ class StorageManager extends EventEmitter {
     } else {
       console.log(`[room-db-sync] All complete!`);
       if (this._syncTimelineCache.used) {
-        console.log(`[room-db-sync] Updating redaction data...`);
         const tinyThis = this;
+
+        console.log(`[room-db-sync] Updating redaction data...`);
         tinyThis.storeConnection
           .select({
             from: 'timeline',
@@ -260,6 +342,20 @@ class StorageManager extends EventEmitter {
                 });
             }
             console.log(`[room-db-sync] Redaction data request sent!`);
+          })
+          .catch(console.error);
+
+        console.log(`[room-db-sync] Updating thread data...`);
+        tinyThis.storeConnection
+          .select({
+            from: 'messages',
+            where: { thread_id: { '!=': 'NULL' } },
+          })
+          .then((redactions) => {
+            for (const item in redactions) {
+              tinyThis._setIsThread(tinyThis.convertToEventFormat(redactions[item]));
+            }
+            console.log(`[room-db-sync] Thread data request sent!`);
           })
           .catch(console.error);
       }
@@ -353,9 +449,10 @@ class StorageManager extends EventEmitter {
     if (filter.room_id !== false) data.room_id = event.getRoomId();
     if (filter.content !== false) data.content = clone(event.getContent());
     if (filter.unsigned !== false) data.unsigned = clone(event.getUnsigned());
-    if (filter.redaction !== false) data.redaction = event.isRedaction();
+    if (filter.redaction !== false) data.redaction = event.isRedacted();
 
     if (filter.thread_id !== false && typeof threadId === 'string') data.thread_id = threadId;
+    else data.thread_id = 'NULL';
     if (filter.origin_server_ts !== false && date) data.origin_server_ts = date.getTime();
 
     if (typeof data.age !== 'number') delete data.age;
@@ -468,6 +565,7 @@ class StorageManager extends EventEmitter {
     from = '',
     roomId = null,
     threadId = null,
+    threadsOnly = false,
     type = null,
     content = null,
     unsigned = null,
@@ -485,8 +583,10 @@ class StorageManager extends EventEmitter {
     insertObjWhere(data, 'content', content);
     insertObjWhere(data, 'unsigned', unsigned);
     addCustomSearch(data.where, customWhere);
-    if (typeof threadId === 'string') data.where.thread_id = threadId;
+    if (typeof threadId === 'string' && data.where.thread_id !== 'NULL')
+      data.where.thread_id = threadId;
     if (typeof type === 'string') data.where.type = type;
+    if (threadsOnly) data.where.thread_id = { '!=': 'NULL' };
 
     if (typeof limit === 'number') {
       if (!Number.isNaN(limit) && Number.isFinite(limit) && limit > -1) data.limit = limit;
@@ -504,6 +604,7 @@ class StorageManager extends EventEmitter {
   async _eventsCounter({
     from = '',
     threadId = null,
+    threadsOnly = false,
     roomId = null,
     unsigned = null,
     content = null,
@@ -513,6 +614,7 @@ class StorageManager extends EventEmitter {
   }) {
     const data = { from };
     data.where = { room_id: roomId };
+    if (threadsOnly) data.where.thread_id = { '!=': 'NULL' };
     if (join) data.join = join;
     insertObjWhere(data, 'content', content);
     insertObjWhere(data, 'unsigned', unsigned);
@@ -526,6 +628,7 @@ class StorageManager extends EventEmitter {
     from = '',
     roomId = null,
     threadId = null,
+    threadsOnly = false,
     unsigned = null,
     content = null,
     type = null,
@@ -537,6 +640,7 @@ class StorageManager extends EventEmitter {
       from,
       roomId,
       threadId,
+      threadsOnly,
       unsigned,
       content,
       type,
@@ -554,6 +658,7 @@ class StorageManager extends EventEmitter {
     valueName = 'event_id',
     from = '',
     threadId = null,
+    threadsOnly = false,
     roomId = null,
     type = null,
     limit = null,
@@ -565,6 +670,7 @@ class StorageManager extends EventEmitter {
     const pages = await this._eventsPaginationCount({
       from,
       threadId,
+      threadsOnly,
       roomId,
       unsigned,
       content,
@@ -581,6 +687,7 @@ class StorageManager extends EventEmitter {
         from,
         roomId,
         threadId,
+        threadsOnly,
         unsigned,
         content,
         type,
@@ -682,6 +789,7 @@ class StorageManager extends EventEmitter {
   getLocationMessageSearchId({
     eventId = null,
     threadId = null,
+    threadsOnly = false,
     roomId = null,
     type = null,
     limit = null,
@@ -695,6 +803,7 @@ class StorageManager extends EventEmitter {
       from: 'messages_search',
       eventId,
       threadId,
+      threadsOnly,
       roomId,
       type,
       limit,
@@ -705,6 +814,7 @@ class StorageManager extends EventEmitter {
   getMessageSearchCount({
     roomId = null,
     threadId = null,
+    threadsOnly = false,
     type = null,
     body = null,
     formattedBody = null,
@@ -716,6 +826,7 @@ class StorageManager extends EventEmitter {
       from: 'messages_search',
       roomId,
       threadId,
+      threadsOnly,
       type,
       customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
     });
@@ -724,6 +835,7 @@ class StorageManager extends EventEmitter {
   getMessageSearchPagination({
     roomId = null,
     threadId = null,
+    threadsOnly = false,
     type = null,
     limit = null,
     body = null,
@@ -736,6 +848,7 @@ class StorageManager extends EventEmitter {
       from: 'messages_search',
       roomId,
       threadId,
+      threadsOnly,
       type,
       limit,
       customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
@@ -745,6 +858,7 @@ class StorageManager extends EventEmitter {
   getMessagesSearch({
     roomId = null,
     threadId = null,
+    threadsOnly = false,
     type = null,
     limit = null,
     page = null,
@@ -758,6 +872,7 @@ class StorageManager extends EventEmitter {
       from: 'messages_search',
       roomId,
       threadId,
+      threadsOnly,
       type,
       limit,
       page,
@@ -768,6 +883,7 @@ class StorageManager extends EventEmitter {
   getLocationMessageId({
     eventId = null,
     threadId = null,
+    threadsOnly = false,
     roomId = null,
     type = null,
     limit = null,
@@ -776,37 +892,54 @@ class StorageManager extends EventEmitter {
       from: 'messages',
       eventId,
       threadId,
+      threadsOnly,
       roomId,
       type,
       limit,
     });
   }
 
-  getMessages({ roomId = null, threadId = null, type = null, limit = null, page = null }) {
+  getMessages({
+    roomId = null,
+    threadId = null,
+    threadsOnly = false,
+    type = null,
+    limit = null,
+    page = null,
+  }) {
     return this._eventsDataTemplate({
       from: 'messages',
       roomId,
       threadId,
+      threadsOnly,
       type,
       limit,
       page,
     });
   }
 
-  getMessageCount({ roomId = null, threadId = null, type = null }) {
+  getMessageCount({ roomId = null, threadId = null, threadsOnly = false, type = null }) {
     return this._eventsCounter({
       from: 'messages',
       roomId,
       threadId,
+      threadsOnly,
       type,
     });
   }
 
-  getMessagePagination({ roomId = null, threadId = null, type = null, limit = null }) {
+  getMessagePagination({
+    roomId = null,
+    threadId = null,
+    threadsOnly = false,
+    type = null,
+    limit = null,
+  }) {
     return this._eventsPaginationCount({
       from: 'messages',
       roomId,
       threadId,
+      threadsOnly,
       type,
       limit,
     });
@@ -829,6 +962,7 @@ class StorageManager extends EventEmitter {
             if (typeof data.sender === 'string') tinyItem.sender = data.sender;
             if (typeof data.room_id === 'string') tinyItem.room_id = data.room_id;
             if (typeof data.thread_id === 'string') tinyItem.thread_id = data.thread_id;
+            else tinyItem.thread_id = 'NULL';
 
             if (data.content) {
               if (typeof data.content.msgtype === 'string') tinyItem.type = data.content.msgtype;
@@ -883,6 +1017,7 @@ class StorageManager extends EventEmitter {
               if (typeof data.sender === 'string') tinyItem.sender = data.sender;
               if (typeof data.room_id === 'string') tinyItem.room_id = data.room_id;
               if (typeof data.thread_id === 'string') tinyItem.thread_id = data.thread_id;
+              else tinyItem.thread_id = 'NULL';
 
               if (newContent.file) {
                 if (typeof newContent.file.mimetype === 'string')
@@ -959,10 +1094,18 @@ class StorageManager extends EventEmitter {
     return this._deleteDataByIdTemplate('crdt', 'dbCrdtDeleted', event);
   }
 
-  getReactions({ roomId = null, threadId = null, type = null, limit = null, page = null }) {
+  getReactions({
+    roomId = null,
+    threadId = null,
+    threadsOnly = false,
+    type = null,
+    limit = null,
+    page = null,
+  }) {
     return this._eventsDataTemplate({
       from: 'reactions',
       roomId,
+      threadsOnly,
       threadId,
       type,
       limit,

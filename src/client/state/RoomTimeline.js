@@ -1,6 +1,5 @@
 import EventEmitter from 'events';
 import { Direction, UNSIGNED_THREAD_ID_FIELD } from 'matrix-js-sdk';
-import clone from 'clone';
 
 import storageManager from '@src/util/libs/Localstorage';
 import { getAppearance } from '@src/util/libs/appearance';
@@ -149,91 +148,17 @@ class RoomTimeline extends EventEmitter {
     return event.room_id === this.roomId && (!this.threadId || event.thread_id === this.threadId);
   }
 
-  // Convert event format
-  _convertEventFormat(event) {
-    const mEvent = { event: clone(event) };
-    mEvent.threadId = mEvent.event.thread_id;
-
-    mEvent.threadRootId = () => {
-      const relatesTo = mEvent.getWireContent()?.['m.relates_to'];
-      if (relatesTo?.rel_type === THREAD_RELATION_TYPE.name) {
-        return relatesTo.event_id;
-      }
-      if (mEvent.thread) {
-        return mEvent.thread.id;
-      }
-      if (mEvent.threadId !== undefined) {
-        return mEvent.threadId;
-      }
-      const unsigned = mEvent.getUnsigned();
-      if (typeof unsigned[UNSIGNED_THREAD_ID_FIELD.name] === 'string') {
-        return unsigned[UNSIGNED_THREAD_ID_FIELD.name];
-      }
-      return undefined;
-    };
-
-    mEvent.getRelation = () => {
-      if (!mEvent.isRelation()) {
-        return null;
-      }
-      return mEvent.getWireContent()['m.relates_to'] ?? null;
-    };
-
-    mEvent.getContent = () => {
-      if (mEvent.replace_to) {
-        return mEvent.replace_to['m.new_content'] || {};
-      } else {
-        return mEvent.getOriginalContent();
-      }
-    };
-
-    mEvent.isRelation = (relType) => {
-      const relation = mEvent.getWireContent()?.['m.relates_to'];
-      return !!(
-        relation?.rel_type &&
-        relation.event_id &&
-        (relType ? relation.rel_type === relType : true)
-      );
-    };
-
-    mEvent.getThreadId = () => mEvent.event?.thread_id;
-    mEvent.isThread = () =>
-      typeof mEvent.event?.is_thread === 'boolean' ? mEvent.event.is_thread : false;
-
-    mEvent.getPrevContent = () => mEvent?.getUnsigned().prev_content || {};
-    mEvent.getWireContent = () => mEvent.event?.content || {};
-    mEvent.getOriginalContent = () => mEvent.event.content || {};
-
-    mEvent.getId = () => mEvent.event?.event_id || null;
-    mEvent.getRoomId = () => mEvent.event?.room_id || null;
-    mEvent.getSender = () => mEvent.event?.sender || null;
-    mEvent.getType = () => mEvent.event?.type || null;
-
-    mEvent.getAge = () => (mEvent.event?.unsigned && mEvent.event.unsigned?.age) || null;
-    mEvent.getTs = () => mEvent.event?.origin_server_ts;
-    mEvent.getDate = () =>
-      mEvent.event.origin_server_ts ? new Date(mEvent.event.origin_server_ts) : null;
-
-    mEvent.getUnsigned = () => mEvent.event?.unsigned || null;
-
-    mEvent.isRedacted = () =>
-      mEvent.getUnsigned().redacted_because || mEvent.event?.redaction || false;
-    mEvent.isRedaction = () => mEvent.event?.type === 'm.room.redaction' || false;
-
-    return mEvent;
-  }
-
   // Insert into timeline
   _insertIntoTimeline(event) {
     const pageLimit = getAppearance('pageLimit');
-    const mEvent = this._convertEventFormat(event);
+    const mEvent = storageManager.convertToEventFormat(event);
 
     this.emit(cons.events.roomTimeline.EVENT, mEvent);
   }
 
   // Deleting events
   _deletingEvent(event) {
-    const mEvent = this._convertEventFormat(event);
+    const mEvent = storageManager.convertToEventFormat(event);
     const redacts = mEvent.getContent()?.redacts;
     const rEvent = this.deleteFromTimeline(redacts);
     this.editedTimeline.delete(redacts);
