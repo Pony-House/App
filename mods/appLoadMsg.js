@@ -69,6 +69,8 @@ export default {
 
       'I found a bit coin in equestria. Bitcoin? Nope. Bits!',
 
+      'The generation of AIs is the most solid filter of humanity and will come to separate the wicked from the righteous.',
+
       'Someone up there wants to help you.',
       'Have you ever thought that he can forgive you?',
 
