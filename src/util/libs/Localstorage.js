@@ -234,23 +234,21 @@ class StorageManager extends EventEmitter {
       }
     } else {
       console.log(`[room-db-sync] All complete!`);
-      if (firstTime) {
-        const tinyThis = this;
-        tinyThis.storeConnection
-          .select({
-            from: 'timeline',
-            where: { type: 'm.room.redaction' },
-          })
-          .then((redactions) => {
-            for (const item in redactions) {
-              if (redactions[item].content && typeof redactions[item].content.redacts === 'string')
-                tinyThis._sendSetReaction({
-                  getContent: () => ({ redacts: redactions[item].content.redacts }),
-                });
-            }
-          })
-          .catch(console.error);
-      }
+      const tinyThis = this;
+      tinyThis.storeConnection
+        .select({
+          from: 'timeline',
+          where: { type: 'm.room.redaction' },
+        })
+        .then((redactions) => {
+          for (const item in redactions) {
+            if (redactions[item].content && typeof redactions[item].content.redacts === 'string')
+              tinyThis._sendSetReaction({
+                getContent: () => ({ redacts: redactions[item].content.redacts }),
+              });
+          }
+        })
+        .catch(console.error);
 
       this._syncTimelineCache.using = false;
     }
