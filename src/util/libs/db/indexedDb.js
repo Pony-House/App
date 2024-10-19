@@ -149,7 +149,7 @@ export const startDb = async (tinyThis) => {
           room_id: { notNull: false, dataType: DATA_TYPE.String },
           thread_id: { notNull: false, dataType: DATA_TYPE.String },
 
-          is_thread: { notNull: true, dataType: DATA_TYPE.Boolean },
+          is_thread: { notNull: false, dataType: DATA_TYPE.Boolean },
 
           content: { notNull: false, dataType: DATA_TYPE.Object },
           unsigned: { notNull: false, dataType: DATA_TYPE.Object },
@@ -189,6 +189,14 @@ export const startDb = async (tinyThis) => {
           },
           20: {
             add: {
+              is_thread: {
+                notNull: false,
+                dataType: DATA_TYPE.Boolean,
+              },
+            },
+          },
+          21: {
+            modify: {
               is_thread: {
                 notNull: false,
                 dataType: DATA_TYPE.Boolean,

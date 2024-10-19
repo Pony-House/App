@@ -196,7 +196,9 @@ class RoomTimeline extends EventEmitter {
       );
     };
 
-    // mEvent.getThread = () => mEvent?.thread_id ? mEvent?.thread : null;
+    mEvent.getThreadId = () => mEvent.event?.thread_id;
+    mEvent.isThread = () =>
+      typeof mEvent.event?.is_thread === 'boolean' ? mEvent.event.is_thread : false;
 
     mEvent.getPrevContent = () => mEvent?.getUnsigned().prev_content || {};
     mEvent.getWireContent = () => mEvent.event?.content || {};

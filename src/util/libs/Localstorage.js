@@ -40,7 +40,7 @@ class StorageManager extends EventEmitter {
     this.isPersisted = null;
 
     // Db
-    this._dbVersion = 20;
+    this._dbVersion = 21;
     this._oldDbVersion = this.getNumber('ponyHouse-db-version') || 0;
     this.dbName = 'pony-house-database';
     this._timelineSyncCache = this.getJson('ponyHouse-timeline-sync', 'obj');
@@ -457,7 +457,7 @@ class StorageManager extends EventEmitter {
             },
       })
         .then((result) => {
-          tinyThis.emit(dbEvent, result);
+          tinyThis.emit(dbEvent, result, event);
           resolve(result);
         })
         .catch(reject);
@@ -817,7 +817,7 @@ class StorageManager extends EventEmitter {
     const setMessage = () =>
       new Promise((resolve, reject) => {
         tinyThis
-          ._setDataTemplate('messages', 'dbMessage', event)
+          ._setDataTemplate('messages', 'dbMessage', event, { is_thread: false })
           .then((result) => {
             const data = tinyThis._eventFilter(event);
             const tinyItem = {
@@ -995,28 +995,37 @@ class StorageManager extends EventEmitter {
   }
 
   _setIsThread(event) {
-    const threadId = this._getEventThreadId(event);
-    const eventId = event.getId();
-    this.storeConnection
-      .update({
-        in: 'messages',
-        set: {
-          is_thread: true,
-        },
-        where: {
-          event_id: threadId,
-        },
-      })
-      .then((noOfRowsUpdated) => {
-        if (typeof noOfRowsUpdated === 'number' && noOfRowsUpdated > 0)
-          tinyThis.emit('dbEventIsThread', {
-            eventId,
-            threadId,
-            noOfRowsUpdated,
-          });
-        resolve(noOfRowsUpdated);
-      })
-      .catch(reject);
+    const tinyThis = this;
+    return new Promise((resolve, reject) => {
+      const threadId = tinyThis._getEventThreadId(event);
+      if (typeof threadId === 'string') {
+        const eventId = event.getId();
+        tinyThis.storeConnection
+          .update({
+            in: 'messages',
+            set: {
+              is_thread: true,
+            },
+            where: {
+              event_id: threadId,
+            },
+          })
+          .then((noOfRowsUpdated) => {
+            if (typeof noOfRowsUpdated === 'number' && noOfRowsUpdated > 0)
+              tinyThis.emit(
+                'dbEventIsThread',
+                {
+                  eventId,
+                  threadId,
+                  noOfRowsUpdated,
+                },
+                event,
+              );
+            resolve(noOfRowsUpdated);
+          })
+          .catch(reject);
+      } else resolve(null);
+    });
   }
 
   _setRedaction(event, dbName, isRedacted = false) {
@@ -1037,12 +1046,16 @@ class StorageManager extends EventEmitter {
           })
           .then((noOfRowsUpdated) => {
             if (typeof noOfRowsUpdated === 'number' && noOfRowsUpdated > 0)
-              tinyThis.emit('dbEventRedaction', {
-                in: dbName,
-                eventId,
-                noOfRowsUpdated,
-                isRedacted,
-              });
+              tinyThis.emit(
+                'dbEventRedaction',
+                {
+                  in: dbName,
+                  eventId,
+                  noOfRowsUpdated,
+                  isRedacted,
+                },
+                event,
+              );
             resolve(noOfRowsUpdated);
           })
           .catch(reject);
