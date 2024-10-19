@@ -45,6 +45,7 @@ class StorageManager extends EventEmitter {
     this.dbName = 'pony-house-database';
     this._timelineSyncCache = this.getJson('ponyHouse-timeline-sync', 'obj');
     this._syncTimelineCache = { using: false, used: false, roomsUsed: [], data: [] };
+    this._addToTimelineCache = { using: false, data: [] };
 
     // Get Content
     this.content = this.getJson('ponyHouse-storage-manager', 'obj');
@@ -1206,7 +1207,7 @@ class StorageManager extends EventEmitter {
     });
   }
 
-  _sendSetReaction(event) {
+  async _sendSetReaction(event) {
     const dbs = [
       'reactions',
       'messages_search',
@@ -1217,34 +1218,63 @@ class StorageManager extends EventEmitter {
       'encrypted',
     ];
     for (const dbIndex in dbs) {
-      this._setRedaction(event, dbs[dbIndex], true);
+      await this._setRedaction(event, dbs[dbIndex], true);
     }
   }
 
-  addToTimeline(event) {
+  _addToTimelineRun(event) {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
       const data = {};
       const tinyReject = (err) => {
         console.log('[indexed-db] ERROR SAVING TIMELINE DATA!', data);
         tinyThis.emit('dbTimeline-Error', err, data);
+        tinyThis._addToTimeline();
         reject(err);
       };
-      try {
-        const eventType = event.getType();
-        if (typeof tinyThis._timelineInsertTypes[eventType] === 'function')
-          tinyThis._timelineInsertTypes[eventType](event).then(resolve).catch(tinyReject);
-        else {
-          if (eventType === 'm.room.redaction') tinyThis._sendSetReaction(event);
-          if (eventType === 'm.room.member') tinyThis.setMember(event);
-          tinyThis.setTimeline(event);
-        }
 
-        tinyThis._setIsThread(event);
-      } catch (err) {
-        tinyReject(err);
+      const tinyComplete = async (result) => {
+        await tinyThis._setIsThread(event);
+        tinyThis._addToTimeline();
+        resolve(result);
+      };
+
+      const eventType = event.getType();
+      if (typeof tinyThis._timelineInsertTypes[eventType] === 'function')
+        tinyThis._timelineInsertTypes[eventType](event).then(tinyComplete).catch(tinyReject);
+      else {
+        tinyThis
+          .setTimeline(event)
+          .then(async (result) => {
+            try {
+              if (eventType === 'm.room.redaction') await tinyThis._sendSetReaction(event);
+              if (eventType === 'm.room.member') await tinyThis.setMember(event);
+              tinyComplete(result);
+            } catch (err) {
+              tinyReject(err);
+            }
+          })
+          .catch(tinyReject);
       }
     });
+  }
+
+  _addToTimeline() {
+    if (this._addToTimelineCache.data.length > 0) {
+      const event = this._addToTimelineCache.data.shift();
+      this._addToTimelineRun(event);
+    } else {
+      this._addToTimelineCache.using = false;
+    }
+  }
+
+  addToTimeline(event) {
+    if (!this._addToTimelineCache.using) {
+      this._addToTimelineCache.using = true;
+      this._addToTimelineRun(event.toSnapshot());
+    } else {
+      this._addToTimelineCache.data.push(event.toSnapshot());
+    }
   }
 
   async startPonyHouseDb() {
