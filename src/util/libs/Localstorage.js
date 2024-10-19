@@ -327,6 +327,7 @@ class StorageManager extends EventEmitter {
       console.log(`[room-db-sync] All complete!`);
       if (this._syncTimelineCache.used) {
         const tinyThis = this;
+        const tinyRoomsUsed = clone(this._syncTimelineCache.roomsUsed);
 
         console.log(`[room-db-sync] Updating redaction data...`);
         tinyThis.storeConnection
@@ -342,30 +343,29 @@ class StorageManager extends EventEmitter {
                 });
             }
             console.log(`[room-db-sync] Redaction data request sent!`);
+            console.log(`[room-db-sync] Updating thread data...`);
+            tinyThis.storeConnection
+              .select({
+                from: 'messages',
+                where: { thread_id: { '!=': 'NULL' } },
+              })
+              .then((threadMsg) => {
+                for (const item in threadMsg) {
+                  tinyThis._setIsThread(tinyThis.convertToEventFormat(threadMsg[item]));
+                }
+                console.log(`[room-db-sync] Thread data request sent!`);
+
+                for (const item in tinyRoomsUsed) {
+                  const usedRoom = tinyRoomsUsed[item];
+                  if (this._timelineSyncCache[usedRoom]) {
+                    this._timelineSyncCache[usedRoom].isComplete = true;
+                    this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
+                  }
+                }
+              })
+              .catch(console.error);
           })
           .catch(console.error);
-
-        console.log(`[room-db-sync] Updating thread data...`);
-        tinyThis.storeConnection
-          .select({
-            from: 'messages',
-            where: { thread_id: { '!=': 'NULL' } },
-          })
-          .then((redactions) => {
-            for (const item in redactions) {
-              tinyThis._setIsThread(tinyThis.convertToEventFormat(redactions[item]));
-            }
-            console.log(`[room-db-sync] Thread data request sent!`);
-          })
-          .catch(console.error);
-      }
-
-      for (const item in this._syncTimelineCache.roomsUsed) {
-        const usedRoom = this._syncTimelineCache.roomsUsed[item];
-        if (this._timelineSyncCache[usedRoom]) {
-          this._timelineSyncCache[usedRoom].isComplete = true;
-          this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
-        }
       }
 
       this._syncTimelineCache.roomsUsed = [];
