@@ -44,7 +44,7 @@ class StorageManager extends EventEmitter {
     this._oldDbVersion = this.getNumber('ponyHouse-db-version') || 0;
     this.dbName = 'pony-house-database';
     this._timelineSyncCache = this.getJson('ponyHouse-timeline-sync', 'obj');
-    this._syncTimelineCache = { using: false, used: false, data: [] };
+    this._syncTimelineCache = { using: false, used: false, roomsUsed: [], data: [] };
 
     // Get Content
     this.content = this.getJson('ponyHouse-storage-manager', 'obj');
@@ -97,7 +97,9 @@ class StorageManager extends EventEmitter {
       if (typeof eventId === 'string')
         tinyThis.emit(`dbTimelineLoaded-${roomId}-${eventId}`, tinyData);
       tinyThis.emit(`dbTimelineLoaded-${roomId}`, tinyData, eventId);
-      tinyThis._syncTimelineNext(firstTime);
+      if (this._syncTimelineCache.roomsUsed.indexOf(roomId) < 0)
+        this._syncTimelineCache.roomsUsed.push(roomId);
+      tinyThis._syncTimelineNext();
     };
 
     try {
@@ -121,19 +123,26 @@ class StorageManager extends EventEmitter {
             ? checkpoint
             : lastEventId;
 
-        const events = tm.getEvents();
-        if (Array.isArray(events) && events.length > 0) {
-          this._timelineSyncCache[roomId] = { lastEvent: events[0].getId() };
-          this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
-          this._syncTimelineCache.used = true;
-          for (const item in events) {
-            this.addToTimeline(events[item]);
+        const isComplete =
+          this._timelineSyncCache[roomId] &&
+          typeof this._timelineSyncCache[roomId].isComplete === 'boolean'
+            ? this._timelineSyncCache[roomId].isComplete
+            : false;
+        if (!isComplete) {
+          const events = tm.getEvents();
+          if (Array.isArray(events) && events.length > 0) {
+            this._timelineSyncCache[roomId] = { lastEvent: events[0].getId(), isComplete: false };
+            this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
+            for (const item in events) {
+              this.addToTimeline(events[item]);
+            }
           }
         }
 
         // Next Timeline
         const nextTimelineToken = tm.getPaginationToken(Direction.Backward);
-        if (nextTimelineToken) {
+        if (!isComplete && nextTimelineToken) {
+          this._syncTimelineCache.used = true;
           // Next checkpoint
           if (!checkPoint || !firstTime) {
             // Validator
@@ -203,7 +212,7 @@ class StorageManager extends EventEmitter {
     }
   }
 
-  _syncTimelineNext(firstTime) {
+  _syncTimelineNext() {
     if (this._syncTimelineCache.data.length > 0) {
       const data = this._syncTimelineCache.data.shift();
       if (
@@ -236,6 +245,7 @@ class StorageManager extends EventEmitter {
     } else {
       console.log(`[room-db-sync] All complete!`);
       if (this._syncTimelineCache.used) {
+        console.log(`[room-db-sync] Updating redaction data...`);
         const tinyThis = this;
         tinyThis.storeConnection
           .select({
@@ -249,10 +259,20 @@ class StorageManager extends EventEmitter {
                   getContent: () => ({ redacts: redactions[item].content.redacts }),
                 });
             }
+            console.log(`[room-db-sync] Redaction data request sent!`);
           })
           .catch(console.error);
       }
 
+      for (const item in this._syncTimelineCache.roomsUsed) {
+        const usedRoom = this._syncTimelineCache.roomsUsed[item];
+        if (this._timelineSyncCache[usedRoom]) {
+          this._timelineSyncCache[usedRoom].isComplete = true;
+          this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
+        }
+      }
+
+      this._syncTimelineCache.roomsUsed = [];
       this._syncTimelineCache.using = false;
       this._syncTimelineCache.used = false;
     }
