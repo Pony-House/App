@@ -2,6 +2,7 @@ import EventEmitter from 'events';
 import encrypt from 'matrix-encrypt-attachment';
 import { encode } from 'blurhash';
 import { EventTimeline } from 'matrix-js-sdk';
+import ExifReader from 'exifreader';
 
 import { objType } from 'for-promise/utils/lib.mjs';
 
@@ -17,7 +18,7 @@ import cons from './cons';
 import settings from './settings';
 import { markdown, plain, html } from '../../util/markdown';
 import { clearUrlsFromHtml, clearUrlsFromText } from '../../util/clear-urls/clearUrls';
-import initMatrix, { fetchFn } from '../initMatrix';
+import initMatrix from '../initMatrix';
 
 const blurhashField = 'xyz.amorgan.blurhash';
 
@@ -364,19 +365,38 @@ class RoomsInput extends EventEmitter {
     const { mxc: url, body, httpUrl } = data;
     const info = {};
 
-    const img = new Image();
-    img.src = httpUrl;
-
     try {
-      const res = await fetchFn(httpUrl);
+      const res = await initMatrix.mxcUrl.fetch(httpUrl, 'image');
       const blob = await res.blob();
-      info.w = img.width;
-      info.h = img.height;
+
+      const tags = await ExifReader.load(
+        await new Promise((resolve, reject) => {
+          const stickerReader = new FileReader();
+          stickerReader.onload = (event) => resolve(event.target.result);
+          stickerReader.onerror = reject;
+          stickerReader.readAsArrayBuffer(blob);
+        }),
+        {
+          async: true,
+          includeUnknown: true,
+        },
+      );
+
+      info.w =
+        tags['Image Width'] && typeof tags['Image Width'].value === 'number'
+          ? tags['Image Width'].value
+          : null;
+      info.h =
+        tags['Image Height'] && typeof tags['Image Height'].value === 'number'
+          ? tags['Image Height'].value
+          : null;
+
       info.mimetype = blob.type;
       info.size = blob.size;
       info.thumbnail_info = { ...info };
       info.thumbnail_url = url;
-    } catch {
+    } catch (err) {
+      console.error(err);
       // send sticker without info
     }
 

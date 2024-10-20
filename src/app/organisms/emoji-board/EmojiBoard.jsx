@@ -216,6 +216,8 @@ function EmojiBoard({ onSelect, searchRef, emojiBoardRef }) {
   function getEmojiDataFromTarget(target) {
     const unicode = target.attr('unicode');
     const hexcode = target.attr('hexcode');
+    const href = target.attr('href');
+    const src = target.attr('src');
     const mxc = target.attr('data-mx-emoticon');
     const label = target.attr('label');
     let tags = target.attr('tags');
@@ -228,6 +230,8 @@ function EmojiBoard({ onSelect, searchRef, emojiBoardRef }) {
     else tags = tags.split(',');
 
     return {
+      src,
+      href,
       unicode,
       hexcode,
       shortcodes,

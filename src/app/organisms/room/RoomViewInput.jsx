@@ -1034,7 +1034,9 @@ function RoomViewInput({ roomId, threadId, roomTimeline, viewEvent, refRoomInput
                   openEmojiBoard(roomId, cords, 'sticker', (data) => {
                     handleSendSticker({
                       body: data.unicode.substring(1, data.unicode.length - 1),
-                      httpUrl: data.mxc,
+                      httpUrl: initMatrix.mxcUrl.toHttp(data.mxc),
+                      src: data.src,
+                      href: data.href,
                       mxc: data.mxc,
                     });
 

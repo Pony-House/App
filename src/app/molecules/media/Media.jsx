@@ -5,7 +5,7 @@ import $ from 'jquery';
 import { BlurhashCanvas } from 'react-blurhash';
 
 import Img from '@src/app/atoms/image/Image';
-import initMatrix, { fetchFn } from '@src/client/initMatrix';
+import initMatrix from '@src/client/initMatrix';
 import blobUrlManager from '@src/util/libs/blobUrlManager';
 
 import { formatBytes } from '@src/util/tools';

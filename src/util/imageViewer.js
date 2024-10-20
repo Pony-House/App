@@ -3,7 +3,7 @@ import $ from 'jquery';
 import FileSaver from 'file-saver';
 import PhotoSwipeLightbox from 'photoswipe';
 import ExifReader from 'exifreader';
-import { fetchFn } from '@src/client/initMatrix';
+import initMatrix from '@src/client/initMatrix';
 
 import { btModal, toast } from './tools';
 import blobUrlManager from './libs/blobUrlManager';
@@ -100,7 +100,8 @@ export default function imageViewer(data) {
             isButton: true,
             html: '<i class="fa-solid fa-circle-info pswp__icn" height="32" width="32"></i>',
             onClick: () => {
-              fetchFn(url)
+              initMatrix.mxcUrl
+                .fetch(url, 'image')
                 .then((res) => res.arrayBuffer())
                 .then(async (body) => {
                   const newTags = await ExifReader.load(body, {

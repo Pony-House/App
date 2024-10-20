@@ -3,7 +3,7 @@ import { countObj } from 'for-promise/utils/lib.mjs';
 import JSZip from 'jszip';
 import FileSaver from 'file-saver';
 
-import initMatrix, { fetchFn } from '@src/client/initMatrix';
+import initMatrix from '@src/client/initMatrix';
 import { setLoadingPage } from '@src/app/templates/client/Loading';
 import moment from '../momentjs';
 import emojiEditor from './EmojiEditor';
@@ -204,7 +204,8 @@ export function emojiExport(data, images) {
 
           if (fileData.avatarUrl) {
             const fileUrl = new URL(initMatrix.mxcUrl.toHttp(fileData.avatarUrl));
-            fetchFn(fileUrl.href)
+            initMatrix.mxcUrl
+              .fetch(fileUrl.href, 'image')
               .then((res) => {
                 res.blob().then((blob) => {
                   const mime = blob.type.split('/');
@@ -235,7 +236,8 @@ export function emojiExport(data, images) {
       images.map(([shortcode, image]) => {
         const fileUrl = new URL(initMatrix.mxcUrl.toHttp(image.mxc));
         const filename = encodeURIComponent(shortcode);
-        fetchFn(fileUrl.href)
+        initMatrix.mxcUrl
+          .fetch(fileUrl.href, 'image')
           .then((res) => {
             res.blob().then((blob) => {
               const mime = blob.type.split('/');
