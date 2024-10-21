@@ -45,7 +45,7 @@ class StorageManager extends EventEmitter {
     this._oldDbVersion = this.getNumber('ponyHouse-db-version') || 0;
     this.dbName = 'pony-house-database';
     this._timelineSyncCache = this.getJson('ponyHouse-timeline-sync', 'obj');
-    this._syncTimelineCache = { using: false, used: false, roomsUsed: [], data: [] };
+    this._syncTimelineCache = { usedIds: [], using: false, used: false, roomsUsed: [], data: [] };
     this._addToTimelineCache = { using: false, data: [] };
 
     this._eventDbs = [
@@ -346,13 +346,27 @@ class StorageManager extends EventEmitter {
           typeof this._timelineSyncCache[roomId].isComplete === 'boolean'
             ? this._timelineSyncCache[roomId].isComplete
             : false;
+
         if (!isComplete) {
           const events = tm.getEvents();
           if (Array.isArray(events) && events.length > 0) {
-            this._timelineSyncCache[roomId] = { lastEvent: events[0].getId(), isComplete: false };
-            this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
+            let lastTimelineEventId = null;
+
             for (const item in events) {
-              this.addToTimeline(events[item]);
+              const eventIdp = events[item].getId();
+              if (this._syncTimelineCache.usedIds.indexOf(eventIdp) < 0) {
+                this._syncTimelineCache.usedIds.push(eventIdp);
+                this.addToTimeline(events[item]);
+                lastTimelineEventId = eventIdp;
+              }
+            }
+
+            if (lastTimelineEventId) {
+              this._timelineSyncCache[roomId] = {
+                lastEvent: lastTimelineEventId,
+                isComplete: false,
+              };
+              this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
             }
           }
         }
@@ -532,6 +546,7 @@ class StorageManager extends EventEmitter {
           .catch(console.error);
       }
 
+      this._syncTimelineCache.usedIds = [];
       this._syncTimelineCache.roomsUsed = [];
       this._syncTimelineCache.using = false;
       this._syncTimelineCache.used = false;
@@ -684,7 +699,7 @@ class StorageManager extends EventEmitter {
                   resolve(result);
                 })
                 .catch(tinyReject);
-            }
+            } else resolve(null);
           })
           .catch(tinyReject);
       } catch (err) {
