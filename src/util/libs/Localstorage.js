@@ -9,6 +9,7 @@ import { decryptAllEventsOfTimeline } from '@src/client/state/Timeline/functions
 import cons from '@src/client/state/cons';
 
 import { startDb } from './db/indexedDb';
+import { toTitleCase } from '../tools';
 
 const SYNC_TIMELINE_DOWNLOAD_LIMIT = 100;
 
@@ -46,6 +47,122 @@ class StorageManager extends EventEmitter {
     this._timelineSyncCache = this.getJson('ponyHouse-timeline-sync', 'obj');
     this._syncTimelineCache = { using: false, used: false, roomsUsed: [], data: [] };
     this._addToTimelineCache = { using: false, data: [] };
+
+    this._eventDbs = [
+      'reactions',
+      'messages_search',
+      'messages',
+      'messages_edit',
+      'crdt',
+      'timeline',
+      'encrypted',
+    ];
+
+    for (const item in this._eventDbs) {
+      const nameParts = this._eventDbs[item].split('_');
+      let funcName = '';
+      for (let i = 0; i < nameParts.length; i++) {
+        funcName += toTitleCase(nameParts[i]);
+      }
+
+      this[`getLocation${funcName}Id`] = ({
+        eventId = null,
+        threadId = null,
+        showThreads = null,
+        showRedaction = null,
+        roomId = null,
+        type = null,
+        limit = null,
+        body = null,
+        formattedBody = null,
+        format = null,
+        mimeType = null,
+        url = null,
+      }) =>
+        this._findEventIdInPagination({
+          from: this._eventDbs[item],
+          eventId,
+          threadId,
+          showThreads,
+          showRedaction,
+          roomId,
+          type,
+          limit,
+          customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
+        });
+
+      this[`get${funcName}Count`] = ({
+        roomId = null,
+        threadId = null,
+        showThreads = null,
+        showRedaction = null,
+        type = null,
+        body = null,
+        formattedBody = null,
+        format = null,
+        mimeType = null,
+        url = null,
+      }) =>
+        this._eventsCounter({
+          from: this._eventDbs[item],
+          roomId,
+          threadId,
+          showThreads,
+          showRedaction,
+          type,
+          customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
+        });
+
+      this[`get${funcName}Pagination`] = ({
+        roomId = null,
+        threadId = null,
+        showThreads = null,
+        showRedaction = null,
+        type = null,
+        limit = null,
+        body = null,
+        formattedBody = null,
+        format = null,
+        mimeType = null,
+        url = null,
+      }) =>
+        this._eventsPaginationCount({
+          from: this._eventDbs[item],
+          roomId,
+          threadId,
+          showThreads,
+          showRedaction,
+          type,
+          limit,
+          customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
+        });
+
+      this[`get${funcName}`] = ({
+        roomId = null,
+        threadId = null,
+        showThreads = null,
+        showRedaction = null,
+        type = null,
+        limit = null,
+        page = null,
+        body = null,
+        formattedBody = null,
+        format = null,
+        mimeType = null,
+        url = null,
+      }) =>
+        this._eventsDataTemplate({
+          from: this._eventDbs[item],
+          roomId,
+          threadId,
+          showThreads,
+          showRedaction,
+          type,
+          limit,
+          page,
+          customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
+        });
+    }
 
     // Get Content
     this.content = this.getJson('ponyHouse-storage-manager', 'obj');
@@ -166,12 +283,13 @@ class StorageManager extends EventEmitter {
   // Sync Timeline
   async _syncTimelineRun(room, eventId, checkpoint = null, timeline = null, firstTime = false) {
     const tinyThis = this;
-    const loadComplete = (roomId, checkPoint, lastEventId, err) => {
+    const loadComplete = (roomId, checkPoint, lastEventId, isNext, err) => {
       const tinyData = {
         roomId,
         firstTime,
         checkPoint,
         lastEventId,
+        isNext,
         err,
       };
 
@@ -181,6 +299,8 @@ class StorageManager extends EventEmitter {
       tinyThis.emit(`dbTimelineLoaded-${roomId}`, tinyData, eventId);
       if (this._syncTimelineCache.roomsUsed.indexOf(roomId) < 0)
         this._syncTimelineCache.roomsUsed.push(roomId);
+
+      // if (!isNext) room.refreshLiveTimeline().catch(console.error);
       tinyThis._syncTimelineNext();
     };
 
@@ -247,13 +367,13 @@ class StorageManager extends EventEmitter {
                 checkpoint: null,
                 timeline: tm,
               });
-              loadComplete(roomId, checkPoint, lastEventId);
+              loadComplete(roomId, checkPoint, lastEventId, true);
             }
 
             // Complete
             else {
               console.log(`[room-db-sync] [${roomId}] Complete!`);
-              loadComplete(roomId, checkPoint, lastEventId);
+              loadComplete(roomId, checkPoint, lastEventId, false);
             }
           }
 
@@ -272,17 +392,17 @@ class StorageManager extends EventEmitter {
               timeline: eTimeline,
               eventId,
             });
-            loadComplete(roomId, checkPoint, lastEventId);
+            loadComplete(roomId, checkPoint, lastEventId, true);
           }
 
           // Complete
           else {
             console.log(`[room-db-sync] [${roomId}] Complete!`);
-            loadComplete(roomId, checkPoint, lastEventId);
+            loadComplete(roomId, checkPoint, lastEventId, false);
           }
         } else {
           console.log(`[room-db-sync] [${roomId}] Complete!`);
-          loadComplete(roomId, checkPoint, lastEventId);
+          loadComplete(roomId, checkPoint, lastEventId, false);
         }
       }
 
@@ -290,7 +410,7 @@ class StorageManager extends EventEmitter {
       else throw new Error(`[room-db-sync] No room found to sync in the indexedDb!`);
     } catch (err) {
       console.error(err);
-      loadComplete(null, null, null, err);
+      loadComplete(null, null, null, false, err);
     }
   }
 
@@ -362,6 +482,9 @@ class StorageManager extends EventEmitter {
                     this._timelineSyncCache[usedRoom].isComplete = true;
                     this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
                   }
+
+                  // const room = initMatrix.matrixClient.getRoom(usedRoom);
+                  // if (room) room.refreshLiveTimeline();
                 }
               })
               .catch(console.error);
@@ -530,7 +653,7 @@ class StorageManager extends EventEmitter {
   _setDataTemplate = (dbName, dbEvent, event, extraValue = null, filter = {}) => {
     const tinyThis = this;
     const data = tinyThis._eventFilter(event, {}, extraValue, filter);
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) =>
       tinyThis.storeConnection
         .insert({
           into: dbName,
@@ -541,28 +664,28 @@ class StorageManager extends EventEmitter {
           tinyThis.emit(dbEvent, result, data);
           resolve(result);
         })
-        .catch(reject);
-    });
+        .catch(reject),
+    );
   };
 
   _deleteDataByIdTemplate = (dbName, dbEvent, event, where) => {
     const tinyThis = this;
-    return new Promise((resolve, reject) => {
-      tinyThis.storeConnection;
-      remove({
-        from: dbName,
-        where: where
-          ? where
-          : {
-              event_id: event.getId(),
-            },
-      })
+    return new Promise((resolve, reject) =>
+      tinyThis.storeConnection
+        .remove({
+          from: dbName,
+          where: where
+            ? where
+            : {
+                event_id: event.getId(),
+              },
+        })
         .then((result) => {
           tinyThis.emit(dbEvent, result, event);
           resolve(result);
         })
-        .catch(reject);
-    });
+        .catch(reject),
+    );
   };
 
   async _eventsDataTemplate({
@@ -790,18 +913,18 @@ class StorageManager extends EventEmitter {
     const whereData = {};
     whereData[where] = id;
 
-    return new Promise((resolve, reject) => {
-      tinyThis.storeConnection;
-      remove({
-        from: 'receipt',
-        where: whereData,
-      })
+    return new Promise((resolve, reject) =>
+      tinyThis.storeConnection
+        .remove({
+          from: 'receipt',
+          where: whereData,
+        })
         .then((result) => {
           tinyThis.emit('dbReceiptDeleted', result);
           resolve(result);
         })
-        .catch(reject);
-    });
+        .catch(reject),
+    );
   }
 
   deleteReceiptById(id) {
@@ -816,190 +939,10 @@ class StorageManager extends EventEmitter {
     return this._deleteReceiptTemplate('room_id', id);
   }
 
-  getLocationMessageSearchId({
-    eventId = null,
-    threadId = null,
-    showThreads = null,
-    showRedaction = null,
-    roomId = null,
-    type = null,
-    limit = null,
-    body = null,
-    formattedBody = null,
-    format = null,
-    mimeType = null,
-    url = null,
-  }) {
-    return this._findEventIdInPagination({
-      from: 'messages_search',
-      eventId,
-      threadId,
-      showThreads,
-      showRedaction,
-      roomId,
-      type,
-      limit,
-      customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
-    });
-  }
-
-  getMessageSearchCount({
-    roomId = null,
-    threadId = null,
-    showThreads = null,
-    showRedaction = null,
-    type = null,
-    body = null,
-    formattedBody = null,
-    format = null,
-    mimeType = null,
-    url = null,
-  }) {
-    return this._eventsCounter({
-      from: 'messages_search',
-      roomId,
-      threadId,
-      showThreads,
-      showRedaction,
-      type,
-      customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
-    });
-  }
-
-  getMessageSearchPagination({
-    roomId = null,
-    threadId = null,
-    showThreads = null,
-    showRedaction = null,
-    type = null,
-    limit = null,
-    body = null,
-    formattedBody = null,
-    format = null,
-    mimeType = null,
-    url = null,
-  }) {
-    return this._eventsPaginationCount({
-      from: 'messages_search',
-      roomId,
-      threadId,
-      showThreads,
-      showRedaction,
-      type,
-      limit,
-      customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
-    });
-  }
-
-  getMessagesSearch({
-    roomId = null,
-    threadId = null,
-    showThreads = null,
-    showRedaction = null,
-    type = null,
-    limit = null,
-    page = null,
-    body = null,
-    formattedBody = null,
-    format = null,
-    mimeType = null,
-    url = null,
-  }) {
-    return this._eventsDataTemplate({
-      from: 'messages_search',
-      roomId,
-      threadId,
-      showThreads,
-      showRedaction,
-      type,
-      limit,
-      page,
-      customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
-    });
-  }
-
-  getLocationMessageId({
-    eventId = null,
-    threadId = null,
-    showThreads = null,
-    showRedaction = null,
-    roomId = null,
-    type = null,
-    limit = null,
-  }) {
-    return this._findEventIdInPagination({
-      from: 'messages',
-      eventId,
-      threadId,
-      showThreads,
-      showRedaction,
-      roomId,
-      type,
-      limit,
-    });
-  }
-
-  getMessages({
-    roomId = null,
-    threadId = null,
-    showThreads = null,
-    showRedaction = null,
-    type = null,
-    limit = null,
-    page = null,
-  }) {
-    return this._eventsDataTemplate({
-      from: 'messages',
-      roomId,
-      threadId,
-      showThreads,
-      showRedaction,
-      type,
-      limit,
-      page,
-    });
-  }
-
-  getMessageCount({
-    roomId = null,
-    threadId = null,
-    showThreads = null,
-    showRedaction = null,
-    type = null,
-  }) {
-    return this._eventsCounter({
-      from: 'messages',
-      roomId,
-      threadId,
-      showThreads,
-      showRedaction,
-      type,
-    });
-  }
-
-  getMessagePagination({
-    roomId = null,
-    threadId = null,
-    showThreads = null,
-    showRedaction = null,
-    type = null,
-    limit = null,
-  }) {
-    return this._eventsPaginationCount({
-      from: 'messages',
-      roomId,
-      threadId,
-      showThreads,
-      showRedaction,
-      type,
-      limit,
-    });
-  }
-
   setMessage(event) {
     const tinyThis = this;
     const setMessage = () =>
-      new Promise((resolve, reject) => {
+      new Promise((resolve, reject) =>
         tinyThis
           ._setDataTemplate('messages', 'dbMessage', event, { is_thread: false })
           .then((result) => {
@@ -1039,11 +982,11 @@ class StorageManager extends EventEmitter {
               .then(() => resolve(result))
               .catch(reject);
           })
-          .catch(reject);
-      });
+          .catch(reject),
+      );
 
     const setMessageEdit = () =>
-      new Promise((resolve, reject) => {
+      new Promise((resolve, reject) =>
         tinyThis
           .setMessageEdit(event)
           .then((result) => {
@@ -1119,8 +1062,8 @@ class StorageManager extends EventEmitter {
                 .catch(reject);
             } else resolve(result);
           })
-          .catch(reject);
-      });
+          .catch(reject),
+      );
 
     const msgRelative = event.getRelation();
     if (
@@ -1143,27 +1086,6 @@ class StorageManager extends EventEmitter {
 
   deleteCrdtById(event) {
     return this._deleteDataByIdTemplate('crdt', 'dbCrdtDeleted', event);
-  }
-
-  getReactions({
-    roomId = null,
-    threadId = null,
-    showThreads = null,
-    showRedaction = null,
-    type = null,
-    limit = null,
-    page = null,
-  }) {
-    return this._eventsDataTemplate({
-      from: 'reactions',
-      roomId,
-      showThreads,
-      showRedaction,
-      threadId,
-      type,
-      limit,
-      page,
-    });
   }
 
   setReaction(event) {
@@ -1224,53 +1146,57 @@ class StorageManager extends EventEmitter {
     });
   }
 
-  _setRedaction(event, dbName, isRedacted = false) {
+  _setRedaction(eventId, dbName, isRedacted = false) {
     const tinyThis = this;
-    return new Promise((resolve, reject) => {
-      const content = event.getContent();
-      if (content && typeof content.redacts === 'string') {
-        const eventId = content.redacts;
-        tinyThis.storeConnection
-          .update({
-            in: dbName,
-            set: {
-              redaction: isRedacted,
-            },
-            where: {
-              event_id: eventId,
-            },
-          })
-          .then((noOfRowsUpdated) => {
-            if (typeof noOfRowsUpdated === 'number' && noOfRowsUpdated > 0)
-              tinyThis.emit(
-                'dbEventRedaction',
-                {
-                  in: dbName,
-                  eventId,
-                  noOfRowsUpdated,
-                  isRedacted,
-                },
-                event,
-              );
-            resolve(noOfRowsUpdated);
-          })
-          .catch(reject);
-      }
-    });
+    return new Promise((resolve, reject) =>
+      tinyThis.storeConnection
+        .update({
+          in: dbName,
+          set: {
+            redaction: isRedacted,
+          },
+          where: {
+            event_id: eventId,
+          },
+        })
+        .then((noOfRowsUpdated) => {
+          if (typeof noOfRowsUpdated === 'number' && noOfRowsUpdated > 0)
+            tinyThis.emit('dbEventRedaction', {
+              in: dbName,
+              eventId,
+              noOfRowsUpdated,
+              isRedacted,
+            });
+          resolve(noOfRowsUpdated);
+        })
+        .catch(reject),
+    );
   }
 
   async _sendSetReaction(event) {
-    const dbs = [
-      'reactions',
-      'messages_search',
-      'messages',
-      'messages_edit',
-      'crdt',
-      'timeline',
-      'encrypted',
-    ];
-    for (const dbIndex in dbs) {
-      await this._setRedaction(event, dbs[dbIndex], true);
+    for (const dbIndex in this._eventDbs) {
+      const content = event.getContent();
+      const unsigned = event.getUnsigned();
+      if (content) {
+        // Normal way
+        if (typeof content.redacts === 'string')
+          await this._setRedaction(content.redacts, this._eventDbs[dbIndex], true);
+        // String
+        else if (Array.isArray(content.redacts)) {
+          for (const item in content.redacts) {
+            if (typeof content.redacts[item] === 'string')
+              await this._setRedaction(content.redacts[item], this._eventDbs[dbIndex], true);
+          }
+        }
+
+        // Transaction Id
+        if (unsigned && typeof unsigned.transaction_id === 'string')
+          await this._setRedaction(
+            `${event.getRoomId()}:${unsigned.transaction_id}`,
+            this._eventDbs[dbIndex],
+            true,
+          );
+      }
     }
   }
 

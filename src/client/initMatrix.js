@@ -168,8 +168,11 @@ class InitMatrix extends EventEmitter {
       this.matrixClient.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
 
       await this.matrixClient.startClient({
+        // includeArchivedRooms: true,
+        disablePresence: false,
         lazyLoadMembers: true,
         threadSupport: true,
+        // initialSyncLimit: 100,
       });
 
       this.supportExtendedProfiles = await this.matrixClient.doesServerSupportExtendedProfiles();

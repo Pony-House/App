@@ -1,6 +1,12 @@
 import { LocalNotifications } from '@capacitor/local-notifications';
 import $ from 'jquery';
-import { ClientEvent, MatrixEventEvent, NotificationCountType, RoomEvent } from 'matrix-js-sdk';
+import {
+  ClientEvent,
+  MatrixEventEvent,
+  NotificationCountType,
+  RoomEvent,
+  RoomStateEvent,
+} from 'matrix-js-sdk';
 import EventEmitter from 'events';
 import { objType } from 'for-promise/utils/lib.mjs';
 
@@ -499,13 +505,13 @@ class Notifications extends EventEmitter {
   }
 
   _listenEvents() {
-    this._listenRoomTimeline = async (mEvent, room) => {
+    this._listenRoomTimeline = async (mEvent, room, forceStopNotification = false) => {
       if (mEvent.isRedaction()) this._deletePopupNoti(mEvent.event.redacts);
 
       // Total Data
       let total = 0;
       let highlight = 0;
-      let stopNotification = false;
+      let stopNotification = forceStopNotification;
 
       // Is Space
       if (!stopNotification && room.isSpaceRoom()) {
@@ -602,6 +608,10 @@ class Notifications extends EventEmitter {
 
     this.matrixClient.on(RoomEvent.Timeline, (mEvent, room) =>
       this._listenRoomTimeline(mEvent, room),
+    );
+
+    this.matrixClient.on(RoomStateEvent.Events, (mEvent) =>
+      this._listenRoomTimeline(mEvent, initMatrix.matrixClient.getRoom(mEvent.getRoomId()), true),
     );
 
     this.matrixClient.on(RoomEvent.Receipt, (mEvent) => {

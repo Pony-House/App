@@ -69,25 +69,28 @@ function useSystemState() {
 
     // Detect recover from reconnect
     if (
-      !getAppearance('noReconnectRefresh') &&
-      (oldSystemState.value === 'ERROR' ||
-        oldSystemState.value === 'RECONNECTING' ||
-        oldSystemState.value === 'STOPPED')
+      oldSystemState.value === 'ERROR' ||
+      oldSystemState.value === 'RECONNECTING' ||
+      oldSystemState.value === 'STOPPED'
     ) {
-      if (
-        __ENV_APP__.ELECTRON_MODE &&
-        objType(global.useLoadingElectron, 'object') &&
-        typeof global.useLoadingElectron.appendLoading === 'function'
-      ) {
-        global.useLoadingElectron.appendLoading();
+      if (!getAppearance('noReconnectRefresh')) {
+        if (
+          __ENV_APP__.ELECTRON_MODE &&
+          objType(global.useLoadingElectron, 'object') &&
+          typeof global.useLoadingElectron.appendLoading === 'function'
+        ) {
+          global.useLoadingElectron.appendLoading();
+        } else {
+          $('body').empty();
+          setLoadingPage('Refreshing...');
+        }
+
+        setIsRefreshing(true);
+        window.location.reload();
       } else {
-        $('body').empty();
-        setLoadingPage('Refreshing...');
+        if (typeof initMatrix.matrixClient.retryImmediately === 'function')
+          initMatrix.matrixClient.retryImmediately();
       }
-
-      setIsRefreshing(true);
-
-      window.location.reload();
     }
 
     // Insert new old
