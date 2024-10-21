@@ -2,7 +2,7 @@ import React from 'react';
 import LibMessages from './LibMessages';
 import { twemojifyReact } from '../../../../util/twemojify';
 
-export default function LeaveMessage({ user, reason, date }) {
+export default function LeaveMessage({ user, reason, date, eventId }) {
   const reasonMsg = typeof reason === 'string' ? `\nReason: ${reason}` : '';
 
   return (
@@ -10,6 +10,8 @@ export default function LeaveMessage({ user, reason, date }) {
       <LibMessages
         user={user}
         date={date}
+        eventId={eventId}
+        reason={reason}
         where="leave_user"
         defaultMessage={
           <>

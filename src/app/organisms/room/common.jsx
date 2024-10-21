@@ -29,60 +29,69 @@ import moment from '@src/util/libs/momentjs';
 
 function getTimelineJSXMessages() {
   return {
-    join(date, user) {
-      return <JoinMessage date={date} user={user} />;
+    join(date, user, eventId) {
+      return <JoinMessage date={date} user={user} eventId={eventId} />;
     },
-    leave(date, user, reason) {
-      return <LeaveMessage date={date} user={user} reason={reason} />;
-    },
-
-    invite(date, inviter, user) {
-      return <InviteMessage date={date} user={user} inviter={inviter} />;
-    },
-    cancelInvite(date, inviter, user) {
-      return <CancelInviteMessage date={date} user={user} inviter={inviter} />;
-    },
-    rejectInvite(date, user) {
-      return <RejectInviteMessage date={date} user={user} />;
+    leave(date, user, reason, eventId) {
+      return <LeaveMessage date={date} user={user} reason={reason} eventId={eventId} />;
     },
 
-    kick(date, actor, user, reason) {
-      return <RejectInviteMessage date={date} actor={actor} user={user} reason={reason} />;
+    invite(date, inviter, user, eventId) {
+      return <InviteMessage date={date} user={user} inviter={inviter} eventId={eventId} />;
     },
-    ban(date, actor, user, reason) {
-      return <BanMessage date={date} actor={actor} user={user} reason={reason} />;
+    cancelInvite(date, inviter, user, eventId) {
+      return <CancelInviteMessage date={date} user={user} inviter={inviter} eventId={eventId} />;
     },
-    unban(date, actor, user) {
-      return <UnbanMessage date={date} actor={actor} user={user} />;
-    },
-
-    avatarSets(date, user) {
-      return <AvatarSetsMessage date={date} user={user} />;
-    },
-    avatarChanged(date, user) {
-      return <AvatarChangedMessage date={date} user={user} />;
-    },
-    avatarRemoved(date, user) {
-      return <AvatarRemovedMessage date={date} user={user} />;
+    rejectInvite(date, user, eventId) {
+      return <RejectInviteMessage date={date} user={user} eventId={eventId} />;
     },
 
-    nameSets(date, user, newName) {
-      return <NameSetsMessage date={date} newName={newName} user={user} />;
+    kick(date, actor, user, reason, eventId) {
+      return (
+        <RejectInviteMessage
+          date={date}
+          actor={actor}
+          user={user}
+          reason={reason}
+          eventId={eventId}
+        />
+      );
     },
-    nameChanged(date, user, newName) {
-      return <NameChangedMessage date={date} newName={newName} user={user} />;
+    ban(date, actor, user, reason, eventId) {
+      return <BanMessage date={date} actor={actor} user={user} reason={reason} eventId={eventId} />;
     },
-    nameRemoved(date, user, lastName) {
-      return <NameRemovedMessage date={date} lastName={lastName} user={user} />;
+    unban(date, actor, user, eventId) {
+      return <UnbanMessage date={date} actor={actor} user={user} eventId={eventId} />;
     },
 
-    pinnedEvents(date, user, comparedPinMessages, room) {
+    avatarSets(date, user, eventId) {
+      return <AvatarSetsMessage date={date} user={user} eventId={eventId} />;
+    },
+    avatarChanged(date, user, eventId) {
+      return <AvatarChangedMessage date={date} user={user} eventId={eventId} />;
+    },
+    avatarRemoved(date, user, eventId) {
+      return <AvatarRemovedMessage date={date} user={user} eventId={eventId} />;
+    },
+
+    nameSets(date, user, newName, eventId) {
+      return <NameSetsMessage date={date} newName={newName} user={user} eventId={eventId} />;
+    },
+    nameChanged(date, user, newName, eventId) {
+      return <NameChangedMessage date={date} newName={newName} user={user} eventId={eventId} />;
+    },
+    nameRemoved(date, user, lastName, eventId) {
+      return <NameRemovedMessage date={date} lastName={lastName} user={user} eventId={eventId} />;
+    },
+
+    pinnedEvents(date, user, comparedPinMessages, room, eventId) {
       return (
         <PinnedEventsMessage
           date={date}
           comparedPinMessages={comparedPinMessages}
           user={user}
           room={room}
+          eventId={eventId}
         />
       );
     },
@@ -149,6 +158,7 @@ function parseTimelineChange(mEvent) {
   const mx = initMatrix.matrixClient;
 
   const eventMoment = moment(mEvent.getDate());
+  const eventId = mEvent.getId();
 
   const type = mEvent.getType();
   const date = eventMoment.isValid() ? eventMoment.valueOf() || 0 : 0;
@@ -161,9 +171,12 @@ function parseTimelineChange(mEvent) {
   if (type !== 'm.room.pinned_events') {
     switch (content.membership) {
       case 'invite':
-        return makeReturnObj('invite', tJSXMsgs.invite(date, senderName, userName));
+        return makeReturnObj('invite', tJSXMsgs.invite(date, senderName, userName, eventId));
       case 'ban':
-        return makeReturnObj('leave', tJSXMsgs.ban(date, senderName, userName, content.reason));
+        return makeReturnObj(
+          'leave',
+          tJSXMsgs.ban(date, senderName, userName, content.reason, eventId),
+        );
 
       case 'join':
         if (prevContent.membership === 'join') {
@@ -172,53 +185,68 @@ function parseTimelineChange(mEvent) {
               return makeReturnObj(
                 date,
                 'avatar',
-                tJSXMsgs.nameRemoved(date, sender, prevContent.displayname),
+                tJSXMsgs.nameRemoved(date, sender, prevContent.displayname, eventId),
               );
             if (typeof prevContent.displayname === 'undefined')
               return makeReturnObj(
                 date,
                 'avatar',
-                tJSXMsgs.nameSets(date, sender, content.displayname),
+                tJSXMsgs.nameSets(date, sender, content.displayname, eventId),
               );
             return makeReturnObj(
               'avatar',
-              tJSXMsgs.nameChanged(date, prevContent.displayname, content.displayname),
+              tJSXMsgs.nameChanged(date, prevContent.displayname, content.displayname, eventId),
             );
           }
           if (content.avatar_url !== prevContent.avatar_url) {
             if (typeof content.avatar_url === 'undefined')
-              return makeReturnObj('avatar', tJSXMsgs.avatarRemoved(date, content.displayname));
+              return makeReturnObj(
+                'avatar',
+                tJSXMsgs.avatarRemoved(date, content.displayname, eventId),
+              );
             if (typeof prevContent.avatar_url === 'undefined')
-              return makeReturnObj('avatar', tJSXMsgs.avatarSets(date, content.displayname));
-            return makeReturnObj('avatar', tJSXMsgs.avatarChanged(date, content.displayname));
+              return makeReturnObj(
+                'avatar',
+                tJSXMsgs.avatarSets(date, content.displayname, eventId),
+              );
+            return makeReturnObj(
+              'avatar',
+              tJSXMsgs.avatarChanged(date, content.displayname, eventId),
+            );
           }
           return null;
         }
-        return makeReturnObj('join', tJSXMsgs.join(date, senderName));
+        return makeReturnObj('join', tJSXMsgs.join(eventMoment, senderName, eventId));
 
       case 'leave':
         if (sender === mEvent.getStateKey()) {
           switch (prevContent.membership) {
             case 'invite':
-              return makeReturnObj('invite-cancel', tJSXMsgs.rejectInvite(date, senderName));
+              return makeReturnObj(
+                'invite-cancel',
+                tJSXMsgs.rejectInvite(date, senderName, eventId),
+              );
             default:
-              return makeReturnObj('leave', tJSXMsgs.leave(date, senderName, content.reason));
+              return makeReturnObj(
+                'leave',
+                tJSXMsgs.leave(eventMoment, senderName, content.reason, eventId),
+              );
           }
         }
         switch (prevContent.membership) {
           case 'invite':
             return makeReturnObj(
               'invite-cancel',
-              tJSXMsgs.cancelInvite(date, senderName, userName),
+              tJSXMsgs.cancelInvite(date, senderName, userName, eventId),
             );
           case 'ban':
-            return makeReturnObj('other', tJSXMsgs.unban(date, senderName, userName));
+            return makeReturnObj('other', tJSXMsgs.unban(date, senderName, userName, eventId));
           // sender is not target and made the target leave,
           // if not from invite/ban then this is a kick
           default:
             return makeReturnObj(
               'leave',
-              tJSXMsgs.kick(date, senderName, userName, content.reason),
+              tJSXMsgs.kick(date, senderName, userName, content.reason, eventId),
             );
         }
 
@@ -242,6 +270,7 @@ function parseTimelineChange(mEvent) {
           senderName,
           comparedPinMessages,
           mx.getRoom(mEvent.getRoomId()),
+          eventId,
         ),
       );
     }
