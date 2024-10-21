@@ -93,16 +93,23 @@ class RoomTimeline extends EventEmitter {
     this._onMessage = (r, event) => {
       if (!tinyThis._belongToRoom(event)) return;
 
-      console.log(
-        `${event.getType()} ${event.getRoomId()} ${event.getId()} Message Wait ${event.getSender()}`,
-        event.getContent(),
-        event,
-      );
+      // Is you sending
+      const transId = mEvent.getUnsigned()?.transaction_id;
+      if (
+        typeof transId !== 'string' ||
+        (event.getSender() === initMatrix.getUserId() && event.isSending())
+      ) {
+        console.log(
+          `${event.getType()} ${event.getRoomId()} ${event.getId()} Message Wait ${event.getSender()}`,
+          event.getContent(),
+          event,
+        );
 
-      // Check isEdited
+        // Check isEdited
 
-      // Send into the timeline
-      tinyThis._insertIntoTimeline(event);
+        // Send into the timeline
+        tinyThis._insertIntoTimeline(event);
+      }
     };
 
     // Reaction events

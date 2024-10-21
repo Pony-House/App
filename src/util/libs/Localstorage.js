@@ -41,7 +41,7 @@ class StorageManager extends EventEmitter {
     this.isPersisted = null;
 
     // Db
-    this._dbVersion = 22;
+    this._dbVersion = 23;
     this._oldDbVersion = this.getNumber('ponyHouse-db-version') || 0;
     this.dbName = 'pony-house-database';
     this._timelineSyncCache = this.getJson('ponyHouse-timeline-sync', 'obj');
@@ -205,6 +205,8 @@ class StorageManager extends EventEmitter {
         ? mEvent.event?.thread_id
         : null;
 
+    mEvent.status = mEvent.event?.e_status || null;
+
     mEvent.threadRootId = () => {
       const relatesTo = mEvent.getWireContent()?.['m.relates_to'];
       if (relatesTo?.rel_type === THREAD_RELATION_TYPE.name) {
@@ -279,6 +281,7 @@ class StorageManager extends EventEmitter {
     mEvent.isRedacted = () =>
       mEvent.getUnsigned().redacted_because || mEvent.event?.redaction || false;
     mEvent.isRedaction = () => mEvent.event?.type === 'm.room.redaction' || false;
+    mEvent.isSending = () => !!mEvent.status;
 
     return mEvent;
   }
@@ -626,6 +629,7 @@ class StorageManager extends EventEmitter {
 
     data.event_id = event.getId();
     data.is_transaction = data.event_id.startsWith('~') ? true : false;
+    data.e_status = event.status;
 
     if (filter.type !== false) data.type = event.getType();
     if (filter.sender !== false) data.sender = event.getSender();
@@ -1036,6 +1040,8 @@ class StorageManager extends EventEmitter {
             };
 
             tinyItem.is_transaction = tinyItem.event_id.startsWith('~') ? true : false;
+            tinyItem.e_status = event.status;
+
             if (typeof data.sender === 'string') tinyItem.sender = data.sender;
             if (typeof data.room_id === 'string') tinyItem.room_id = data.room_id;
             if (typeof data.thread_id === 'string') tinyItem.thread_id = data.thread_id;
@@ -1086,6 +1092,8 @@ class StorageManager extends EventEmitter {
               };
 
               tinyItem.is_transaction = tinyItem.event_id.startsWith('~') ? true : false;
+              tinyItem.e_status = event.status;
+
               if (typeof newContent.msgtype === 'string') tinyItem.type = newContent.msgtype;
               if (typeof newContent.body === 'string') tinyItem.body = newContent.body;
               if (typeof newContent.formatted_body === 'string')

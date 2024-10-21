@@ -41,6 +41,7 @@ export const startDb = async (tinyThis) => {
           unsigned: { notNull: false, dataType: DATA_TYPE.Object },
 
           is_transaction: { notNull: true, dataType: DATA_TYPE.Boolean },
+          e_status: { notNull: false, dataType: DATA_TYPE.String },
           redaction: { notNull: true, dataType: DATA_TYPE.Boolean },
           origin_server_ts: { notNull: true, dataType: DATA_TYPE.Number },
         },
@@ -50,6 +51,14 @@ export const startDb = async (tinyThis) => {
               is_transaction: {
                 notNull: true,
                 dataType: DATA_TYPE.Boolean,
+              },
+            },
+            23: {
+              add: {
+                e_status: {
+                  notNull: false,
+                  dataType: DATA_TYPE.String,
+                },
               },
             },
           },
@@ -70,6 +79,7 @@ export const startDb = async (tinyThis) => {
           unsigned: { notNull: false, dataType: DATA_TYPE.Object },
 
           is_transaction: { notNull: true, dataType: DATA_TYPE.Boolean },
+          e_status: { notNull: false, dataType: DATA_TYPE.String },
           redaction: { notNull: true, dataType: DATA_TYPE.Boolean },
           origin_server_ts: { notNull: true, dataType: DATA_TYPE.Number },
         },
@@ -84,6 +94,14 @@ export const startDb = async (tinyThis) => {
               is_transaction: {
                 notNull: true,
                 dataType: DATA_TYPE.Boolean,
+              },
+            },
+          },
+          23: {
+            add: {
+              e_status: {
+                notNull: false,
+                dataType: DATA_TYPE.String,
               },
             },
           },
@@ -103,6 +121,7 @@ export const startDb = async (tinyThis) => {
           unsigned: { notNull: false, dataType: DATA_TYPE.Object },
 
           is_transaction: { notNull: true, dataType: DATA_TYPE.Boolean },
+          e_status: { notNull: false, dataType: DATA_TYPE.String },
           redaction: { notNull: true, dataType: DATA_TYPE.Boolean },
           origin_server_ts: { notNull: true, dataType: DATA_TYPE.Number },
         },
@@ -120,6 +139,14 @@ export const startDb = async (tinyThis) => {
               is_transaction: {
                 notNull: true,
                 dataType: DATA_TYPE.Boolean,
+              },
+            },
+          },
+          23: {
+            add: {
+              e_status: {
+                notNull: false,
+                dataType: DATA_TYPE.String,
               },
             },
           },
@@ -141,6 +168,7 @@ export const startDb = async (tinyThis) => {
           unsigned: { notNull: false, dataType: DATA_TYPE.Object },
 
           is_transaction: { notNull: true, dataType: DATA_TYPE.Boolean },
+          e_status: { notNull: false, dataType: DATA_TYPE.String },
           redaction: { notNull: true, dataType: DATA_TYPE.Boolean },
           origin_server_ts: { notNull: true, dataType: DATA_TYPE.Number },
         },
@@ -174,6 +202,14 @@ export const startDb = async (tinyThis) => {
               },
             },
           },
+          23: {
+            add: {
+              e_status: {
+                notNull: false,
+                dataType: DATA_TYPE.String,
+              },
+            },
+          },
         },
       },
 
@@ -198,6 +234,7 @@ export const startDb = async (tinyThis) => {
           replace_to: { notNull: false, dataType: DATA_TYPE.Object },
 
           is_transaction: { notNull: true, dataType: DATA_TYPE.Boolean },
+          e_status: { notNull: false, dataType: DATA_TYPE.String },
           redaction: { notNull: true, dataType: DATA_TYPE.Boolean },
           origin_server_ts: { notNull: true, dataType: DATA_TYPE.Number },
         },
@@ -250,6 +287,14 @@ export const startDb = async (tinyThis) => {
               },
             },
           },
+          23: {
+            add: {
+              e_status: {
+                notNull: false,
+                dataType: DATA_TYPE.String,
+              },
+            },
+          },
         },
       },
 
@@ -269,6 +314,7 @@ export const startDb = async (tinyThis) => {
           url: { notNull: false, dataType: DATA_TYPE.String },
 
           is_transaction: { notNull: true, dataType: DATA_TYPE.Boolean },
+          e_status: { notNull: false, dataType: DATA_TYPE.String },
           redaction: { notNull: true, dataType: DATA_TYPE.Boolean },
           origin_server_ts: { notNull: true, dataType: DATA_TYPE.Number },
         },
@@ -293,6 +339,14 @@ export const startDb = async (tinyThis) => {
               },
             },
           },
+          23: {
+            add: {
+              e_status: {
+                notNull: false,
+                dataType: DATA_TYPE.String,
+              },
+            },
+          },
         },
       },
 
@@ -309,6 +363,7 @@ export const startDb = async (tinyThis) => {
           unsigned: { notNull: false, dataType: DATA_TYPE.Object },
 
           is_transaction: { notNull: true, dataType: DATA_TYPE.Boolean },
+          e_status: { notNull: false, dataType: DATA_TYPE.String },
           redaction: { notNull: true, dataType: DATA_TYPE.Boolean },
           origin_server_ts: { notNull: true, dataType: DATA_TYPE.Number },
         },
@@ -326,6 +381,14 @@ export const startDb = async (tinyThis) => {
               is_transaction: {
                 notNull: true,
                 dataType: DATA_TYPE.Boolean,
+              },
+            },
+          },
+          23: {
+            add: {
+              e_status: {
+                notNull: false,
+                dataType: DATA_TYPE.String,
               },
             },
           },
