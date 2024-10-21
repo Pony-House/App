@@ -622,7 +622,7 @@ class StorageManager extends EventEmitter {
     const date = event.getDate();
     const threadId = this._getEventThreadId(event);
 
-    if (filter.event_id !== false) data.event_id = event.getId();
+    data.event_id = event.getId();
     data.is_transaction = data.event_id.startsWith('~') ? true : false;
 
     if (filter.type !== false) data.type = event.getType();
@@ -1022,6 +1022,7 @@ class StorageManager extends EventEmitter {
               origin_server_ts: data.origin_server_ts,
             };
 
+            tinyItem.is_transaction = tinyItem.event_id.startsWith('~') ? true : false;
             if (typeof data.sender === 'string') tinyItem.sender = data.sender;
             if (typeof data.room_id === 'string') tinyItem.room_id = data.room_id;
             if (typeof data.thread_id === 'string') tinyItem.thread_id = data.thread_id;
@@ -1071,6 +1072,7 @@ class StorageManager extends EventEmitter {
                 origin_server_ts: data.origin_server_ts,
               };
 
+              tinyItem.is_transaction = tinyItem.event_id.startsWith('~') ? true : false;
               if (typeof newContent.msgtype === 'string') tinyItem.type = newContent.msgtype;
               if (typeof newContent.body === 'string') tinyItem.body = newContent.body;
               if (typeof newContent.formatted_body === 'string')

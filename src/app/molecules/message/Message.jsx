@@ -1635,20 +1635,20 @@ function Message({
   const [messageStatus, setMessageStatus] = useState(mEvent.status);
 
   mEvent.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
-  mEvent.once(MatrixEventEvent.Status, (e) => {
+  const onMsgStatus = (e) => {
+    console.log(`[your-message] [status] [${mEvent.getId()}]`, e.status);
     setMessageStatus(e.status);
     storageManager.addToTimeline(mEvent);
-  });
+  };
 
-  mEvent.once(MatrixEventEvent.Decrypted, () => {
+  const onMsgRefresh = () => {
     forceUpdate();
     storageManager.addToTimeline(mEvent);
-  });
+  };
 
-  mEvent.once(MatrixEventEvent.Replaced, () => {
-    forceUpdate();
-    storageManager.addToTimeline(mEvent);
-  });
+  mEvent.once(MatrixEventEvent.Status, onMsgStatus);
+  mEvent.once(MatrixEventEvent.Decrypted, onMsgRefresh);
+  mEvent.once(MatrixEventEvent.Replaced, onMsgRefresh);
 
   const color = colorMXID(senderId);
   const username = muteUserManager.getMessageName(mEvent, isDM);

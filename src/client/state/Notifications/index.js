@@ -533,13 +533,13 @@ class Notifications extends EventEmitter {
         const lastTimelineEvent = liveEvents[liveEvents.length - 1];
         if (lastTimelineEvent.getId() !== mEvent.getId()) {
           stopNotification = true;
-          console.log(`[matrix-noti] Event blocked by last id validator: ${mEvent.getId()}`);
+          // console.log(`[matrix-noti] Event blocked by last id validator: ${mEvent.getId()}`);
         }
 
         // Sender check
         if (!stopNotification && mEvent.getSender() === this.matrixClient.getUserId()) {
           stopNotification = true;
-          console.log(`[matrix-noti] Event blocked by is same user: ${mEvent.getId()}`);
+          // console.log(`[matrix-noti] Event blocked by is same user: ${mEvent.getId()}`);
         }
 
         // Prepare values

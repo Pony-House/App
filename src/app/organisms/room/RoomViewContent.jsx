@@ -75,11 +75,11 @@ function renderEvent(
     diffMinutes(mEvent.getDate(), prevMEvent.getDate()) <= MAX_MSG_DIFF_MINUTES;
   const timestamp = mEvent.getTs();
 
+  tinyFixScrollChat();
   const eventType = mEvent.getType();
   if (eventType === 'm.room.member' || eventType === 'm.room.pinned_events') {
     const timelineChange = parseTimelineChange(mEvent);
     if (timelineChange === null) return <div key={mEvent.getId()} />;
-    // tinyFixScrollChat();
     return (
       <TimelineChange
         key={mEvent.getId()}
@@ -90,7 +90,6 @@ function renderEvent(
     );
   }
 
-  // tinyFixScrollChat();
   return (
     <Message
       useManualCheck={useManualCheck}
