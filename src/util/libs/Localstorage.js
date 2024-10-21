@@ -1,5 +1,5 @@
 import EventEmitter from 'events';
-import { Direction } from 'matrix-js-sdk';
+import { Direction, UNSIGNED_THREAD_ID_FIELD, THREAD_RELATION_TYPE } from 'matrix-js-sdk';
 import clone from 'clone';
 
 import { objType } from 'for-promise/utils/lib.mjs';

@@ -1,5 +1,5 @@
 import EventEmitter from 'events';
-import { Direction, UNSIGNED_THREAD_ID_FIELD } from 'matrix-js-sdk';
+import { Direction } from 'matrix-js-sdk';
 
 import storageManager from '@src/util/libs/Localstorage';
 import { getAppearance } from '@src/util/libs/appearance';
