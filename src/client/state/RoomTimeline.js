@@ -90,55 +90,55 @@ class RoomTimeline extends EventEmitter {
     };
 
     // Message events
-    this._onMessage = (r, event) => {
-      if (!tinyThis._belongToRoom(event)) return;
+    this._onMessage = (r, mEvent) => {
+      if (!tinyThis._belongToRoom(mEvent)) return;
 
       // Is you sending
       const transId = mEvent.getUnsigned()?.transaction_id;
       if (
         typeof transId !== 'string' ||
-        (event.getSender() === initMatrix.getUserId() && event.isSending())
+        (mEvent.getSender() === initMatrix.matrixClient.getUserId() && mEvent.isSending())
       ) {
         console.log(
-          `${event.getType()} ${event.getRoomId()} ${event.getId()} Message Wait ${event.getSender()}`,
-          event.getContent(),
-          event,
+          `${mEvent.getType()} ${mEvent.getRoomId()} ${mEvent.getId()} Message Wait ${mEvent.getSender()}`,
+          mEvent.getContent(),
+          mEvent,
         );
 
         // Check isEdited
 
         // Send into the timeline
-        tinyThis._insertIntoTimeline(event);
+        tinyThis._insertIntoTimeline(mEvent);
       }
     };
 
     // Reaction events
-    this._onReaction = (r, event) => {
-      if (!tinyThis._belongToRoom(event)) return;
+    this._onReaction = (r, mEvent) => {
+      if (!tinyThis._belongToRoom(mEvent)) return;
       console.log(
-        `${event.getType()} ${event.getRoomId()} ${event.getId()} Reaction Wait ${event.getSender()}`,
-        event.getContent(),
-        event,
+        `${mEvent.getType()} ${mEvent.getRoomId()} ${mEvent.getId()} Reaction Wait ${mEvent.getSender()}`,
+        mEvent.getContent(),
+        mEvent,
       );
       // Reactions
     };
 
     // Timeline events
-    this._onTimeline = (r, event) => {
-      if (!tinyThis._belongToRoom(event)) return;
+    this._onTimeline = (r, mEvent) => {
+      if (!tinyThis._belongToRoom(mEvent)) return;
       console.log(
-        `${event.getType()} ${event.getRoomId()} ${event.getId()} Message Wait ${event.getSender()}`,
-        event.getContent(),
-        event,
+        `${mEvent.getType()} ${mEvent.getRoomId()} ${mEvent.getId()} Message Wait ${mEvent.getSender()}`,
+        mEvent.getContent(),
+        mEvent,
       );
 
-      if (event.type !== 'm.room.redaction') tinyThis._insertIntoTimeline(event);
-      else tinyThis._deletingEvent(event);
+      if (mEvent.type !== 'm.room.redaction') tinyThis._insertIntoTimeline(mEvent);
+      else tinyThis._deletingEvent(mEvent);
     };
 
     // Thread added events
-    this._onIsThreadEvent = (r, event) => {
-      if (!tinyThis._belongToRoom(event)) return;
+    this._onIsThreadEvent = (r, mEvent) => {
+      if (!tinyThis._belongToRoom(mEvent)) return;
     };
 
     // Prepare events
