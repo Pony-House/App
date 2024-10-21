@@ -697,7 +697,7 @@ class StorageManager extends EventEmitter {
                   values: [data],
                 })
                 .then((result) => {
-                  tinyThis.emit('dbMember', result, data);
+                  tinyThis.emit('dbMember', result, { event: clone(data) });
                   resolve(result);
                 })
                 .catch(tinyReject);
@@ -721,7 +721,7 @@ class StorageManager extends EventEmitter {
           values: [data],
         })
         .then((result) => {
-          tinyThis.emit(dbEvent, result, data);
+          tinyThis.emit(dbEvent, result, tinyThis.convertToEventFormat(data));
           resolve(result);
         })
         .catch(reject),
@@ -798,7 +798,12 @@ class StorageManager extends EventEmitter {
     }
 
     const result = await this.storeConnection.select(data);
-    return Array.isArray(result) ? result.reverse() : [];
+    if (Array.isArray(result)) {
+      for (const item in result) {
+        result[item] = this.convertToEventFormat(result[item]);
+      }
+      return result.reverse();
+    } else return [];
   }
 
   async _eventsCounter({
@@ -930,6 +935,12 @@ class StorageManager extends EventEmitter {
             break;
           }
         }
+
+        if (data.success) {
+          for (const item in data.items) {
+            data.items[item] = this.convertToEventFormat(data.items[item]);
+          }
+        }
       }
 
       if (data.success) break;
@@ -972,7 +983,7 @@ class StorageManager extends EventEmitter {
           values: [data],
         })
         .then((result) => {
-          tinyThis.emit('dbReceipt', result, data);
+          tinyThis.emit('dbReceipt', result, { event: clone(data) });
           resolve(result);
         })
         .catch(reject);

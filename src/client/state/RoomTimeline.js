@@ -85,12 +85,20 @@ class RoomTimeline extends EventEmitter {
     // Start timeline events
     this._startTimeline = (data, eventId) => {
       // data.firstTime
+      console.log(`Starting timeline ${this.roomId}`, data);
       tinyThis.emit(cons.events.roomTimeline.READY, eventId || null);
     };
 
     // Message events
     this._onMessage = (r, event) => {
       if (!tinyThis._belongToRoom(event)) return;
+
+      console.log(
+        `${event.getType()} ${event.getRoomId()} ${event.getId()} Message Wait ${event.getSender()}`,
+        event.getContent(),
+        event,
+      );
+
       // Check isEdited
 
       // Send into the timeline
@@ -100,12 +108,23 @@ class RoomTimeline extends EventEmitter {
     // Reaction events
     this._onReaction = (r, event) => {
       if (!tinyThis._belongToRoom(event)) return;
+      console.log(
+        `${event.getType()} ${event.getRoomId()} ${event.getId()} Reaction Wait ${event.getSender()}`,
+        event.getContent(),
+        event,
+      );
       // Reactions
     };
 
     // Timeline events
     this._onTimeline = (r, event) => {
       if (!tinyThis._belongToRoom(event)) return;
+      console.log(
+        `${event.getType()} ${event.getRoomId()} ${event.getId()} Message Wait ${event.getSender()}`,
+        event.getContent(),
+        event,
+      );
+
       if (event.type !== 'm.room.redaction') tinyThis._insertIntoTimeline(event);
       else tinyThis._deletingEvent(event);
     };
@@ -145,25 +164,25 @@ class RoomTimeline extends EventEmitter {
 
   // Belong to Room
   _belongToRoom(event) {
-    return event.room_id === this.roomId && (!this.threadId || event.thread_id === this.threadId);
+    return (
+      event.getRoomId() === this.roomId && (!this.threadId || event.getThreadId() === this.threadId)
+    );
   }
 
   // Insert into timeline
   _insertIntoTimeline(event) {
     const pageLimit = getAppearance('pageLimit');
-    const mEvent = storageManager.convertToEventFormat(event);
 
-    this.emit(cons.events.roomTimeline.EVENT, mEvent);
+    this.emit(cons.events.roomTimeline.EVENT, event);
   }
 
   // Deleting events
   _deletingEvent(event) {
-    const mEvent = storageManager.convertToEventFormat(event);
-    const redacts = mEvent.getContent()?.redacts;
+    const redacts = event.getContent()?.redacts;
     const rEvent = this.deleteFromTimeline(redacts);
     this.editedTimeline.delete(redacts);
     this.reactionTimeline.delete(redacts);
-    this.emit(cons.events.roomTimeline.EVENT_REDACTED, rEvent, mEvent);
+    this.emit(cons.events.roomTimeline.EVENT_REDACTED, rEvent, event);
   }
 
   // Pagination
