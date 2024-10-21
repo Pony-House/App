@@ -41,7 +41,7 @@ class StorageManager extends EventEmitter {
     this.isPersisted = null;
 
     // Db
-    this._dbVersion = 21;
+    this._dbVersion = 22;
     this._oldDbVersion = this.getNumber('ponyHouse-db-version') || 0;
     this.dbName = 'pony-house-database';
     this._timelineSyncCache = this.getJson('ponyHouse-timeline-sync', 'obj');
@@ -70,9 +70,11 @@ class StorageManager extends EventEmitter {
         threadId = null,
         showThreads = null,
         showRedaction = null,
+        showTransaction = false,
         roomId = null,
         type = null,
         limit = null,
+
         body = null,
         formattedBody = null,
         format = null,
@@ -85,6 +87,7 @@ class StorageManager extends EventEmitter {
           threadId,
           showThreads,
           showRedaction,
+          showTransaction,
           roomId,
           type,
           limit,
@@ -96,7 +99,9 @@ class StorageManager extends EventEmitter {
         threadId = null,
         showThreads = null,
         showRedaction = null,
+        showTransaction = false,
         type = null,
+
         body = null,
         formattedBody = null,
         format = null,
@@ -109,6 +114,7 @@ class StorageManager extends EventEmitter {
           threadId,
           showThreads,
           showRedaction,
+          showTransaction,
           type,
           customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
         });
@@ -118,8 +124,10 @@ class StorageManager extends EventEmitter {
         threadId = null,
         showThreads = null,
         showRedaction = null,
+        showTransaction = false,
         type = null,
         limit = null,
+
         body = null,
         formattedBody = null,
         format = null,
@@ -132,6 +140,7 @@ class StorageManager extends EventEmitter {
           threadId,
           showThreads,
           showRedaction,
+          showTransaction,
           type,
           limit,
           customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
@@ -142,9 +151,11 @@ class StorageManager extends EventEmitter {
         threadId = null,
         showThreads = null,
         showRedaction = null,
+        showTransaction = false,
         type = null,
         limit = null,
         page = null,
+
         body = null,
         formattedBody = null,
         format = null,
@@ -157,6 +168,7 @@ class StorageManager extends EventEmitter {
           threadId,
           showThreads,
           showRedaction,
+          showTransaction,
           type,
           limit,
           page,
@@ -260,6 +272,10 @@ class StorageManager extends EventEmitter {
 
     mEvent.getUnsigned = () => mEvent.event?.unsigned || null;
 
+    mEvent.isNotRedactedInDb = () =>
+      (mEvent.getUnsigned().redacted_because && !mEvent.event?.redaction) || false;
+    mEvent.isRedactedDbOnly = () =>
+      (!mEvent.getUnsigned().redacted_because && mEvent.event?.redaction) || false;
     mEvent.isRedacted = () =>
       mEvent.getUnsigned().redacted_because || mEvent.event?.redaction || false;
     mEvent.isRedaction = () => mEvent.event?.type === 'm.room.redaction' || false;
@@ -456,26 +472,49 @@ class StorageManager extends EventEmitter {
             from: 'timeline',
             where: { type: 'm.room.redaction' },
           })
-          .then((redactions) => {
+          .then(async (redactions) => {
             for (const item in redactions) {
               if (redactions[item].content && typeof redactions[item].content.redacts === 'string')
-                tinyThis._sendSetReaction({
-                  getContent: () => ({ redacts: redactions[item].content.redacts }),
-                });
+                tinyThis._sendSetReaction(
+                  {
+                    getContent: () => ({ redacts: redactions[item].content.redacts }),
+                  },
+                  true,
+                );
             }
             console.log(`[room-db-sync] Redaction data request sent!`);
-            console.log(`[room-db-sync] Updating thread data...`);
+            console.log(`[room-db-sync] Updating thread and more redaction data...`);
             tinyThis.storeConnection
               .select({
                 from: 'messages',
-                where: { thread_id: { '!=': 'NULL' } },
               })
-              .then((threadMsg) => {
+              .then(async (threadMsg) => {
+                // Check Data
                 for (const item in threadMsg) {
-                  tinyThis._setIsThread(tinyThis.convertToEventFormat(threadMsg[item]));
-                }
-                console.log(`[room-db-sync] Thread data request sent!`);
+                  const mEvent = tinyThis.convertToEventFormat(threadMsg[item]);
 
+                  // Check redaction
+                  if (mEvent.isNotRedactedInDb()) {
+                    tinyThis._setRedaction(mEvent.getId(), 'messages', true, true);
+                    tinyThis._setRedaction(mEvent.getId(), 'messages_search', true, true);
+                  }
+
+                  // Transaction Id to redaction
+                  if (mEvent.isRedacted()) {
+                    const unsigned = mEvent.getUnsigned();
+                    if (unsigned && typeof unsigned.transaction_id === 'string') {
+                      const transId = `~${mEvent.getRoomId()}:${unsigned.transaction_id}`;
+                      tinyThis._setRedaction(transId, 'messages', true, true);
+                      tinyThis._setRedaction(transId, 'messages_search', true, true);
+                    }
+                  }
+
+                  // Check threads
+                  if (mEvent.threadId) await tinyThis._setIsThread(mEvent, true);
+                }
+                console.log(`[room-db-sync] Thread and more redaction data request sent!`);
+
+                // Complete!
                 for (const item in tinyRoomsUsed) {
                   const usedRoom = tinyRoomsUsed[item];
                   if (this._timelineSyncCache[usedRoom]) {
@@ -483,6 +522,7 @@ class StorageManager extends EventEmitter {
                     this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
                   }
 
+                  console.log(`[room-db-sync] Database checker complete!`);
                   // const room = initMatrix.matrixClient.getRoom(usedRoom);
                   // if (room) room.refreshLiveTimeline();
                 }
@@ -568,6 +608,8 @@ class StorageManager extends EventEmitter {
     const threadId = this._getEventThreadId(event);
 
     if (filter.event_id !== false) data.event_id = event.getId();
+    data.is_transaction = data.event_id.startsWith('~') ? true : false;
+
     if (filter.type !== false) data.type = event.getType();
     if (filter.sender !== false) data.sender = event.getSender();
     if (filter.room_id !== false) data.room_id = event.getRoomId();
@@ -599,7 +641,8 @@ class StorageManager extends EventEmitter {
     return new Promise((resolve, reject) => {
       const data = {};
       const tinyReject = (err) => {
-        console.log('[indexed-db] ERROR SAVING MEMBER DATA!', data);
+        console.error('[indexed-db] ERROR SAVING MEMBER DATA!');
+        console.error(err);
         tinyThis.emit('dbMember-Error', err, data);
         reject(err);
       };
@@ -695,6 +738,7 @@ class StorageManager extends EventEmitter {
     showThreads = null,
     type = null,
     showRedaction = null,
+    showTransaction = null,
     content = null,
     unsigned = null,
     limit = null,
@@ -725,6 +769,8 @@ class StorageManager extends EventEmitter {
       else if (!showRedaction) data.where.redaction = false;
     }
 
+    if (showTransaction !== true) data.where.is_transaction = false;
+
     if (typeof limit === 'number') {
       if (!Number.isNaN(limit) && Number.isFinite(limit) && limit > -1) data.limit = limit;
       else data.limit = 0;
@@ -743,6 +789,7 @@ class StorageManager extends EventEmitter {
     threadId = null,
     showThreads = null,
     showRedaction = null,
+    showTransaction = null,
     roomId = null,
     unsigned = null,
     content = null,
@@ -763,6 +810,8 @@ class StorageManager extends EventEmitter {
       else if (!showRedaction) data.where.redaction = false;
     }
 
+    if (showTransaction !== true) data.where.is_transaction = false;
+
     if (join) data.join = join;
     insertObjWhere(data, 'content', content);
     insertObjWhere(data, 'unsigned', unsigned);
@@ -778,6 +827,7 @@ class StorageManager extends EventEmitter {
     threadId = null,
     showThreads = null,
     showRedaction = null,
+    showTransaction = null,
     unsigned = null,
     content = null,
     type = null,
@@ -791,6 +841,7 @@ class StorageManager extends EventEmitter {
       threadId,
       showThreads,
       showRedaction,
+      showTransaction,
       unsigned,
       content,
       type,
@@ -810,6 +861,7 @@ class StorageManager extends EventEmitter {
     threadId = null,
     showThreads = null,
     showRedaction = null,
+    showTransaction = null,
     roomId = null,
     type = null,
     limit = null,
@@ -823,6 +875,7 @@ class StorageManager extends EventEmitter {
       threadId,
       showThreads,
       showRedaction,
+      showTransaction,
       roomId,
       unsigned,
       content,
@@ -841,6 +894,7 @@ class StorageManager extends EventEmitter {
         threadId,
         showThreads,
         showRedaction,
+        showTransaction,
         unsigned,
         content,
         type,
@@ -1192,7 +1246,7 @@ class StorageManager extends EventEmitter {
         // Transaction Id
         if (unsigned && typeof unsigned.transaction_id === 'string')
           await this._setRedaction(
-            `${event.getRoomId()}:${unsigned.transaction_id}`,
+            `~${event.getRoomId()}:${unsigned.transaction_id}`,
             this._eventDbs[dbIndex],
             true,
           );
@@ -1203,10 +1257,10 @@ class StorageManager extends EventEmitter {
   _addToTimelineRun(event) {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
-      const data = {};
       const tinyReject = (err) => {
-        console.log('[indexed-db] ERROR SAVING TIMELINE DATA!', data);
-        tinyThis.emit('dbTimeline-Error', err, data);
+        console.error('[indexed-db] ERROR SAVING TIMELINE DATA!');
+        console.error(err);
+        tinyThis.emit('dbTimeline-Error', err);
         tinyThis._addToTimeline();
         reject(err);
       };
