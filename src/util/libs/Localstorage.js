@@ -489,9 +489,11 @@ class StorageManager extends EventEmitter {
           .then(async (redactions) => {
             for (const item in redactions) {
               if (redactions[item].content && typeof redactions[item].content.redacts === 'string')
-                tinyThis._sendSetReaction(
+                tinyThis._sendSetRedaction(
                   {
                     getContent: () => ({ redacts: redactions[item].content.redacts }),
+                    getUnsigned: () => ({ redacts: redactions[item].unsigned }),
+                    getRoomId: () => redactions[item].room_id,
                   },
                   true,
                 );
@@ -1244,7 +1246,7 @@ class StorageManager extends EventEmitter {
     );
   }
 
-  async _sendSetReaction(event) {
+  async _sendSetRedaction(event) {
     for (const dbIndex in this._eventDbs) {
       const content = event.getContent();
       const unsigned = event.getUnsigned();
@@ -1296,7 +1298,7 @@ class StorageManager extends EventEmitter {
           .setTimeline(event)
           .then(async (result) => {
             try {
-              if (eventType === 'm.room.redaction') await tinyThis._sendSetReaction(event);
+              if (eventType === 'm.room.redaction') await tinyThis._sendSetRedaction(event);
               if (eventType === 'm.room.member') await tinyThis.setMember(event);
               tinyComplete(result);
             } catch (err) {
