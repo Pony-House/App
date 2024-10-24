@@ -16,7 +16,10 @@ import cons from '@src/client/state/cons';
 
 import { startDb } from './db/indexedDb';
 import { toTitleCase } from '../tools';
+import attemptDecryption from './attemptDecryption';
+import waitDecrypt from '@src/client/state/Notifications/waitDecrypt';
 
+const genKey = () => generateApiKey().replace(/\~/g, 'pud');
 const SYNC_TIMELINE_DOWNLOAD_LIMIT = 100;
 
 const insertObjWhere = (data, name, obj) => {
@@ -1354,13 +1357,24 @@ class StorageManager extends EventEmitter {
   }
 
   async _syncSendEvent(eventId, roomId, threadId, key) {
-    console.log(eventId, roomId, threadId, key);
+    const mx = initMatrix.matrixClient;
+    const room = mx.getRoom(roomId);
+    if (room) {
+      const mEvent = room.getEventForTxnId(key);
+      if (mEvent) {
+        if (mEvent.isEncrypted()) {
+          await attemptDecryption.exec(mEvent, null, true);
+          const mEvent2 = await waitDecrypt(mEvent);
+          this.addToTimeline(mEvent2);
+        } else this.addToTimeline(mEvent);
+      }
+    }
   }
 
   async redactEvent(roomId, eventId, reason) {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
-      const key = generateApiKey();
+      const key = genKey();
       initMatrix.matrixClient
         .redactEvent(roomId, eventId, key, typeof reason === 'undefined' ? undefined : { reason })
         .then((msgData) =>
@@ -1376,8 +1390,8 @@ class StorageManager extends EventEmitter {
   sendEvent(roomId, eventName, content) {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
-      const key = generateApiKey();
-      initMatrix
+      const key = genKey();
+      initMatrix.matrixClient
         .sendEvent(roomId, eventName, content, key)
         .then((msgData) =>
           tinyThis
@@ -1392,8 +1406,8 @@ class StorageManager extends EventEmitter {
   sendEventThread(roomId, threadId, eventName, content) {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
-      const key = generateApiKey();
-      initMatrix
+      const key = genKey();
+      initMatrix.matrixClient
         .sendEvent(roomId, threadId, eventName, content, key)
         .then((msgData) =>
           tinyThis
@@ -1408,7 +1422,7 @@ class StorageManager extends EventEmitter {
   sendMessage(roomId, content) {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
-      const key = generateApiKey();
+      const key = genKey();
       initMatrix.matrixClient
         .sendMessage(roomId, content, key)
         .then((msgData) =>
@@ -1424,7 +1438,7 @@ class StorageManager extends EventEmitter {
   sendMessageThread(roomId, threadId, content) {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
-      const key = generateApiKey();
+      const key = genKey();
       initMatrix.matrixClient
         .sendMessage(roomId, threadId, content, key)
         .then((msgData) =>

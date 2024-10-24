@@ -1,12 +1,6 @@
 import { LocalNotifications } from '@capacitor/local-notifications';
 import $ from 'jquery';
-import {
-  ClientEvent,
-  MatrixEventEvent,
-  NotificationCountType,
-  RoomEvent,
-  RoomStateEvent,
-} from 'matrix-js-sdk';
+import { ClientEvent, NotificationCountType, RoomEvent, RoomStateEvent } from 'matrix-js-sdk';
 import EventEmitter from 'events';
 import { objType } from 'for-promise/utils/lib.mjs';
 
@@ -32,6 +26,7 @@ import { html, plain } from '../../../util/markdown';
 import { getAccountStatus } from '../../../app/organisms/navigation/ProfileAvatarMenu';
 import favIconManager from '../../../util/libs/favicon';
 import { getPrivacyRefuseRoom } from '../../../app/organisms/navigation/Sidebar/InviteSidebar';
+import waitDecrypt from './waitDecrypt';
 // import { insertEvent } from '../eventsDelay';
 
 function isNotifEvent(mEvent) {
@@ -341,47 +336,11 @@ class Notifications extends EventEmitter {
     const notificationAllowed =
       !stopNotification && this.hasNoti(room.roomId, mEvent.thread ? mEvent.thread.id : null);
 
-    // Decrypt Notification
-    const content = mEvent.getContent();
-    const msgType = content?.msgtype;
-    if (msgType !== 'm.bad.encrypted') {
-      storageManager.addToTimeline(mEvent);
-      if (notificationAllowed) this._sendDisplayPopupNoti(mEvent, content, room);
-    }
-
-    // Fail Decrypt 1
-    else {
-      const tinyThis = this;
-      let decryptTimeout;
-      const decryptFunction = (mEvent2) => {
-        if (decryptTimeout) {
-          clearTimeout(decryptTimeout);
-          decryptTimeout = null;
-        }
-
-        // Decrypt Notification 2
-        const content2 = mEvent2.getContent();
-        const msgType2 = content2?.msgtype;
-        if (msgType2 !== 'm.bad.encrypted') {
-          storageManager.addToTimeline(mEvent2);
-          if (notificationAllowed) tinyThis._sendDisplayPopupNoti(mEvent2, content2, room);
-        }
-
-        // Fail Decrypt 2
-        else {
-          decryptTimeout = setTimeout(() => {
-            mEvent2.off(MatrixEventEvent.Decrypted, decryptFunction);
-          }, 60000);
-          mEvent2.once(MatrixEventEvent.Decrypted, decryptFunction);
-        }
-      };
-
-      // Try decrypt again
-      decryptTimeout = setTimeout(() => {
-        mEvent.off(MatrixEventEvent.Decrypted, decryptFunction);
-      }, 60000);
-      mEvent.once(MatrixEventEvent.Decrypted, decryptFunction);
-    }
+    // Complete
+    waitDecrypt(mEvent).then((mEvent2) => {
+      storageManager.addToTimeline(mEvent2);
+      if (notificationAllowed) this._sendDisplayPopupNoti(mEvent2, content, room);
+    });
   }
 
   async _sendDisplayPopupNoti(mEvent, content, room) {
