@@ -1363,9 +1363,13 @@ class StorageManager extends EventEmitter {
       const mEvent = room.getEventForTxnId(key);
       if (mEvent) {
         if (mEvent.isEncrypted()) {
-          await attemptDecryption.exec(mEvent, null, true);
-          const mEvent2 = await waitDecrypt(mEvent);
-          this.addToTimeline(mEvent2);
+          try {
+            await attemptDecryption.exec(mEvent, null, true);
+            const mEvent2 = await waitDecrypt(mEvent);
+            this.addToTimeline(mEvent2);
+          } catch {
+            this.addToTimeline(mEvent);
+          }
         } else this.addToTimeline(mEvent);
       }
     }
