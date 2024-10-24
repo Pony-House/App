@@ -47,7 +47,7 @@ import {
 
 import { colorMXID, backgroundColorMXID } from '../../../util/colorMXID';
 import { getEventCords } from '../../../util/common';
-import { redactEvent, sendReaction } from '../../../client/action/roomTimeline';
+import { sendReaction } from '../../../client/action/roomTimeline';
 import {
   openEmojiBoard,
   openProfileViewer,
@@ -544,7 +544,7 @@ function MessageEdit({ body, onSave, onCancel, refRoomInput, roomId, eventId }) 
     );
 
     if (!isConfirmed) return;
-    redactEvent(roomId, eventId);
+    storageManager.redactEvent(roomId, eventId);
   };
 
   const handleKeyDown = (e) => {
@@ -626,7 +626,7 @@ function toggleEmoji(roomId, eventId, emojiKey, shortcode, roomTimeline) {
   if (myAlreadyReactEvent) {
     const rId = myAlreadyReactEvent.getId();
     if (rId.startsWith('~')) return;
-    redactEvent(roomId, rId);
+    storageManager.redactEvent(roomId, rId);
     return;
   }
   sendReaction(roomId, eventId, emojiKey, shortcode);
@@ -997,7 +997,7 @@ const MessageOptions = React.memo(
         {(canIRedact || senderId === mx.getUserId()) && (
           <IconButton
             className="need-shift"
-            onClick={() => redactEvent(roomId, mEvent.getId())}
+            onClick={() => storageManager.redactEvent(roomId, mEvent.getId())}
             fa="fa-solid fa-trash-can btn-text-danger"
             size="normal"
             tooltip="Delete"
@@ -1226,7 +1226,7 @@ const MessageOptions = React.memo(
                         'danger',
                       );
                       if (!isConfirmed) return;
-                      redactEvent(roomId, mEvent.getId());
+                      storageManager.redactEvent(roomId, mEvent.getId());
                     }}
                   >
                     Delete
@@ -1636,14 +1636,14 @@ function Message({
 
   mEvent.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
   const onMsgStatus = (e) => {
-    console.log(`[your-message] [status] [${mEvent.getId()}]`, e.status);
+    console.log(`[your-message] [status] [${e.getId()}]`, e.status);
     setMessageStatus(e.status);
-    storageManager.addToTimeline(mEvent);
+    storageManager.addToTimeline(e);
   };
 
-  const onMsgRefresh = () => {
+  const onMsgRefresh = (e) => {
     forceUpdate();
-    storageManager.addToTimeline(mEvent);
+    storageManager.addToTimeline(e);
   };
 
   mEvent.once(MatrixEventEvent.Status, onMsgStatus);

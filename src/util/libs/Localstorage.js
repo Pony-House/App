@@ -1347,6 +1347,105 @@ class StorageManager extends EventEmitter {
     }
   }
 
+  _syncSendEvent(eventId, roomId, threadId) {
+    console.log(eventId, roomId, threadId);
+  }
+
+  async redactEvent(roomId, eventId, reason) {
+    const tinyThis = this;
+    return new Promise((resolve, reject) => {
+      initMatrix.matrixClient
+        .redactEvent(
+          roomId,
+          eventId,
+          undefined,
+          typeof reason === 'undefined' ? undefined : { reason },
+        )
+        .then((msgData) => {
+          tinyThis
+            ._syncSendEvent(msgData?.event_id)
+            .then(() => resolve(msgData))
+            .catch(reject);
+        })
+        .catch(reject);
+    });
+  }
+
+  sendEvent(roomId, eventName, content) {
+    const tinyThis = this;
+    return new Promise((resolve, reject) => {
+      initMatrix
+        .sendEvent(room.roomId, eventName, content)
+        .then((msgData) => {
+          tinyThis
+            ._syncSendEvent(msgData?.event_id)
+            .then(() => resolve(msgData))
+            .catch(reject);
+        })
+        .catch(reject);
+    });
+  }
+
+  sendMessage(roomId, content) {
+    const tinyThis = this;
+    return new Promise((resolve, reject) => {
+      initMatrix.matrixClient
+        .sendMessage(roomId, content)
+        .then((msgData) => {
+          tinyThis
+            ._syncSendEvent(msgData?.event_id, roomId)
+            .then(() => resolve(msgData))
+            .catch(reject);
+        })
+        .catch(reject);
+    });
+  }
+
+  sendEventThread(roomId, threadId, content) {
+    const tinyThis = this;
+    return new Promise((resolve, reject) => {
+      initMatrix.matrixClient
+        .sendMessage(roomId, threadId, content)
+        .then((msgData) => {
+          tinyThis
+            ._syncSendEvent(msgData?.event_id, roomId, threadId)
+            .then(() => resolve(msgData))
+            .catch(reject);
+        })
+        .catch(reject);
+    });
+  }
+
+  sendStickerMessage(roomId, url, info, body) {
+    const tinyThis = this;
+    return new Promise((resolve, reject) => {
+      initMatrix.matrixClient
+        .sendStickerMessage(roomId, url, info, body)
+        .then((msgData) => {
+          tinyThis
+            ._syncSendEvent(msgData?.event_id, roomId)
+            .then(() => resolve(msgData))
+            .catch(reject);
+        })
+        .catch(reject);
+    });
+  }
+
+  sendStickerMessageThread(roomId, threadId, url, info, body) {
+    const tinyThis = this;
+    return new Promise((resolve, reject) => {
+      initMatrix.matrixClient
+        .sendStickerMessage(roomId, threadId, url, info, body)
+        .then((msgData) => {
+          tinyThis
+            ._syncSendEvent(msgData?.event_id, roomId, threadId)
+            .then(() => resolve(msgData))
+            .catch(reject);
+        })
+        .catch(reject);
+    });
+  }
+
   async startPonyHouseDb() {
     const isDbCreated = await startDb(this);
     this._oldDbVersion = this._dbVersion;

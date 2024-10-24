@@ -4,6 +4,7 @@ import objectHash from 'object-hash';
 import { objType } from 'for-promise/utils/lib.mjs';
 
 import moment from '@src/util/libs/momentjs';
+import storageManager from '@src/util/libs/Localstorage';
 
 import { getClientYjs, enableyJsItem } from './functions';
 
@@ -346,7 +347,7 @@ export default function installYjs(tinyThis) {
         if (!tinyThis._ydoc.sending_event) {
           tinyThis._ydoc.sending_event = true;
 
-          tinyThis.matrixClient
+          storageManager
             .sendEvent(tinyThis.roomId, crdtEvent, newData)
             .then(() => {
               tinyThis._ydoc.sending_event = false;
@@ -392,7 +393,7 @@ export default function installYjs(tinyThis) {
       if (!tinyThis._ydoc.sending_event) {
         tinyThis._ydoc.sending_event = true;
 
-        tinyThis.matrixClient
+        storageManager
           .sendEvent(tinyThis.roomId, crdtEvent, newData)
           .then(() => {
             tinyThis._ydoc.sending_event = false;
@@ -419,7 +420,7 @@ export default function installYjs(tinyThis) {
       if (!tinyThis._ydoc.sending_event) {
         tinyThis._ydoc.sending_event = true;
 
-        tinyThis.matrixClient
+        storageManager
           .sendEvent(tinyThis.roomId, crdtEvent, newData)
           .then(() => {
             tinyThis._ydoc.sending_event = false;
@@ -446,7 +447,7 @@ export default function installYjs(tinyThis) {
       if (!tinyThis._ydoc.sending_event) {
         tinyThis._ydoc.sending_event = true;
 
-        tinyThis.matrixClient
+        storageManager
           .sendEvent(tinyThis.roomId, crdtEvent, newData)
           .then(() => {
             tinyThis._ydoc.sending_event = false;
@@ -473,7 +474,7 @@ export default function installYjs(tinyThis) {
       if (!tinyThis._ydoc.sending_event) {
         tinyThis._ydoc.sending_event = true;
 
-        tinyThis.matrixClient
+        storageManager
           .sendEvent(tinyThis.roomId, crdtEvent, newData)
           .then(() => {
             tinyThis._ydoc.sending_event = false;

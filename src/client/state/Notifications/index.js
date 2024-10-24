@@ -635,11 +635,20 @@ class Notifications extends EventEmitter {
       }
     });
 
-    this.matrixClient.on(RoomEvent.Redaction, (mEvent) => {
+    const mx = this.matrixClient;
+    mx.on(RoomEvent.Redaction, (mEvent) => {
       storageManager.addToTimeline(mEvent);
     });
 
-    this.matrixClient.on(ClientEvent.AccountData, (mEvent, oldMEvent) => {
+    mx.on(RoomEvent.Tags, (event) => {
+      console.log('[tags]', event);
+    });
+
+    mx.on(RoomEvent.UnreadNotifications, (event) => {
+      console.log('[UnreadNotifications]', event);
+    });
+
+    mx.on(ClientEvent.AccountData, (mEvent, oldMEvent) => {
       if (mEvent.getType() === 'm.push_rules') {
         const override = mEvent?.getContent()?.global?.override;
         const oldOverride = oldMEvent?.getContent()?.global?.override;
@@ -677,7 +686,7 @@ class Notifications extends EventEmitter {
       }
     });
 
-    this.matrixClient.on(RoomEvent.Receipt, (mEvent, room) => {
+    mx.on(RoomEvent.Receipt, (mEvent, room) => {
       if (mEvent.getType() !== 'm.receipt' || room.isSpaceRoom()) return;
       const content = mEvent.getContent();
       const userId = this.matrixClient.getUserId();
@@ -693,7 +702,7 @@ class Notifications extends EventEmitter {
       });
     });
 
-    this.matrixClient.on(RoomEvent.MyMembership, (room, membership) => {
+    mx.on(RoomEvent.MyMembership, (room, membership) => {
       if (membership === 'leave' && this.hasNoti(room.roomId)) {
         this.deleteNoti(room.roomId);
       }

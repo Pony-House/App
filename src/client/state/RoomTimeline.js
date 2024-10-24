@@ -127,7 +127,7 @@ class RoomTimeline extends EventEmitter {
     this._onTimeline = (r, mEvent) => {
       if (!tinyThis._belongToRoom(mEvent)) return;
       console.log(
-        `${mEvent.getType()} ${mEvent.getRoomId()} ${mEvent.getId()} Message Wait ${mEvent.getSender()}`,
+        `${mEvent.getType()} ${mEvent.getRoomId()} ${mEvent.getId()} Timeline Wait ${mEvent.getSender()}`,
         mEvent.getContent(),
         mEvent,
       );

@@ -6,6 +6,7 @@ import ExifReader from 'exifreader';
 
 import { objType } from 'for-promise/utils/lib.mjs';
 
+import storageManager from '@src/util/libs/Localstorage';
 import blobUrlManager, { blobToBase64 } from '@src/util/libs/blobUrlManager';
 import { isMobile } from '@src/util/libs/mobile';
 import { fileReader, uploadContent } from '@src/app/molecules/file-input/FileInput';
@@ -337,8 +338,8 @@ class RoomsInput extends EventEmitter {
 
       if (input.message) {
         const content = this.getContent(roomId, threadId, options, input.message, input.replyTo);
-        if (threadId) this.matrixClient.sendMessage(roomId, threadId, content, undefined);
-        else this.matrixClient.sendMessage(roomId, content);
+        if (threadId) storageManager.sendEventThread(roomId, threadId, content, undefined);
+        else storageManager.sendMessage(roomId, content);
       }
     }
 
@@ -346,8 +347,8 @@ class RoomsInput extends EventEmitter {
     else {
       if (input.message) {
         const content = this.getContent(roomId, threadId, options, input.message, input.replyTo);
-        if (threadId) await this.matrixClient.sendMessage(roomId, threadId, content, undefined);
-        else await this.matrixClient.sendMessage(roomId, content);
+        if (threadId) await storageManager.sendEventThread(roomId, threadId, content, undefined);
+        else await storageManager.sendMessage(roomId, content);
         if (!this.isSending(roomId, threadId)) return;
       }
 
@@ -401,9 +402,9 @@ class RoomsInput extends EventEmitter {
     }
 
     if (typeof threadId !== 'string') {
-      this.matrixClient.sendStickerMessage(roomId, url, info, body);
+      storageManager.sendStickerMessage(roomId, url, info, body);
     } else {
-      this.matrixClient.sendStickerMessage(roomId, threadId, url, info, body);
+      storageManager.sendStickerMessageThread(roomId, threadId, url, info, body);
     }
 
     this.emit(cons.events.roomsInput.MESSAGE_SENT, roomId, threadId);
@@ -493,12 +494,12 @@ class RoomsInput extends EventEmitter {
     }
     if (room.hasEncryptionStateEvent()) {
       content.file = uploadData.file;
-      if (!threadId) await this.matrixClient.sendMessage(roomId, content);
-      else await this.matrixClient.sendMessage(roomId, threadId, content);
+      if (!threadId) await storageManager.sendMessage(roomId, content);
+      else await storageManager.sendEventThread(roomId, threadId, content);
     } else {
       content.url = uploadData.url;
-      if (!threadId) await this.matrixClient.sendMessage(roomId, content);
-      else await this.matrixClient.sendMessage(roomId, threadId, content);
+      if (!threadId) await storageManager.sendMessage(roomId, content);
+      else await storageManager.sendEventThread(roomId, threadId, content);
     }
   }
 
@@ -554,7 +555,7 @@ class RoomsInput extends EventEmitter {
       null,
       mEvent,
     );
-    this.matrixClient.sendMessage(roomId, content);
+    await storageManager.sendMessage(roomId, content);
   }
 }
 

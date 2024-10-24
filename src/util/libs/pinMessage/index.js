@@ -18,6 +18,7 @@ import { createMessageData } from '../../../app/molecules/message/Message';
 import { jqueryTime } from '../../../app/atoms/time/Time';
 
 import { getEventById } from './cache';
+import storageManager from '../Localstorage';
 
 // Info
 const PIN_LIMIT = 50;
@@ -154,7 +155,8 @@ export function setPinMessage(room, newEventsId, isPinned = true) {
           // Send Event
           mx.sendStateEvent(room.roomId, eventName, data)
             .then((event) => {
-              mx.sendEvent(room.roomId, eventName, data)
+              storageManager
+                .sendEvent(room.roomId, eventName, data)
                 .then((msg) => {
                   resolve({ event, msg });
                 })
