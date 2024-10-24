@@ -1,4 +1,4 @@
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig, loadEnv, normalizePath } from 'vite';
 import react from '@vitejs/plugin-react';
 import { wasm } from '@rollup/plugin-wasm';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
@@ -28,56 +28,53 @@ fs.copyFileSync(path.join(__dirname, './public/sound/notification.ogg'), path.jo
 fs.copyFileSync(path.join(__dirname, './public/sound/invite.ogg'), path.join(soundsFolder, './invite.ogg'));
 fse.copySync(path.join(__dirname, './vendor/twemoji/assets'), path.join(__dirname, './public/img/twemoji'), { overwrite: true });
 
+const getFilePath = (where) => normalizePath(path.resolve(__dirname, `./${where}`));
+
 const copyFiles = {
   targets: [
 
     {
-      src: 'node_modules/bootstrap-icons/icons/play-circle-fill.svg',
+      src: getFilePath('node_modules/bootstrap-icons/icons/play-circle-fill.svg'),
       dest: 'img/svg/',
     },
 
     {
-      src: 'node_modules/qrcode/lib/browser.js',
+      src: getFilePath('node_modules/qrcode/lib/browser.js'),
       dest: 'js/qrcode/',
     },
 
     {
-      src: 'node_modules/bootstrap/dist/js/bootstrap.bundle.min.js',
+      src: getFilePath('node_modules/bootstrap/dist/js/bootstrap.bundle.min.js'),
       dest: 'js/',
     },
 
     {
-      src: 'node_modules/bootstrap/dist/js/bootstrap.bundle.min.js.map',
+      src: getFilePath('node_modules/bootstrap/dist/js/bootstrap.bundle.min.js.map'),
       dest: 'js/',
     },
 
     {
-      src: 'node_modules/@matrix-org/olm/olm.wasm',
+      src: getFilePath('node_modules/@matrix-org/olm/olm.wasm'),
       dest: '',
     },
 
     {
-      src: 'config/config.json',
+      src: getFilePath('README.md'),
       dest: '',
     },
 
     {
-      src: 'README.md',
+      src: getFilePath('src/util/pwa/service-worker.js'),
       dest: '',
     },
 
     {
-      src: 'src/util/pwa/service-worker.js',
+      src: getFilePath('node_modules/jsstore/dist/jsstore.worker.min.js'),
       dest: '',
     },
 
     {
-      src: 'node_modules/jsstore/dist/jsstore.worker.min.js',
-      dest: '',
-    },
-
-    {
-      src: 'node_modules/jsstore/dist/jsstore.worker.min.js.map',
+      src: getFilePath('node_modules/jsstore/dist/jsstore.worker.min.js.map'),
       dest: '',
     },
 
