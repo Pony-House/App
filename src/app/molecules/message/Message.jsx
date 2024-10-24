@@ -1638,7 +1638,6 @@ function Message({
   const onMsgStatus = (e) => {
     console.log(`[your-message] [status] [${e.getId()}]`, e.status);
     setMessageStatus(e.status);
-    storageManager.addToTimeline(e);
   };
 
   const onMsgRefresh = (e) => {
