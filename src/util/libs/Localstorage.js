@@ -17,7 +17,6 @@ import cons from '@src/client/state/cons';
 import { startDb } from './db/indexedDb';
 import { toTitleCase } from '../tools';
 import attemptDecryption from './attemptDecryption';
-import waitDecrypt from '@src/client/state/Notifications/waitDecrypt';
 
 const genKey = () => generateApiKey().replace(/\~/g, 'pud');
 const SYNC_TIMELINE_DOWNLOAD_LIMIT = 100;

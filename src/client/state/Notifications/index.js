@@ -339,7 +339,7 @@ class Notifications extends EventEmitter {
     // Complete
     waitDecrypt(mEvent).then((mEvent2) => {
       storageManager.addToTimeline(mEvent2);
-      if (notificationAllowed) this._sendDisplayPopupNoti(mEvent2, content, room);
+      if (notificationAllowed) this._sendDisplayPopupNoti(mEvent2, mEvent2.getContent(), room);
     });
   }
 
