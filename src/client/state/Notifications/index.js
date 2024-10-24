@@ -1,6 +1,6 @@
 import { LocalNotifications } from '@capacitor/local-notifications';
 import $ from 'jquery';
-import { ClientEvent, NotificationCountType, RoomEvent, RoomStateEvent } from 'matrix-js-sdk';
+import { ClientEvent, NotificationCountType, RoomEvent } from 'matrix-js-sdk';
 import EventEmitter from 'events';
 import { objType } from 'for-promise/utils/lib.mjs';
 
@@ -334,13 +334,17 @@ class Notifications extends EventEmitter {
 
     // Tiny API
     const notificationAllowed =
-      !stopNotification && this.hasNoti(room.roomId, mEvent.thread ? mEvent.thread.id : null);
+      !stopNotification &&
+      room &&
+      this.hasNoti(room.roomId, mEvent.thread ? mEvent.thread.id : null);
 
     // Complete
-    waitDecrypt(mEvent).then((mEvent2) => {
-      storageManager.addToTimeline(mEvent2);
-      if (notificationAllowed) this._sendDisplayPopupNoti(mEvent2, mEvent2.getContent(), room);
-    });
+    if (room)
+      waitDecrypt(mEvent).then((mEvent2) => {
+        storageManager.addToTimeline(mEvent2);
+        if (notificationAllowed) this._sendDisplayPopupNoti(mEvent2, mEvent2.getContent(), room);
+      });
+    else storageManager.addToTimeline(mEvent);
   }
 
   async _sendDisplayPopupNoti(mEvent, content, room) {
@@ -473,7 +477,7 @@ class Notifications extends EventEmitter {
       let stopNotification = forceStopNotification;
 
       // Is Space
-      if (!stopNotification && room.isSpaceRoom()) {
+      if (!stopNotification && room && room.isSpaceRoom()) {
         stopNotification = true;
       }
 
@@ -569,9 +573,10 @@ class Notifications extends EventEmitter {
       this._listenRoomTimeline(mEvent, room),
     );
 
-    this.matrixClient.on(RoomStateEvent.Events, (mEvent) =>
-      this._listenRoomTimeline(mEvent, initMatrix.matrixClient.getRoom(mEvent.getRoomId()), true),
-    );
+    this.matrixClient.on(ClientEvent.Event, (mEvent) => {
+      if (mEvent.getId() && mEvent.getRoomId())
+        this._listenRoomTimeline(mEvent, initMatrix.matrixClient.getRoom(mEvent.getRoomId()), true);
+    });
 
     this.matrixClient.on(RoomEvent.Receipt, (mEvent) => {
       const type = mEvent.getType();
