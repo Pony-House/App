@@ -338,7 +338,7 @@ class RoomsInput extends EventEmitter {
 
       if (input.message) {
         const content = this.getContent(roomId, threadId, options, input.message, input.replyTo);
-        if (threadId) storageManager.sendEventThread(roomId, threadId, content, undefined);
+        if (threadId) storageManager.sendMessageThread(roomId, threadId, content);
         else storageManager.sendMessage(roomId, content);
       }
     }
@@ -347,7 +347,7 @@ class RoomsInput extends EventEmitter {
     else {
       if (input.message) {
         const content = this.getContent(roomId, threadId, options, input.message, input.replyTo);
-        if (threadId) await storageManager.sendEventThread(roomId, threadId, content, undefined);
+        if (threadId) await storageManager.sendMessageThread(roomId, threadId, content);
         else await storageManager.sendMessage(roomId, content);
         if (!this.isSending(roomId, threadId)) return;
       }
@@ -495,11 +495,11 @@ class RoomsInput extends EventEmitter {
     if (room.hasEncryptionStateEvent()) {
       content.file = uploadData.file;
       if (!threadId) await storageManager.sendMessage(roomId, content);
-      else await storageManager.sendEventThread(roomId, threadId, content);
+      else await storageManager.sendMessageThread(roomId, threadId, content);
     } else {
       content.url = uploadData.url;
       if (!threadId) await storageManager.sendMessage(roomId, content);
-      else await storageManager.sendEventThread(roomId, threadId, content);
+      else await storageManager.sendMessageThread(roomId, threadId, content);
     }
   }
 

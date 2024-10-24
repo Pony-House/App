@@ -1,6 +1,12 @@
 import EventEmitter from 'events';
-import { Direction, UNSIGNED_THREAD_ID_FIELD, THREAD_RELATION_TYPE } from 'matrix-js-sdk';
+import {
+  Direction,
+  UNSIGNED_THREAD_ID_FIELD,
+  THREAD_RELATION_TYPE,
+  EventType,
+} from 'matrix-js-sdk';
 import clone from 'clone';
+import { generateApiKey } from 'generate-api-key';
 
 import { objType } from 'for-promise/utils/lib.mjs';
 
@@ -1347,23 +1353,19 @@ class StorageManager extends EventEmitter {
     }
   }
 
-  _syncSendEvent(eventId, roomId, threadId) {
-    console.log(eventId, roomId, threadId);
+  _syncSendEvent(eventId, roomId, threadId, key) {
+    console.log(eventId, roomId, threadId, key);
   }
 
   async redactEvent(roomId, eventId, reason) {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
+      const key = generateApiKey();
       initMatrix.matrixClient
-        .redactEvent(
-          roomId,
-          eventId,
-          undefined,
-          typeof reason === 'undefined' ? undefined : { reason },
-        )
+        .redactEvent(roomId, eventId, key, typeof reason === 'undefined' ? undefined : { reason })
         .then((msgData) => {
           tinyThis
-            ._syncSendEvent(msgData?.event_id)
+            ._syncSendEvent(msgData?.event_id, roomId, undefined, key)
             .then(() => resolve(msgData))
             .catch(reject);
         })
@@ -1374,11 +1376,28 @@ class StorageManager extends EventEmitter {
   sendEvent(roomId, eventName, content) {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
+      const key = generateApiKey();
       initMatrix
-        .sendEvent(room.roomId, eventName, content)
+        .sendEvent(roomId, eventName, content, key)
         .then((msgData) => {
           tinyThis
-            ._syncSendEvent(msgData?.event_id)
+            ._syncSendEvent(msgData?.event_id, roomId, undefined, key)
+            .then(() => resolve(msgData))
+            .catch(reject);
+        })
+        .catch(reject);
+    });
+  }
+
+  sendEventThread(roomId, threadId, eventName, content) {
+    const tinyThis = this;
+    return new Promise((resolve, reject) => {
+      const key = generateApiKey();
+      initMatrix
+        .sendEvent(roomId, threadId, eventName, content, key)
+        .then((msgData) => {
+          tinyThis
+            ._syncSendEvent(msgData?.event_id, roomId, threadId, key)
             .then(() => resolve(msgData))
             .catch(reject);
         })
@@ -1389,11 +1408,12 @@ class StorageManager extends EventEmitter {
   sendMessage(roomId, content) {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
+      const key = generateApiKey();
       initMatrix.matrixClient
-        .sendMessage(roomId, content)
+        .sendMessage(roomId, content, key)
         .then((msgData) => {
           tinyThis
-            ._syncSendEvent(msgData?.event_id, roomId)
+            ._syncSendEvent(msgData?.event_id, roomId, undefined, key)
             .then(() => resolve(msgData))
             .catch(reject);
         })
@@ -1401,14 +1421,15 @@ class StorageManager extends EventEmitter {
     });
   }
 
-  sendEventThread(roomId, threadId, content) {
+  sendMessageThread(roomId, threadId, content) {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
+      const key = generateApiKey();
       initMatrix.matrixClient
-        .sendMessage(roomId, threadId, content)
+        .sendMessage(roomId, threadId, content, key)
         .then((msgData) => {
           tinyThis
-            ._syncSendEvent(msgData?.event_id, roomId, threadId)
+            ._syncSendEvent(msgData?.event_id, roomId, threadId, key)
             .then(() => resolve(msgData))
             .catch(reject);
         })
@@ -1417,32 +1438,18 @@ class StorageManager extends EventEmitter {
   }
 
   sendStickerMessage(roomId, url, info, body) {
-    const tinyThis = this;
-    return new Promise((resolve, reject) => {
-      initMatrix.matrixClient
-        .sendStickerMessage(roomId, url, info, body)
-        .then((msgData) => {
-          tinyThis
-            ._syncSendEvent(msgData?.event_id, roomId)
-            .then(() => resolve(msgData))
-            .catch(reject);
-        })
-        .catch(reject);
+    return this.sendEvent(roomId, EventType.Sticker, {
+      url,
+      info,
+      body: body || 'Sticker',
     });
   }
 
   sendStickerMessageThread(roomId, threadId, url, info, body) {
-    const tinyThis = this;
-    return new Promise((resolve, reject) => {
-      initMatrix.matrixClient
-        .sendStickerMessage(roomId, threadId, url, info, body)
-        .then((msgData) => {
-          tinyThis
-            ._syncSendEvent(msgData?.event_id, roomId, threadId)
-            .then(() => resolve(msgData))
-            .catch(reject);
-        })
-        .catch(reject);
+    return this.sendEventThread(roomId, threadId, EventType.Sticker, {
+      url,
+      info,
+      body: body || 'Sticker',
     });
   }
 
