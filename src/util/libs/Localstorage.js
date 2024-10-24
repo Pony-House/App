@@ -1353,7 +1353,7 @@ class StorageManager extends EventEmitter {
     }
   }
 
-  _syncSendEvent(eventId, roomId, threadId, key) {
+  async _syncSendEvent(eventId, roomId, threadId, key) {
     console.log(eventId, roomId, threadId, key);
   }
 
@@ -1363,12 +1363,12 @@ class StorageManager extends EventEmitter {
       const key = generateApiKey();
       initMatrix.matrixClient
         .redactEvent(roomId, eventId, key, typeof reason === 'undefined' ? undefined : { reason })
-        .then((msgData) => {
+        .then((msgData) =>
           tinyThis
             ._syncSendEvent(msgData?.event_id, roomId, undefined, key)
             .then(() => resolve(msgData))
-            .catch(reject);
-        })
+            .catch(reject),
+        )
         .catch(reject);
     });
   }
@@ -1379,12 +1379,12 @@ class StorageManager extends EventEmitter {
       const key = generateApiKey();
       initMatrix
         .sendEvent(roomId, eventName, content, key)
-        .then((msgData) => {
+        .then((msgData) =>
           tinyThis
             ._syncSendEvent(msgData?.event_id, roomId, undefined, key)
             .then(() => resolve(msgData))
-            .catch(reject);
-        })
+            .catch(reject),
+        )
         .catch(reject);
     });
   }
@@ -1395,12 +1395,12 @@ class StorageManager extends EventEmitter {
       const key = generateApiKey();
       initMatrix
         .sendEvent(roomId, threadId, eventName, content, key)
-        .then((msgData) => {
+        .then((msgData) =>
           tinyThis
             ._syncSendEvent(msgData?.event_id, roomId, threadId, key)
             .then(() => resolve(msgData))
-            .catch(reject);
-        })
+            .catch(reject),
+        )
         .catch(reject);
     });
   }
@@ -1411,12 +1411,12 @@ class StorageManager extends EventEmitter {
       const key = generateApiKey();
       initMatrix.matrixClient
         .sendMessage(roomId, content, key)
-        .then((msgData) => {
+        .then((msgData) =>
           tinyThis
             ._syncSendEvent(msgData?.event_id, roomId, undefined, key)
             .then(() => resolve(msgData))
-            .catch(reject);
-        })
+            .catch(reject),
+        )
         .catch(reject);
     });
   }
@@ -1427,12 +1427,12 @@ class StorageManager extends EventEmitter {
       const key = generateApiKey();
       initMatrix.matrixClient
         .sendMessage(roomId, threadId, content, key)
-        .then((msgData) => {
+        .then((msgData) =>
           tinyThis
             ._syncSendEvent(msgData?.event_id, roomId, threadId, key)
             .then(() => resolve(msgData))
-            .catch(reject);
-        })
+            .catch(reject),
+        )
         .catch(reject);
     });
   }
