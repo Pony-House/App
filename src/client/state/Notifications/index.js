@@ -328,25 +328,6 @@ class Notifications extends EventEmitter {
     }
   }
 
-  async _displayPopupNoti(mEvent, room, stopNotification = false) {
-    // Favicon
-    favIconManager.checkerFavIcon();
-
-    // Tiny API
-    const notificationAllowed =
-      !stopNotification &&
-      room &&
-      this.hasNoti(room.roomId, mEvent.thread ? mEvent.thread.id : null);
-
-    // Complete
-    if (room)
-      waitDecrypt(mEvent).then((mEvent2) => {
-        storageManager.addToTimeline(mEvent2);
-        if (notificationAllowed) this._sendDisplayPopupNoti(mEvent2, mEvent2.getContent(), room);
-      });
-    else storageManager.addToTimeline(mEvent);
-  }
-
   async _sendDisplayPopupNoti(mEvent, content, room) {
     // Data Prepare
     const userStatus = getAccountStatus('status');
@@ -566,7 +547,22 @@ class Notifications extends EventEmitter {
 
       if (this.matrixClient.getSyncState() !== 'SYNCING') stopNotification = true;
 
-      return this._displayPopupNoti(mEvent, room, stopNotification, total, highlight);
+      // Favicon
+      favIconManager.checkerFavIcon();
+
+      // Tiny API
+      const notificationAllowed =
+        !stopNotification &&
+        room &&
+        this.hasNoti(room.roomId, mEvent.thread ? mEvent.thread.id : null);
+
+      // Complete
+      if (room)
+        waitDecrypt(mEvent).then((mEvent2) => {
+          storageManager.addToTimeline(mEvent2);
+          if (notificationAllowed) this._sendDisplayPopupNoti(mEvent2, mEvent2.getContent(), room);
+        });
+      else storageManager.addToTimeline(mEvent);
     };
 
     this.matrixClient.on(RoomEvent.Timeline, (mEvent, room) =>
