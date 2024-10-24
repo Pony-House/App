@@ -565,13 +565,9 @@ class Notifications extends EventEmitter {
       else storageManager.addToTimeline(mEvent);
     };
 
-    this.matrixClient.on(RoomEvent.Timeline, (mEvent, room) =>
-      this._listenRoomTimeline(mEvent, room),
-    );
-
     this.matrixClient.on(ClientEvent.Event, (mEvent) => {
       if (mEvent.getId() && mEvent.getRoomId())
-        this._listenRoomTimeline(mEvent, initMatrix.matrixClient.getRoom(mEvent.getRoomId()), true);
+        this._listenRoomTimeline(mEvent, initMatrix.matrixClient.getRoom(mEvent.getRoomId()));
     });
 
     this.matrixClient.on(RoomEvent.Receipt, (mEvent) => {
