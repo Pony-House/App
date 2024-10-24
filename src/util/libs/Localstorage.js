@@ -289,7 +289,7 @@ class StorageManager extends EventEmitter {
     mEvent.isRedacted = () =>
       mEvent.getUnsigned().redacted_because || mEvent.event?.redaction || false;
     mEvent.isRedaction = () => mEvent.event?.type === 'm.room.redaction' || false;
-    mEvent.isSending = () => !!mEvent.status;
+    mEvent.isSending = () => mEvent.status !== 'sent' && !!mEvent.status;
 
     return mEvent;
   }
@@ -1076,7 +1076,10 @@ class StorageManager extends EventEmitter {
                 upsert: true,
                 values: [tinyItem],
               })
-              .then(() => resolve(result))
+              .then((result2) => {
+                tinyThis.emit('dbMessageSearch', result2, tinyItem);
+                resolve(result);
+              })
               .catch(reject);
           })
           .catch(reject),
@@ -1141,13 +1144,21 @@ class StorageManager extends EventEmitter {
                       msgTs <= 0 ||
                       data2.replace_to_ts >= msgTs
                     ) {
-                      tinyThis.storeConnection.update({
-                        in: 'messages',
-                        set: data2,
-                        where: {
-                          event_id: relatesTo.event_id,
-                        },
-                      });
+                      tinyThis.storeConnection
+                        .update({
+                          in: 'messages',
+                          set: data2,
+                          where: {
+                            event_id: relatesTo.event_id,
+                          },
+                        })
+                        .then((result2) =>
+                          tinyThis.emit(
+                            'dbMessageUpdate',
+                            result2,
+                            tinyThis.convertToEventFormat(Object.assign(messages2[0], data2)),
+                          ),
+                        );
                     }
                   }
                 });
@@ -1158,7 +1169,10 @@ class StorageManager extends EventEmitter {
                   upsert: true,
                   values: [tinyItem],
                 })
-                .then(() => resolve(result))
+                .then((result2) => {
+                  tinyThis.emit('dbMessageSearch', result2, tinyItem);
+                  resolve(result);
+                })
                 .catch(reject);
             } else resolve(result);
           })

@@ -7,7 +7,7 @@ export default function waitDecrypt(mEvent) {
     const content = mEvent.getContent();
     const msgType = content?.msgtype;
     if (msgType !== 'm.bad.encrypted') {
-      resolve(mEvent);
+      if (!complete) resolve(mEvent);
       complete = true;
     }
 
@@ -24,7 +24,7 @@ export default function waitDecrypt(mEvent) {
         const content2 = mEvent2.getContent();
         const msgType2 = content2?.msgtype;
         if (msgType2 !== 'm.bad.encrypted') {
-          resolve(mEvent2);
+          if (!complete) resolve(mEvent2);
           complete = true;
         }
 

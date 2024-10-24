@@ -93,12 +93,8 @@ class RoomTimeline extends EventEmitter {
     this._onMessage = (r, mEvent) => {
       if (!tinyThis._belongToRoom(mEvent)) return;
 
-      // Is you sending
-      const transId = mEvent.getUnsigned()?.transaction_id;
-      if (
-        typeof transId !== 'string' ||
-        (mEvent.getSender() === initMatrix.matrixClient.getUserId() && mEvent.isSending())
-      ) {
+      // Check event
+      if (!mEvent.isSending() || mEvent.getSender() === initMatrix.matrixClient.getUserId()) {
         console.log(
           `${mEvent.getType()} ${mEvent.getRoomId()} ${mEvent.getId()} Message Wait ${mEvent.getSender()}`,
           mEvent.getContent(),
@@ -143,6 +139,7 @@ class RoomTimeline extends EventEmitter {
 
     // Prepare events
     storageManager.on('dbMessage', this._onMessage);
+    storageManager.on('dbMessageUpdate', this._onMessage);
     storageManager.on('dbReaction', this._onReaction);
     storageManager.on('dbTimeline', this._onTimeline);
     storageManager.on('dbEventIsThread', this._onIsThreadEvent);
@@ -361,6 +358,7 @@ class RoomTimeline extends EventEmitter {
   removeInternalListeners() {
     this._disableYdoc();
     storageManager.off('dbMessage', this._onMessage);
+    storageManager.off('dbMessageUpdate', this._onMessage);
     storageManager.off('dbReaction', this._onReaction);
     storageManager.off('dbTimeline', this._onTimeline);
     storageManager.off('dbEventIsThread', this._onIsThreadEvent);
