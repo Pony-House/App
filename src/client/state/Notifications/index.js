@@ -449,7 +449,12 @@ class Notifications extends EventEmitter {
   }
 
   _listenEvents() {
-    this._listenRoomTimeline = async (mEvent, room, forceStopNotification = false) => {
+    this._listenRoomTimeline = async (
+      mEvent,
+      room,
+      extraFunc = null,
+      forceStopNotification = false,
+    ) => {
       if (mEvent.isRedaction()) this._deletePopupNoti(mEvent.event.redacts);
 
       // Total Data
@@ -559,15 +564,24 @@ class Notifications extends EventEmitter {
       // Complete
       if (room)
         waitDecrypt(mEvent).then((mEvent2) => {
-          storageManager.addToTimeline(mEvent2);
+          if (typeof extraFunc === 'function') extraFunc(mEvent2);
           if (notificationAllowed) this._sendDisplayPopupNoti(mEvent2, mEvent2.getContent(), room);
         });
-      else storageManager.addToTimeline(mEvent);
+      else if (typeof extraFunc === 'function') extraFunc(mEvent);
     };
+
+    this.matrixClient.on(RoomEvent.Timeline, (mEvent, room) =>
+      this._listenRoomTimeline(mEvent, room),
+    );
 
     this.matrixClient.on(ClientEvent.Event, (mEvent) => {
       if (mEvent.getId() && mEvent.getRoomId())
-        this._listenRoomTimeline(mEvent, initMatrix.matrixClient.getRoom(mEvent.getRoomId()));
+        this._listenRoomTimeline(
+          mEvent,
+          initMatrix.matrixClient.getRoom(mEvent.getRoomId()),
+          (mEvent2) => storageManager.addToTimeline(mEvent2),
+          true,
+        );
     });
 
     this.matrixClient.on(RoomEvent.Receipt, (mEvent) => {
