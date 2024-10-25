@@ -176,7 +176,7 @@ class RoomTimeline extends EventEmitter {
       if (!tinyThis.ended) {
         if (!tinyThis._belongToRoom(mEvent)) return;
         this._pages = await storageManager.getMessagesCount(this._buildPagination());
-        if (mEvent.type !== 'm.room.redaction') tinyThis._insertIntoTimeline(mEvent);
+        if (mEvent.getType() !== 'm.room.redaction') tinyThis._insertIntoTimeline(mEvent);
         else tinyThis._deletingEvent(mEvent);
       }
     };
