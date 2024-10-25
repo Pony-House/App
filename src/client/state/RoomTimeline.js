@@ -35,6 +35,7 @@ class RoomTimeline extends EventEmitter {
     this.matrixClient = initMatrix.matrixClient;
     this.roomId = roomId;
     this.roomAlias = roomAlias;
+    this.initialized = false;
 
     this.timeline = [];
     this.editedTimeline = new Map();
@@ -113,6 +114,7 @@ class RoomTimeline extends EventEmitter {
                     const mEvent = events[item];
                     tinyThis._insertIntoTimeline(mEvent, true);
                   }
+                  tinyThis.initialized = true;
                   tinyThis.emit(cons.events.roomTimeline.READY, eventId || null);
                 })
                 .catch(tinyError);

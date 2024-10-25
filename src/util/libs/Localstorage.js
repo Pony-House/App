@@ -43,6 +43,96 @@ const addCustomSearch = (where, items) => {
   }
 };
 
+class LocalStorageEvent extends EventEmitter {
+  constructor(event) {
+    super();
+
+    this.event = event;
+
+    this.threadId =
+      typeof this.event?.thread_id === 'string' && this.event?.thread_id !== 'NULL'
+        ? this.event?.thread_id
+        : null;
+
+    this.status = this.event?.e_status || null;
+    this.thread = { id: this.threadId };
+  }
+
+  threadRootId = () => {
+    const relatesTo = this.getWireContent()?.['m.relates_to'];
+    if (relatesTo?.rel_type === THREAD_RELATION_TYPE.name) {
+      return relatesTo.event_id;
+    }
+    if (this.thread) {
+      return this.thread.id;
+    }
+    if (this.threadId !== null) {
+      return this.threadId;
+    }
+    const unsigned = this.getUnsigned();
+    if (typeof unsigned[UNSIGNED_THREAD_ID_FIELD.name] === 'string') {
+      return unsigned[UNSIGNED_THREAD_ID_FIELD.name];
+    }
+    return undefined;
+  };
+
+  getRelation = () => {
+    if (!this.isRelation()) {
+      return null;
+    }
+    return this.getWireContent()['m.relates_to'] ?? null;
+  };
+
+  getContent = () => {
+    if (this.replace_to) {
+      return this.replace_to['m.new_content'] || {};
+    } else {
+      return this.getOriginalContent();
+    }
+  };
+
+  isRelation = (relType) => {
+    const relation = this.getWireContent()?.['m.relates_to'];
+    return !!(
+      relation?.rel_type &&
+      relation.event_id &&
+      (relType ? relation.rel_type === relType : true)
+    );
+  };
+
+  getThreadId = () => this.threadId;
+  isThread = () =>
+    typeof this.event?.is_thread === 'boolean'
+      ? this.event.is_thread
+      : this.threadId === this.event?.event_id
+        ? true
+        : false;
+  getThread = () => this.thread;
+
+  getPrevContent = () => this?.getUnsigned().prev_content || {};
+  getWireContent = () => this.event?.content || {};
+  getOriginalContent = () => this.event.content || {};
+
+  getId = () => this.event?.event_id || null;
+  getRoomId = () => this.event?.room_id || null;
+  getSender = () => this.event?.sender || null;
+  getType = () => this.event?.type || null;
+
+  getAge = () => (this.event?.unsigned && this.event.unsigned?.age) || null;
+  getTs = () => this.event?.origin_server_ts;
+  getDate = () => (this.event.origin_server_ts ? new Date(this.event.origin_server_ts) : null);
+
+  getUnsigned = () => this.event?.unsigned || null;
+  getServerAggregatedRelation = (relType) => this.getUnsigned()['m.relations']?.[relType];
+
+  isNotRedactedInDb = () =>
+    (this.getUnsigned().redacted_because && !this.event?.redaction) || false;
+  isRedactedDbOnly = () => (!this.getUnsigned().redacted_because && this.event?.redaction) || false;
+  isRedacted = () => this.getUnsigned().redacted_because || this.event?.redaction || null;
+  isRedaction = () => this.event?.type === 'm.room.redaction' || false;
+  isSending = () => this.status !== 'sent' && !!this.status;
+}
+
 class StorageManager extends EventEmitter {
   constructor() {
     super();
@@ -207,91 +297,7 @@ class StorageManager extends EventEmitter {
   }
 
   convertToEventFormat(event) {
-    const mEvent = { event: clone(event) };
-    mEvent.threadId =
-      typeof mEvent.event?.thread_id === 'string' && mEvent.event?.thread_id !== 'NULL'
-        ? mEvent.event?.thread_id
-        : null;
-
-    mEvent.status = mEvent.event?.e_status || null;
-
-    mEvent.threadRootId = () => {
-      const relatesTo = mEvent.getWireContent()?.['m.relates_to'];
-      if (relatesTo?.rel_type === THREAD_RELATION_TYPE.name) {
-        return relatesTo.event_id;
-      }
-      if (mEvent.thread) {
-        return mEvent.thread.id;
-      }
-      if (mEvent.threadId !== null) {
-        return mEvent.threadId;
-      }
-      const unsigned = mEvent.getUnsigned();
-      if (typeof unsigned[UNSIGNED_THREAD_ID_FIELD.name] === 'string') {
-        return unsigned[UNSIGNED_THREAD_ID_FIELD.name];
-      }
-      return undefined;
-    };
-
-    mEvent.getRelation = () => {
-      if (!mEvent.isRelation()) {
-        return null;
-      }
-      return mEvent.getWireContent()['m.relates_to'] ?? null;
-    };
-
-    mEvent.getContent = () => {
-      if (mEvent.replace_to) {
-        return mEvent.replace_to['m.new_content'] || {};
-      } else {
-        return mEvent.getOriginalContent();
-      }
-    };
-
-    mEvent.isRelation = (relType) => {
-      const relation = mEvent.getWireContent()?.['m.relates_to'];
-      return !!(
-        relation?.rel_type &&
-        relation.event_id &&
-        (relType ? relation.rel_type === relType : true)
-      );
-    };
-
-    mEvent.getThreadId = () => mEvent.threadId;
-    mEvent.isThread = () =>
-      typeof mEvent.event?.is_thread === 'boolean'
-        ? mEvent.event.is_thread
-        : mEvent.threadId === mEvent.event?.event_id
-          ? true
-          : false;
-    mEvent.getThread = () => (mEvent.threadId ? { id: mEvent.threadId } : null);
-
-    mEvent.getPrevContent = () => mEvent?.getUnsigned().prev_content || {};
-    mEvent.getWireContent = () => mEvent.event?.content || {};
-    mEvent.getOriginalContent = () => mEvent.event.content || {};
-
-    mEvent.getId = () => mEvent.event?.event_id || null;
-    mEvent.getRoomId = () => mEvent.event?.room_id || null;
-    mEvent.getSender = () => mEvent.event?.sender || null;
-    mEvent.getType = () => mEvent.event?.type || null;
-
-    mEvent.getAge = () => (mEvent.event?.unsigned && mEvent.event.unsigned?.age) || null;
-    mEvent.getTs = () => mEvent.event?.origin_server_ts;
-    mEvent.getDate = () =>
-      mEvent.event.origin_server_ts ? new Date(mEvent.event.origin_server_ts) : null;
-
-    mEvent.getUnsigned = () => mEvent.event?.unsigned || null;
-
-    mEvent.isNotRedactedInDb = () =>
-      (mEvent.getUnsigned().redacted_because && !mEvent.event?.redaction) || false;
-    mEvent.isRedactedDbOnly = () =>
-      (!mEvent.getUnsigned().redacted_because && mEvent.event?.redaction) || false;
-    mEvent.isRedacted = () =>
-      mEvent.getUnsigned().redacted_because || mEvent.event?.redaction || null;
-    mEvent.isRedaction = () => mEvent.event?.type === 'm.room.redaction' || false;
-    mEvent.isSending = () => mEvent.status !== 'sent' && !!mEvent.status;
-
-    return mEvent;
+    return new LocalStorageEvent(clone(event));
   }
 
   resetTimelineSyncData(roomId) {
