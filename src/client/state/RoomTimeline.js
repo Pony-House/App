@@ -28,7 +28,7 @@ class RoomTimeline extends EventEmitter {
     // These are local timelines
     this.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
     this.timeline = [];
-    this._page = 1;
+    this._page = 0;
 
     // Client Prepare
     this.matrixClient = initMatrix.matrixClient;
@@ -96,7 +96,7 @@ class RoomTimeline extends EventEmitter {
           const getMsgConfig = {
             roomId: tinyThis.roomId,
             showRedaction: false,
-            page: tinyThis._page,
+            page: 1,
             limit:
               typeof limit === 'number' &&
               !Number.isNaN(limit) &&
@@ -232,40 +232,46 @@ class RoomTimeline extends EventEmitter {
   }
 
   // Pagination
-  async paginateTimeline(backwards = false, page = null) {
+  async paginateTimeline(backwards = false) {
     // Initialization
     if (this.isOngoingPagination) return false;
+    if (typeof backwards === 'boolean') {
+      if (backwards) this._page++;
+      else this._page--;
+    } else if (typeof backwards === 'number') this._page = backwards;
 
     this.isOngoingPagination = true;
 
-    /*
-      Número para ser página exata.
-      String para ser da posição de um determinado evento.
-    */
-
-    // Token Type
-    /* if (
-      timelineToPaginate.getPaginationToken(backwards ? Direction.Backward : Direction.Forward) ===
-      null
-    ) {
-      this.emit(cons.events.roomTimeline.PAGINATED, backwards, 0);
-      this.isOngoingPagination = false;
-      return false;
-    } */
-
     // Old Size
-    // const oldSize = this.timeline.length;
+    const oldSize = this.timeline.length;
 
     // Try time
     try {
       // Paginate time
-      // await this.matrixClient.paginateEventTimeline(timelineToPaginate, { backwards, limit });
+      const getMsgConfig = {
+        roomId: this.roomId,
+        showRedaction: false,
+        page: this._page,
+        limit:
+          typeof limit === 'number' && !Number.isNaN(limit) && Number.isFinite(limit) && limit > 0
+            ? limit
+            : 10,
+      };
+
+      if (!this.threadId) getMsgConfig.showThreads = false;
+      else getMsgConfig.threadId = this.threadId;
+
+      const events = await storageManager.getMessages(getMsgConfig);
+      for (const item in events) {
+        const mEvent = events[item];
+        this._insertIntoTimeline(mEvent, true);
+      }
 
       // Loaded Check
-      // const loaded = this.timeline.length - oldSize;
+      const loaded = this.timeline.length - oldSize;
 
       // Complete
-      // this.emit(cons.events.roomTimeline.PAGINATED, backwards, loaded);
+      this.emit(cons.events.roomTimeline.PAGINATED, backwards, loaded);
       this.isOngoingPagination = false;
 
       updateRoomInfo();
@@ -273,7 +279,7 @@ class RoomTimeline extends EventEmitter {
       return true;
     } catch {
       // Error
-      // this.emit(cons.events.roomTimeline.PAGINATED, backwards, 0);
+      this.emit(cons.events.roomTimeline.PAGINATED, backwards, 0);
       this.isOngoingPagination = false;
       return false;
     }
