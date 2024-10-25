@@ -84,22 +84,55 @@ class RoomTimeline extends EventEmitter {
 
     // Start timeline events
     this._startTimeline = (data, eventId) => {
-      // data.firstTime
-      console.log(`Starting timeline ${this.roomId}`, data);
-      tinyThis.emit(cons.events.roomTimeline.READY, eventId || null);
+      console.log(`[timeline] Starting timeline ${this.roomId}`);
+      const tinyError = (err) => {
+        console.error(err);
+        alert(message, 'Timeline load error');
+      };
+
+      if (!data.err) {
+        if (data.firstTime) {
+          const limit = getAppearance('pageLimit');
+          const getMsgConfig = {
+            roomId: tinyThis.roomId,
+            showRedaction: false,
+            page: tinyThis._page,
+            limit:
+              typeof limit === 'number' &&
+              !Number.isNaN(limit) &&
+              Number.isFinite(limit) &&
+              limit > 0
+                ? limit
+                : 10,
+          };
+          if (!tinyThis.threadId) getMsgConfig.showThreads = false;
+          else getMsgConfig.threadId = tinyThis.threadId;
+
+          storageManager
+            .getMessages(getMsgConfig)
+            .then((events) => {
+              for (const item in events) {
+                const mEvent = events[item];
+                tinyThis._insertIntoTimeline(mEvent, true);
+              }
+              tinyThis.emit(cons.events.roomTimeline.READY, eventId || null);
+            })
+            .catch(tinyError);
+        }
+      } else tinyError(data.err);
     };
 
     // Message events
     this._onMessage = (r, mEvent) => {
-      if (!tinyThis._belongToRoom(mEvent)) return;
+      if (!tinyThis._belongToRoom(mEvent) && !mEvent.isRedacted()) return;
 
       // Check event
       if (!mEvent.isSending() || mEvent.getSender() === initMatrix.matrixClient.getUserId()) {
-        console.log(
+        /* console.log(
           `${mEvent.getType()} ${mEvent.getRoomId()} ${mEvent.getId()} Message Wait ${mEvent.getSender()}`,
           mEvent.getContent(),
           mEvent,
-        );
+        ); */
 
         // Check isEdited
 
@@ -174,10 +207,19 @@ class RoomTimeline extends EventEmitter {
   }
 
   // Insert into timeline
-  _insertIntoTimeline(event) {
-    const pageLimit = getAppearance('pageLimit');
+  _insertIntoTimeline(mEvent, isFirstTime = false) {
+    if (!mEvent.isRedacted()) {
+      const pageLimit = getAppearance('pageLimit');
+      const eventId = mEvent.getId();
 
-    this.emit(cons.events.roomTimeline.EVENT, event);
+      if (this.timeline.findIndex((item) => item.getId() === eventId) < 0) {
+        this.timeline.push(mEvent);
+        if (this.timeline.length > pageLimit) this.timeline.shift();
+      }
+
+      this.timeline.sort((a, b) => a.getTs() - b.getTs());
+      if (!isFirstTime) this.emit(cons.events.roomTimeline.EVENT, mEvent);
+    }
   }
 
   // Deleting events

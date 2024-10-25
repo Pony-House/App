@@ -29,6 +29,10 @@ export function getRoomInfo() {
   return tinyRoomInfo;
 }
 
+if (__ENV_APP__.MODE === 'development') {
+  global.getRoomInfo = getRoomInfo;
+}
+
 function Room() {
   const defaultRoomInfo = {
     roomTimeline: null,

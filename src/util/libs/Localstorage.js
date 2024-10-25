@@ -287,7 +287,7 @@ class StorageManager extends EventEmitter {
     mEvent.isRedactedDbOnly = () =>
       (!mEvent.getUnsigned().redacted_because && mEvent.event?.redaction) || false;
     mEvent.isRedacted = () =>
-      mEvent.getUnsigned().redacted_because || mEvent.event?.redaction || false;
+      mEvent.getUnsigned().redacted_because || mEvent.event?.redaction || null;
     mEvent.isRedaction = () => mEvent.event?.type === 'm.room.redaction' || false;
     mEvent.isSending = () => mEvent.status !== 'sent' && !!mEvent.status;
 
