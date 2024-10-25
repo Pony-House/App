@@ -125,8 +125,9 @@ class RoomTimeline extends EventEmitter {
     };
 
     // Message events
-    this._onMessage = (r, mEvent) => {
+    this._onMessage = async (r, mEvent) => {
       if (!tinyThis._belongToRoom(mEvent) && !mEvent.isRedacted()) return;
+      this._pages = await storageManager.getMessagesCount(this._buildPagination());
 
       // Check event
       if (!mEvent.isSending() || mEvent.getSender() === initMatrix.matrixClient.getUserId()) {
@@ -149,14 +150,9 @@ class RoomTimeline extends EventEmitter {
     };
 
     // Timeline events
-    this._onTimeline = (r, mEvent) => {
+    this._onTimeline = async (r, mEvent) => {
       if (!tinyThis._belongToRoom(mEvent)) return;
-      console.log(
-        `${mEvent.getType()} ${mEvent.getRoomId()} ${mEvent.getId()} Timeline Wait ${mEvent.getSender()}`,
-        mEvent.getContent(),
-        mEvent,
-      );
-
+      this._pages = await storageManager.getMessagesCount(this._buildPagination());
       if (mEvent.type !== 'm.room.redaction') tinyThis._insertIntoTimeline(mEvent);
       else tinyThis._deletingEvent(mEvent);
     };
@@ -220,9 +216,8 @@ class RoomTimeline extends EventEmitter {
   }
 
   // Insert into timeline
-  async _insertIntoTimeline(mEvent, isFirstTime = false) {
-    if (!mEvent.isRedacted()) {
-      this._pages = await storageManager.getMessagesCount(this._buildPagination());
+  _insertIntoTimeline(mEvent, isFirstTime = false) {
+    if (!mEvent.isRedacted() && cons.supportMessageTypes.indexOf(mEvent.getType()) > -1) {
       const pageLimit = getAppearance('pageLimit');
       const eventId = mEvent.getId();
 
@@ -261,6 +256,7 @@ class RoomTimeline extends EventEmitter {
 
     // Try time
     try {
+      this._pages = await storageManager.getMessagesCount(this._buildPagination());
       const events = await storageManager.getMessages(this._buildPagination(this._page));
       for (const item in events) {
         const mEvent = events[item];

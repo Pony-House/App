@@ -9,3 +9,16 @@ https://github.com/electron-vite/electron-vite-react
 Original code created by Mat from the repository variance.
 
 https://github.com/mat-1/variance
+
+## Financial Thanks
+
+Full matrix username visible only with permission of the user
+
+- Bonam
+- Chad
+
+## Issues report thanks
+
+Full matrix username visible only with permission of the user
+
+- Compu
