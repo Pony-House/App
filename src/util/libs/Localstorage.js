@@ -125,6 +125,10 @@ class LocalStorageEvent extends EventEmitter {
   getUnsigned = () => this.event?.unsigned || null;
   getServerAggregatedRelation = (relType) => this.getUnsigned()['m.relations']?.[relType];
 
+  getStateKey = () => this.event.state_key;
+  isState = () => this.event.state_key !== undefined;
+  isEncrypted = () => false;
+
   isNotRedactedInDb = () =>
     (this.getUnsigned().redacted_because && !this.event?.redaction) || false;
   isRedactedDbOnly = () => (!this.getUnsigned().redacted_because && this.event?.redaction) || false;
