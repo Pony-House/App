@@ -48,6 +48,7 @@ class LocalStorageEvent extends EventEmitter {
     super();
 
     this.event = event;
+    this.room = initMatrix.matrixClient.getRoom(this.event.room_id);
 
     this.threadId =
       typeof this.event?.thread_id === 'string' && this.event?.thread_id !== 'NULL'
@@ -55,6 +56,8 @@ class LocalStorageEvent extends EventEmitter {
         : null;
 
     this.status = this.event?.e_status || null;
+    this.sender = this.room ? this.room.getMember(this.event.sender) : null;
+
     this.thread = { id: this.threadId };
   }
 
