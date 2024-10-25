@@ -153,11 +153,6 @@ class MatrixAppearance extends EventEmitter {
           ? this.content.showRoomIdInSpacesManager
           : false;
 
-      this.content.noReconnectRefresh =
-        typeof this.content.noReconnectRefresh === 'boolean'
-          ? this.content.noReconnectRefresh
-          : false;
-
       this.content.advancedUserMode =
         typeof this.content.advancedUserMode === 'boolean' ? this.content.advancedUserMode : false;
 

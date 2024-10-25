@@ -41,14 +41,11 @@ import Toggle from '../../../atoms/button/Toggle';
 function ExperimentalSection() {
   // const [isUsingUseGPU, setUsingUseGPU] = useState(false);
   const appearanceSettings = getAppearance();
-  const [noReconnectRefresh, setNoReconnectRefresh] = useState(
-    appearanceSettings.noReconnectRefresh,
-  );
 
-  useEffect(() => {
-    // const isEnabledgpu = storageManager.getItem('usingUseGPU');
-    // setUsingUseGPU((typeof isEnabledgpu === 'string' && isEnabledgpu === 'on'));
-  }, []);
+  // useEffect(() => {
+  // const isEnabledgpu = storageManager.getItem('usingUseGPU');
+  // setUsingUseGPU((typeof isEnabledgpu === 'string' && isEnabledgpu === 'on'));
+  // }, []);
 
   return (
     <div>
@@ -76,31 +73,6 @@ function ExperimentalSection() {
                 Open DevTools
               </button>
             </li>
-          </ul>
-        </div>
-      ) : null}
-
-      {!appearanceSettings.basicUserMode ? (
-        <div className="card noselect mt-3">
-          <ul className="list-group list-group-flush">
-            <li className="list-group-item very-small text-gray">Client connection</li>
-
-            <SettingTile
-              title="Do not refresh the page during reconnection"
-              options={
-                <Toggle
-                  className="d-inline-flex"
-                  isActive={noReconnectRefresh}
-                  onToggle={toggleAppearanceAction('noReconnectRefresh', setNoReconnectRefresh)}
-                />
-              }
-              content={
-                <div className="very-small text-gray">
-                  When the client restores the connection, the page will not be updated. It has not
-                  been fully tested whether or not this continues to desync the client.
-                </div>
-              }
-            />
           </ul>
         </div>
       ) : null}

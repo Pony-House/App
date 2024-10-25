@@ -46,7 +46,7 @@ function useSystemState() {
   const [systemState, setSystemState] = useState({ status: null, value: null });
   const [oldSystemState, setOldSystemState] = useState({ status: null, value: null });
 
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isRefreshing /* setIsRefreshing */] = useState(false);
 
   useEffect(() => {
     // State Check
@@ -73,24 +73,8 @@ function useSystemState() {
       oldSystemState.value === 'RECONNECTING' ||
       oldSystemState.value === 'STOPPED'
     ) {
-      if (!getAppearance('noReconnectRefresh')) {
-        if (
-          __ENV_APP__.ELECTRON_MODE &&
-          objType(global.useLoadingElectron, 'object') &&
-          typeof global.useLoadingElectron.appendLoading === 'function'
-        ) {
-          global.useLoadingElectron.appendLoading();
-        } else {
-          $('body').empty();
-          setLoadingPage('Refreshing...');
-        }
-
-        setIsRefreshing(true);
-        window.location.reload();
-      } else {
-        if (typeof initMatrix.matrixClient.retryImmediately === 'function')
-          initMatrix.matrixClient.retryImmediately();
-      }
+      if (typeof initMatrix.matrixClient.retryImmediately === 'function')
+        initMatrix.matrixClient.retryImmediately();
     }
 
     // Insert new old
