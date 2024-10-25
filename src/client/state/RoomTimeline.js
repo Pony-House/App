@@ -36,6 +36,7 @@ class RoomTimeline extends EventEmitter {
     this.roomId = roomId;
     this.roomAlias = roomAlias;
     this.initialized = false;
+    this.ended = false;
 
     this.timeline = [];
     this.editedTimeline = new Map();
@@ -56,18 +57,9 @@ class RoomTimeline extends EventEmitter {
     this.activeTimeline = this.liveTimeline;
 
     // Thread Data
-    if (threadId) {
-      this.threadId = threadId;
-
-      const thread = this.room.getThread(threadId);
-      this.thread = thread;
-
-      if (!thread) this.threadId = null;
-      else thread.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
-    } else {
-      this.threadId = null;
-      this.thread = null;
-    }
+    this.thread = null;
+    if (threadId) this.threadId = threadId;
+    else this.threadId = null;
 
     // More data
     this.isOngoingPagination = false;
@@ -93,73 +85,107 @@ class RoomTimeline extends EventEmitter {
     const tinyThis = this;
 
     // Start timeline events
-    this._startTimeline = (data, eventId) => {
-      console.log(`[timeline] Starting timeline ${this.roomId}`);
-      const tinyError = (err) => {
-        console.error(err);
-        alert(message, 'Timeline load error');
-      };
+    this._startTimeline = async (data, eventId) => {
+      if (!tinyThis.ended) {
+        console.log(`[timeline] Starting timeline ${this.roomId}`);
+        const tinyError = (err) => {
+          console.error(err);
+          alert(message, 'Timeline load error');
+        };
 
-      if (!data.err) {
-        if (data.firstTime) {
-          const getMsgConfig = tinyThis._buildPagination(1);
-          storageManager
-            .getMessagesCount(getMsgConfig)
-            .then((pages) => {
-              tinyThis._pages = pages;
-              storageManager
-                .getMessages(getMsgConfig)
-                .then((events) => {
+        if (!data.err) {
+          if (data.firstTime) {
+            try {
+              if (tinyThis.threadId) {
+                let thread = tinyThis.room.getThread(tinyThis.threadId);
+                if (!thread) {
+                  await initMatrix.matrixClient.getEventTimeline(
+                    tinyThis.room.getUnfilteredTimelineSet(),
+                    tinyThis.threadId,
+                  );
+
+                  if (!tinyThis.ended) {
+                    const tm = tinyThis.room.getLiveTimeline();
+                    if (tinyThis.room.hasEncryptionStateEvent())
+                      await decryptAllEventsOfTimeline(tm);
+                    thread = tinyThis.room.getThread(tinyThis.threadId);
+                  }
+                }
+
+                if (thread) {
+                  tinyThis.thread = thread;
+                  thread.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
+                }
+              }
+
+              if (!tinyThis.ended) {
+                const getMsgConfig = tinyThis._buildPagination(1);
+                tinyThis._pages = await storageManager.getMessagesCount(getMsgConfig);
+                const events = await storageManager.getMessages(getMsgConfig);
+
+                if (!tinyThis.ended) {
                   for (const item in events) {
                     const mEvent = events[item];
                     tinyThis._insertIntoTimeline(mEvent, true);
                   }
+
                   tinyThis.initialized = true;
                   tinyThis.emit(cons.events.roomTimeline.READY, eventId || null);
-                })
-                .catch(tinyError);
-            })
-            .catch(tinyError);
-        }
-      } else tinyError(data.err);
+                }
+              }
+            } catch (err) {
+              tinyError(err);
+            }
+          }
+        } else tinyError(data.err);
+      }
     };
 
     // Message events
     this._onMessage = async (r, mEvent) => {
       if (!tinyThis._belongToRoom(mEvent) && !mEvent.isRedacted()) return;
-      this._pages = await storageManager.getMessagesCount(this._buildPagination());
+      if (!tinyThis.ended) {
+        this._pages = await storageManager.getMessagesCount(this._buildPagination());
+        if (!tinyThis.ended) {
+          // Check event
+          if (!mEvent.isSending() || mEvent.getSender() === initMatrix.matrixClient.getUserId()) {
+            // Check isEdited
 
-      // Check event
-      if (!mEvent.isSending() || mEvent.getSender() === initMatrix.matrixClient.getUserId()) {
-        // Check isEdited
-
-        // Send into the timeline
-        tinyThis._insertIntoTimeline(mEvent);
+            // Send into the timeline
+            tinyThis._insertIntoTimeline(mEvent);
+          }
+        }
       }
     };
 
     // Reaction events
     this._onReaction = (r, mEvent) => {
-      if (!tinyThis._belongToRoom(mEvent)) return;
-      console.log(
-        `${mEvent.getType()} ${mEvent.getRoomId()} ${mEvent.getId()} Reaction Wait ${mEvent.getSender()}`,
-        mEvent.getContent(),
-        mEvent,
-      );
-      // Reactions
+      if (!tinyThis.ended) {
+        if (!tinyThis._belongToRoom(mEvent)) return;
+        console.log(
+          `${mEvent.getType()} ${mEvent.getRoomId()} ${mEvent.getId()} Reaction Wait ${mEvent.getSender()}`,
+          mEvent.getContent(),
+          mEvent,
+        );
+        // Reactions
+      }
     };
 
     // Timeline events
     this._onTimeline = async (r, mEvent) => {
-      if (!tinyThis._belongToRoom(mEvent)) return;
-      this._pages = await storageManager.getMessagesCount(this._buildPagination());
-      if (mEvent.type !== 'm.room.redaction') tinyThis._insertIntoTimeline(mEvent);
-      else tinyThis._deletingEvent(mEvent);
+      if (!tinyThis.ended) {
+        if (!tinyThis._belongToRoom(mEvent)) return;
+        this._pages = await storageManager.getMessagesCount(this._buildPagination());
+        if (mEvent.type !== 'm.room.redaction') tinyThis._insertIntoTimeline(mEvent);
+        else tinyThis._deletingEvent(mEvent);
+      }
     };
 
     // Thread added events
     this._onIsThreadEvent = (r, mEvent) => {
       if (!tinyThis._belongToRoom(mEvent)) return;
+      if (!tinyThis.ended) {
+      }
     };
 
     // Prepare events
@@ -399,6 +425,7 @@ class RoomTimeline extends EventEmitter {
   }
 
   removeInternalListeners() {
+    this.ended = true;
     this._disableYdoc();
     storageManager.off('dbMessage', this._onMessage);
     storageManager.off('dbMessageUpdate', this._onMessage);
