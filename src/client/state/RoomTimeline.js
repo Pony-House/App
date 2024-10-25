@@ -29,6 +29,7 @@ class RoomTimeline extends EventEmitter {
     this.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
     this.timeline = [];
     this._page = 0;
+    this._pages = 0;
 
     // Client Prepare
     this.matrixClient = initMatrix.matrixClient;
@@ -75,8 +76,16 @@ class RoomTimeline extends EventEmitter {
     setTimeout(() => this.room.loadMembersIfNeeded());
   }
 
+  getPages() {
+    return this._pages;
+  }
+
   getPage() {
     return this._page;
+  }
+
+  setPage(page) {
+    return this.paginateTimeline(page);
   }
 
   _activeEvents() {
@@ -92,30 +101,21 @@ class RoomTimeline extends EventEmitter {
 
       if (!data.err) {
         if (data.firstTime) {
-          const limit = getAppearance('pageLimit');
-          const getMsgConfig = {
-            roomId: tinyThis.roomId,
-            showRedaction: false,
-            page: 1,
-            limit:
-              typeof limit === 'number' &&
-              !Number.isNaN(limit) &&
-              Number.isFinite(limit) &&
-              limit > 0
-                ? limit
-                : 10,
-          };
-          if (!tinyThis.threadId) getMsgConfig.showThreads = false;
-          else getMsgConfig.threadId = tinyThis.threadId;
-
+          const getMsgConfig = tinyThis._buildPagination(1);
           storageManager
-            .getMessages(getMsgConfig)
-            .then((events) => {
-              for (const item in events) {
-                const mEvent = events[item];
-                tinyThis._insertIntoTimeline(mEvent, true);
-              }
-              tinyThis.emit(cons.events.roomTimeline.READY, eventId || null);
+            .getMessagesCount(getMsgConfig)
+            .then((pages) => {
+              tinyThis._pages = pages;
+              storageManager
+                .getMessages(getMsgConfig)
+                .then((events) => {
+                  for (const item in events) {
+                    const mEvent = events[item];
+                    tinyThis._insertIntoTimeline(mEvent, true);
+                  }
+                  tinyThis.emit(cons.events.roomTimeline.READY, eventId || null);
+                })
+                .catch(tinyError);
             })
             .catch(tinyError);
         }
@@ -128,12 +128,6 @@ class RoomTimeline extends EventEmitter {
 
       // Check event
       if (!mEvent.isSending() || mEvent.getSender() === initMatrix.matrixClient.getUserId()) {
-        /* console.log(
-          `${mEvent.getType()} ${mEvent.getRoomId()} ${mEvent.getId()} Message Wait ${mEvent.getSender()}`,
-          mEvent.getContent(),
-          mEvent,
-        ); */
-
         // Check isEdited
 
         // Send into the timeline
@@ -206,9 +200,27 @@ class RoomTimeline extends EventEmitter {
     );
   }
 
+  // Build pagination
+  _buildPagination(page) {
+    const limit = getAppearance('pageLimit');
+    const getMsgConfig = {
+      roomId: this.roomId,
+      showRedaction: false,
+      limit:
+        typeof limit === 'number' && !Number.isNaN(limit) && Number.isFinite(limit) && limit > 0
+          ? limit
+          : 10,
+    };
+    if (typeof page === 'number') getMsgConfig.page = page;
+    if (!this.threadId) getMsgConfig.showThreads = false;
+    else getMsgConfig.threadId = this.threadId;
+    return getMsgConfig;
+  }
+
   // Insert into timeline
-  _insertIntoTimeline(mEvent, isFirstTime = false) {
+  async _insertIntoTimeline(mEvent, isFirstTime = false) {
     if (!mEvent.isRedacted()) {
+      this._pages = await storageManager.getMessagesCount(this._buildPagination());
       const pageLimit = getAppearance('pageLimit');
       const eventId = mEvent.getId();
 
@@ -247,21 +259,7 @@ class RoomTimeline extends EventEmitter {
 
     // Try time
     try {
-      // Paginate time
-      const getMsgConfig = {
-        roomId: this.roomId,
-        showRedaction: false,
-        page: this._page,
-        limit:
-          typeof limit === 'number' && !Number.isNaN(limit) && Number.isFinite(limit) && limit > 0
-            ? limit
-            : 10,
-      };
-
-      if (!this.threadId) getMsgConfig.showThreads = false;
-      else getMsgConfig.threadId = this.threadId;
-
-      const events = await storageManager.getMessages(getMsgConfig);
+      const events = await storageManager.getMessages(this._buildPagination(this._page));
       for (const item in events) {
         const mEvent = events[item];
         this._insertIntoTimeline(mEvent, true);
@@ -335,9 +333,8 @@ class RoomTimeline extends EventEmitter {
     return this.getEventIndex(eventId) > -1 ? true : false;
   }
 
-  /////////////////////////////////////// Get Event data
+  // Get Event data
   getUnreadEventIndex(readUpToEventId) {
-    console.log(`${this._consoleTag} getUnreadEventIndex`, readUpToEventId);
     if (!this.hasEventInTimeline(readUpToEventId)) return -1;
 
     const readUpToEvent = this.findEventByIdInTimelineSet(readUpToEventId);
