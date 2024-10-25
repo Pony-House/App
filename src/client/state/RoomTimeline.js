@@ -247,64 +247,88 @@ class RoomTimeline extends EventEmitter {
       const pageLimit = getAppearance('pageLimit');
       const eventId = mEvent.getId();
 
-      if (this.timeline.findIndex((item) => item.getId() === eventId) < 0) {
+      const msgIndex = this.timeline.findIndex((item) => item.getId() === eventId);
+      if (msgIndex < 0) {
         this.timeline.push(mEvent);
-        if (this.timeline.length > pageLimit) this.timeline.shift();
-      }
+        if (this.timeline.length > pageLimit) {
+          const removedEvent = this.timeline.shift();
+          this._deletingEventPlaces(removedEvent.getId());
+        }
 
-      this.timeline.sort((a, b) => a.getTs() - b.getTs());
+        this.timeline.sort((a, b) => a.getTs() - b.getTs());
+      } else this.timeline[msgIndex] = mEvent;
+
+      if (mEvent.isEdited()) this.editedTimeline.set(eventId, [mEvent.getEditedContent()]);
       if (!isFirstTime) this.emit(cons.events.roomTimeline.EVENT, mEvent);
     }
   }
 
   // Deleting events
+  _deletingEventPlaces(redacts) {
+    this.editedTimeline.delete(redacts);
+    this.reactionTimeline.delete(redacts);
+  }
+
   _deletingEvent(event) {
     const redacts = event.getContent()?.redacts;
     const rEvent = this.deleteFromTimeline(redacts);
-    this.editedTimeline.delete(redacts);
-    this.reactionTimeline.delete(redacts);
+    this._deletingEventPlaces(redacts);
     this.emit(cons.events.roomTimeline.EVENT_REDACTED, rEvent, event);
   }
 
   // Pagination
   async paginateTimeline(backwards = false) {
-    // Initialization
-    if (this.isOngoingPagination) return false;
-    if (typeof backwards === 'boolean') {
-      if (backwards) this._page++;
-      else this._page--;
-    } else if (typeof backwards === 'number') this._page = backwards;
+    if (!this.ended) {
+      // Initialization
+      if (this.isOngoingPagination) return false;
+      const oldPage = this._page;
 
-    this.isOngoingPagination = true;
+      if (typeof backwards === 'boolean') {
+        if (backwards) this._page++;
+        else this._page--;
+      } else if (typeof backwards === 'number') this._page = backwards;
 
-    // Old Size
-    const oldSize = this.timeline.length;
+      this.isOngoingPagination = true;
 
-    // Try time
-    try {
-      this._pages = await storageManager.getMessagesCount(this._buildPagination());
-      const events = await storageManager.getMessages(this._buildPagination(this._page));
-      for (const item in events) {
-        const mEvent = events[item];
-        this._insertIntoTimeline(mEvent, true);
+      // Old Size
+      const oldSize = this.timeline.length;
+
+      // Try time
+      try {
+        if (oldPage > 0) {
+          this._pages = await storageManager.getMessagesCount(this._buildPagination());
+          const events = await storageManager.getMessages(this._buildPagination(this._page));
+          while (this.timeline.length > 0) {
+            this._deletingEvent(this.timeline[0].getId());
+          }
+
+          for (const item in events) {
+            const mEvent = events[item];
+            this._insertIntoTimeline(mEvent, true);
+          }
+        }
+
+        if (!this.ended) {
+          // Loaded Check
+          const loaded = this.timeline.length - oldSize;
+
+          // Complete
+          this.emit(cons.events.roomTimeline.PAGINATED, backwards, loaded);
+          this.isOngoingPagination = false;
+
+          updateRoomInfo();
+          urlParams.delete('event_id');
+          return true;
+        }
+        return false;
+      } catch {
+        // Error
+        this.emit(cons.events.roomTimeline.PAGINATED, backwards, 0);
+        this.isOngoingPagination = false;
+        return false;
       }
-
-      // Loaded Check
-      const loaded = this.timeline.length - oldSize;
-
-      // Complete
-      this.emit(cons.events.roomTimeline.PAGINATED, backwards, loaded);
-      this.isOngoingPagination = false;
-
-      updateRoomInfo();
-      urlParams.delete('event_id');
-      return true;
-    } catch {
-      // Error
-      this.emit(cons.events.roomTimeline.PAGINATED, backwards, 0);
-      this.isOngoingPagination = false;
-      return false;
     }
+    return false;
   }
 
   // Get User renders

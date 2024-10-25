@@ -16,7 +16,6 @@ import cons from '@src/client/state/cons';
 
 import { startDb } from './db/indexedDb';
 import { toTitleCase } from '../tools';
-import attemptDecryption from './attemptDecryption';
 
 const genKey = () => generateApiKey().replace(/\~/g, 'pud');
 const SYNC_TIMELINE_DOWNLOAD_LIMIT = 100;
@@ -87,8 +86,8 @@ class LocalStorageEvent extends EventEmitter {
   };
 
   getContent = () => {
-    if (this.replace_to) {
-      return this.replace_to['m.new_content'] || {};
+    if (this.event?.replace_to) {
+      return this.event?.replace_to['m.new_content'] || {};
     } else {
       return this.getOriginalContent();
     }
@@ -138,6 +137,14 @@ class LocalStorageEvent extends EventEmitter {
   isRedacted = () => this.getUnsigned().redacted_because || this.event?.redaction || null;
   isRedaction = () => this.event?.type === 'm.room.redaction' || false;
   isSending = () => this.status !== 'sent' && !!this.status;
+
+  getEditedContent = () => this.event?.replace_to || null;
+  isEdited = () =>
+    typeof this.event?.replace_to_id === 'string' &&
+    typeof this.event?.replace_to_ts === 'number' &&
+    objType(this.event?.replace_to, 'object')
+      ? true
+      : false;
 }
 
 class StorageManager extends EventEmitter {
