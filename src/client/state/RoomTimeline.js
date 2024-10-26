@@ -121,7 +121,7 @@ class RoomTimeline extends EventEmitter {
 
               if (!tinyThis.ended) {
                 const getMsgConfig = tinyThis._buildPagination(1);
-                tinyThis._pages = await storageManager.getMessagesCount(getMsgConfig);
+                tinyThis._pages = await storageManager.getMessagesPagination(getMsgConfig);
 
                 if (!eventId) {
                   const events = await storageManager.getMessages(getMsgConfig);
@@ -151,7 +151,7 @@ class RoomTimeline extends EventEmitter {
     this._onMessage = async (r, mEvent) => {
       if (!tinyThis._belongToRoom(mEvent) && !mEvent.isRedacted()) return;
       if (!tinyThis.ended) {
-        this._pages = await storageManager.getMessagesCount(this._buildPagination());
+        this._pages = await storageManager.getMessagesPagination(this._buildPagination());
         if (!tinyThis.ended) {
           // Check event
           if (!mEvent.isSending() || mEvent.getSender() === initMatrix.matrixClient.getUserId()) {
@@ -181,7 +181,7 @@ class RoomTimeline extends EventEmitter {
     this._onTimeline = async (r, mEvent) => {
       if (!tinyThis.ended) {
         if (!tinyThis._belongToRoom(mEvent)) return;
-        this._pages = await storageManager.getMessagesCount(this._buildPagination());
+        this._pages = await storageManager.getMessagesPagination(this._buildPagination());
         if (mEvent.getType() !== 'm.room.redaction') tinyThis._insertIntoTimeline(mEvent);
         else tinyThis._deletingEvent(mEvent);
       }
@@ -250,7 +250,11 @@ class RoomTimeline extends EventEmitter {
 
   // Insert into timeline
   _insertIntoTimeline(mEvent, isFirstTime = false) {
-    if (!mEvent.isRedacted() && cons.supportMessageTypes.indexOf(mEvent.getType()) > -1) {
+    if (
+      this._page < 2 &&
+      !mEvent.isRedacted() &&
+      cons.supportMessageTypes.indexOf(mEvent.getType()) > -1
+    ) {
       const pageLimit = getAppearance('pageLimit');
       const eventId = mEvent.getId();
 
@@ -308,7 +312,7 @@ class RoomTimeline extends EventEmitter {
 
           // Normal get page
           const normalGetData = async () => {
-            tinyThis._pages = await storageManager.getMessagesCount(this._buildPagination());
+            tinyThis._pages = await storageManager.getMessagesPagination(this._buildPagination());
             events = await storageManager.getMessages(this._buildPagination(this._page));
           };
 
