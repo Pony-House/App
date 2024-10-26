@@ -134,9 +134,21 @@ class RoomTimeline extends EventEmitter {
                 } else tinyThis._selectEvent = eventId;
 
                 if (!tinyThis.ended) {
-                  // if(!tinyThis.initialized) tinyThis.paginateTimeline(true);
-                  tinyThis.initialized = true;
-                  tinyThis.emit(cons.events.roomTimeline.READY, eventId || null);
+                  if (tinyThis._ydoc.initialized) {
+                    const events = await storageManager.getCrdt(getMsgConfig);
+                    if (!tinyThis.ended) {
+                      for (const item in events) {
+                        const mEvent = events[item];
+                        tinyThis.sendCrdtToTimeline(mEvent);
+                      }
+                    }
+                  }
+
+                  if (!tinyThis.ended) {
+                    // if(!tinyThis.initialized) tinyThis.paginateTimeline(true);
+                    tinyThis.initialized = true;
+                    tinyThis.emit(cons.events.roomTimeline.READY, eventId || null);
+                  }
                 }
               }
             } catch (err) {
