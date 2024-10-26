@@ -988,17 +988,11 @@ class StorageManager extends EventEmitter {
 
       if (Array.isArray(items)) {
         for (const item in items) {
-          if (items[item][valueName] === eventId) {
+          if (items[item].event[valueName] === eventId) {
             data.success = true;
             data.page = p;
             data.items = items;
             break;
-          }
-        }
-
-        if (data.success) {
-          for (const item in data.items) {
-            data.items[item] = this.convertToEventFormat(data.items[item]);
           }
         }
       }
