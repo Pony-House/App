@@ -261,16 +261,8 @@ const MessageReplyWrapper = React.memo(({ roomTimeline, eventId }) => {
     const timelineSet = roomTimeline.getUnfilteredTimelineSet();
     const loadReply = async () => {
       try {
-        const eTimeline = await mx.getEventTimeline(timelineSet, eventId);
-        if (!eTimeline) return;
-        // await roomTimeline.decryptAllEventsOfTimeline(eTimeline);
-
-        let mEvent = eTimeline.getTimelineSet().findEventById(eventId);
-
-        const editedList = roomTimeline.editedTimeline.get(mEvent.getId());
-        if (editedList) {
-          mEvent = editedList[editedList.length - 1];
-        }
+        const mEvent = roomTimeline.findEventById(eventId);
+        const editedContent = mEvent.getEditedContent();
 
         const rawBody = mEvent.getContent().body;
         const username = getUsernameOfRoomMember(mEvent.sender);
@@ -279,9 +271,16 @@ const MessageReplyWrapper = React.memo(({ roomTimeline, eventId }) => {
         const fallbackBody = mEvent.isRedacted()
           ? '*** This message has been deleted ***'
           : '*** Unable to load reply ***';
-        let parsedBody = parseReply(rawBody)?.body ?? rawBody ?? fallbackBody;
-        if (editedList && parsedBody.startsWith(' * ')) {
+        let parsedBody;
+        if (
+          editedContent &&
+          typeof editedContent.body === 'string' &&
+          editedContent.body.startsWith(' * ')
+        ) {
+          parsedBody = parseReply(editedContent.body)?.body ?? editedContent.body ?? fallbackBody;
           parsedBody = parsedBody.slice(3);
+        } else {
+          parsedBody = parseReply(rawBody)?.body ?? rawBody ?? fallbackBody;
         }
 
         setReply({
@@ -846,18 +845,6 @@ function shouldShowThreadSummary(mEvent, roomTimeline) {
   return false;
 }
 
-// if editedTimeline has mEventId then pass editedMEvent else pass mEvent to openViewSource
-function handleOpenViewSource(mEvent, roomTimeline) {
-  const eventId = mEvent.getId();
-  const { editedTimeline } = roomTimeline ?? {};
-  let editedMEvent;
-  if (editedTimeline?.has(eventId)) {
-    const editedList = editedTimeline.get(eventId);
-    editedMEvent = editedList[editedList.length - 1];
-  }
-  openViewSource(editedMEvent !== undefined ? editedMEvent : mEvent);
-}
-
 const MessageOptions = React.memo(
   ({
     allowTranslate = false,
@@ -1207,7 +1194,7 @@ const MessageOptions = React.memo(
               <MenuItem
                 className="text-start"
                 faSrc="fa-solid fa-code"
-                onClick={() => handleOpenViewSource(mEvent, roomTimeline)}
+                onClick={() => openViewSource(mEvent)}
               >
                 View source
               </MenuItem>
@@ -1565,7 +1552,7 @@ function genMediaContent(mE, seeHiddenData, setSeeHiddenData) {
 }
 
 function getEditedBody(editedMEvent) {
-  const newContent = editedMEvent.getContent()['m.new_content'];
+  const newContent = editedMEvent['m.new_content'];
   if (typeof newContent === 'undefined') return [null, false, null];
 
   const isCustomHTML = newContent.format === 'org.matrix.custom.html';
