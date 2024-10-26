@@ -30,6 +30,7 @@ class RoomTimeline extends EventEmitter {
     this.timeline = [];
     this._page = 0;
     this._pages = 0;
+    this._selectEvent = null;
 
     // Client Prepare
     this.matrixClient = initMatrix.matrixClient;
@@ -121,14 +122,19 @@ class RoomTimeline extends EventEmitter {
               if (!tinyThis.ended) {
                 const getMsgConfig = tinyThis._buildPagination(1);
                 tinyThis._pages = await storageManager.getMessagesCount(getMsgConfig);
-                const events = await storageManager.getMessages(getMsgConfig);
+
+                if (!eventId) {
+                  const events = await storageManager.getMessages(getMsgConfig);
+                  if (!tinyThis.ended) {
+                    for (const item in events) {
+                      const mEvent = events[item];
+                      tinyThis._insertIntoTimeline(mEvent, true);
+                    }
+                  }
+                } else tinyThis._selectEvent = eventId;
 
                 if (!tinyThis.ended) {
-                  for (const item in events) {
-                    const mEvent = events[item];
-                    tinyThis._insertIntoTimeline(mEvent, true);
-                  }
-
+                  // if(!tinyThis.initialized) tinyThis.paginateTimeline(true);
                   tinyThis.initialized = true;
                   tinyThis.emit(cons.events.roomTimeline.READY, eventId || null);
                 }
@@ -225,7 +231,7 @@ class RoomTimeline extends EventEmitter {
   }
 
   // Build pagination
-  _buildPagination(page) {
+  _buildPagination(page, eventId) {
     const limit = getAppearance('pageLimit');
     const getMsgConfig = {
       roomId: this.roomId,
@@ -237,6 +243,7 @@ class RoomTimeline extends EventEmitter {
     };
     if (typeof page === 'number') getMsgConfig.page = page;
     if (!this.threadId) getMsgConfig.showThreads = false;
+    if (typeof eventId === 'string') getMsgConfig.eventId = eventId;
     else getMsgConfig.threadId = this.threadId;
     return getMsgConfig;
   }
@@ -295,16 +302,53 @@ class RoomTimeline extends EventEmitter {
 
       // Try time
       try {
-        if (oldPage > 0) {
-          this._pages = await storageManager.getMessagesCount(this._buildPagination());
-          const events = await storageManager.getMessages(this._buildPagination(this._page));
-          while (this.timeline.length > 0) {
-            this._deletingEvent(this.timeline[0].getId());
+        if (oldPage > 0 || this._selectEvent) {
+          let events;
+          const tinyThis = this;
+
+          // Normal get page
+          const normalGetData = async () => {
+            tinyThis._pages = await storageManager.getMessagesCount(this._buildPagination());
+            events = await storageManager.getMessages(this._buildPagination(this._page));
+          };
+
+          // Remove old timeline
+          const clearTimeline = () => {
+            while (this.timeline.length > 0) {
+              this._deletingEvent(this.timeline[0].getId());
+            }
+          };
+
+          // Normal get page
+          if (!this._selectEvent) {
+            await normalGetData();
+            clearTimeline();
           }
 
-          for (const item in events) {
-            const mEvent = events[item];
-            this._insertIntoTimeline(mEvent, true);
+          // Use event id
+          if (!this.ended && this._selectEvent) {
+            const data = await storageManager.getLocationMessagesId(
+              this._buildPagination(undefined, this._selectEvent),
+            );
+
+            if (!this.ended) {
+              if (data && data.success) {
+                this._pages = data.pages;
+                this._page = data.page;
+                events = data.items;
+              } else await normalGetData();
+
+              this._selectEvent = null;
+              clearTimeline();
+            }
+          }
+
+          // Insert events into the timeline
+          if (!this.ended && Array.isArray(events)) {
+            for (const item in events) {
+              const mEvent = events[item];
+              this._insertIntoTimeline(mEvent, true);
+            }
           }
         }
 

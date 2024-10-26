@@ -289,12 +289,19 @@ class StorageManager extends EventEmitter {
           customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
         });
 
-      this[`get${funcName}ById`] = ({ roomId = null, threadId = null, type = null, eventId }) =>
+      this[`get${funcName}ById`] = ({
+        roomId = null,
+        threadId = null,
+        type = null,
+        eventId = null,
+        showRedaction = null,
+      }) =>
         this._eventsDataTemplate({
           from: this._eventDbs[item],
           roomId,
           threadId,
           eventId,
+          showRedaction,
           type,
         });
     }
@@ -945,7 +952,8 @@ class StorageManager extends EventEmitter {
     customWhere = null,
     join = null,
   }) {
-    const pages = await this._eventsPaginationCount({
+    const data = { success: false, items: [], page: null, pages: null };
+    data.pages = await this._eventsPaginationCount({
       from,
       threadId,
       showThreads,
@@ -960,8 +968,7 @@ class StorageManager extends EventEmitter {
       join,
     });
 
-    const data = { success: false, items: [], page: null };
-    for (let i = 0; i < pages; i++) {
+    for (let i = 0; i < data.pages; i++) {
       const p = i + 1;
       const items = await this._eventsDataTemplate({
         from,

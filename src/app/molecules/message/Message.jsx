@@ -275,10 +275,9 @@ const MessageReplyWrapper = React.memo(({ roomTimeline, eventId }) => {
         const username = getUsernameOfRoomMember(mEvent.sender);
 
         if (isMountedRef.current === false) return;
-        const fallbackBody = mEvent.isRedacted()
-          ? '*** This message has been deleted ***'
-          : '*** Unable to load reply ***';
-        const parsedBody = parseReply(rawBody)?.body ?? rawBody ?? fallbackBody;
+        const parsedBody = !mEvent.isRedacted()
+          ? (parseReply(rawBody)?.body ?? rawBody ?? '*** Unable to load reply ***')
+          : '*** This message has been deleted ***';
 
         setReply({
           to: username,
@@ -307,7 +306,7 @@ const MessageReplyWrapper = React.memo(({ roomTimeline, eventId }) => {
       if (ev.key) ev.preventDefault();
       if (reply?.event === null) return;
       if (reply?.event.isRedacted()) return;
-      roomTimeline.loadEventTimeline(eventId);
+      roomTimeline.loadEventTimeline(reply.event.getId());
     }
   };
 
