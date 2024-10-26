@@ -127,8 +127,7 @@ class RoomTimeline extends EventEmitter {
                   const events = await storageManager.getMessages(getMsgConfig);
                   if (!tinyThis.ended) {
                     for (const item in events) {
-                      const mEvent = events[item];
-                      tinyThis._insertIntoTimeline(mEvent, true);
+                      tinyThis._insertIntoTimeline(events[item], true, true);
                     }
                   }
                 } else tinyThis._selectEvent = eventId;
@@ -268,9 +267,9 @@ class RoomTimeline extends EventEmitter {
   }
 
   // Insert into timeline
-  _insertIntoTimeline(mEvent, isFirstTime = false) {
+  _insertIntoTimeline(mEvent, isFirstTime = false, forceAdd = false) {
     if (
-      this._page < 2 &&
+      (this._page < 2 || forceAdd) &&
       !mEvent.isRedacted() &&
       cons.supportMessageTypes.indexOf(mEvent.getType()) > -1
     ) {
@@ -369,8 +368,7 @@ class RoomTimeline extends EventEmitter {
           // Insert events into the timeline
           if (!this.ended && Array.isArray(events)) {
             for (const item in events) {
-              const mEvent = events[item];
-              this._insertIntoTimeline(mEvent, true);
+              this._insertIntoTimeline(events[item], true, true);
             }
           }
         }
