@@ -56,6 +56,8 @@ class LocalStorageEvent extends EventEmitter {
 
     this.status = this.event?.e_status || null;
     this.sender = this.room ? this.room.getMember(this.event.sender) : null;
+    this.replyEventId = this.getWireContent()['m.relates_to']?.['m.in_reply_to']?.event_id;
+    this.threadRootId = this.threadRootId();
 
     this.thread = { id: this.threadId };
   }
@@ -285,6 +287,15 @@ class StorageManager extends EventEmitter {
           limit,
           page,
           customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
+        });
+
+      this[`get${funcName}ById`] = ({ roomId = null, threadId = null, type = null, eventId }) =>
+        this._eventsDataTemplate({
+          from: this._eventDbs[item],
+          roomId,
+          threadId,
+          eventId,
+          type,
         });
     }
 
@@ -784,6 +795,7 @@ class StorageManager extends EventEmitter {
     from = '',
     roomId = null,
     threadId = null,
+    eventId = null,
     showThreads = null,
     type = null,
     showRedaction = null,
@@ -820,22 +832,31 @@ class StorageManager extends EventEmitter {
 
     if (showTransaction !== true) data.where.is_transaction = false;
 
-    if (typeof limit === 'number') {
-      if (!Number.isNaN(limit) && Number.isFinite(limit) && limit > -1) data.limit = limit;
-      else data.limit = 0;
+    if (typeof eventId !== 'string') {
+      if (typeof limit === 'number') {
+        if (!Number.isNaN(limit) && Number.isFinite(limit) && limit > -1) data.limit = limit;
+        else data.limit = 0;
 
-      if (typeof page === 'number') {
-        if (page !== 1) data.skip = limit * Number(page - 1);
+        if (typeof page === 'number') {
+          if (page !== 1) data.skip = limit * Number(page - 1);
+        }
       }
+
+      const result = await this.storeConnection.select(data);
+      if (Array.isArray(result)) {
+        for (const item in result) {
+          result[item] = this.convertToEventFormat(result[item]);
+        }
+        return result.reverse();
+      } else return [];
+    } else {
+      data.where.event_id = eventId;
+      data.limit = 1;
+      const result = await this.storeConnection.select(data);
+      if (Array.isArray(result) && result.length > 0 && result[0])
+        return this.convertToEventFormat(result[0]);
+      else return null;
     }
-
-    const result = await this.storeConnection.select(data);
-    if (Array.isArray(result)) {
-      for (const item in result) {
-        result[item] = this.convertToEventFormat(result[item]);
-      }
-      return result.reverse();
-    } else return [];
   }
 
   async _eventsCounter({

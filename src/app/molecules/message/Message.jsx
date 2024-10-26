@@ -258,11 +258,18 @@ const MessageReplyWrapper = React.memo(({ roomTimeline, eventId }) => {
 
   useEffect(() => {
     const mx = initMatrix.matrixClient;
-    const timelineSet = roomTimeline.getUnfilteredTimelineSet();
     const loadReply = async () => {
       try {
-        const mEvent = roomTimeline.findEventById(eventId);
-        const editedContent = mEvent.getEditedContent();
+        let mEvent = roomTimeline.findEventById(eventId);
+        if (!mEvent) {
+          const searchData = {
+            roomId: roomTimeline.roomId,
+            eventId,
+          };
+
+          if (roomTimeline.threadId) searchData.threadId;
+          mEvent = await storageManager.getMessagesById(searchData);
+        }
 
         const rawBody = mEvent.getContent().body;
         const username = getUsernameOfRoomMember(mEvent.sender);
@@ -271,17 +278,7 @@ const MessageReplyWrapper = React.memo(({ roomTimeline, eventId }) => {
         const fallbackBody = mEvent.isRedacted()
           ? '*** This message has been deleted ***'
           : '*** Unable to load reply ***';
-        let parsedBody;
-        if (
-          editedContent &&
-          typeof editedContent.body === 'string' &&
-          editedContent.body.startsWith(' * ')
-        ) {
-          parsedBody = parseReply(editedContent.body)?.body ?? editedContent.body ?? fallbackBody;
-          parsedBody = parsedBody.slice(3);
-        } else {
-          parsedBody = parseReply(rawBody)?.body ?? rawBody ?? fallbackBody;
-        }
+        const parsedBody = parseReply(rawBody)?.body ?? rawBody ?? fallbackBody;
 
         setReply({
           to: username,
