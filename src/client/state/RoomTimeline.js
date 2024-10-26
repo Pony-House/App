@@ -194,7 +194,14 @@ class RoomTimeline extends EventEmitter {
       }
     };
 
+    // Crdt events
+    this._onCrdt = (r, mEvent) => {
+      if (!tinyThis._belongToRoom(mEvent)) return;
+      if (!tinyThis.ended) tinyThis.sendCrdtToTimeline(mEvent);
+    };
+
     // Prepare events
+    storageManager.on('dbCrdt', this._onCrdt);
     storageManager.on('dbMessage', this._onMessage);
     storageManager.on('dbMessageUpdate', this._onMessage);
     storageManager.on('dbReaction', this._onReaction);
@@ -499,6 +506,7 @@ class RoomTimeline extends EventEmitter {
   removeInternalListeners() {
     this.ended = true;
     this._disableYdoc();
+    storageManager.off('dbCrdt', this._onCrdt);
     storageManager.off('dbMessage', this._onMessage);
     storageManager.off('dbMessageUpdate', this._onMessage);
     storageManager.off('dbReaction', this._onReaction);
