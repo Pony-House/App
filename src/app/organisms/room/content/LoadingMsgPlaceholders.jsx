@@ -8,18 +8,6 @@ export function isLoadingTimeline() {
   return loadingPage;
 }
 
-export function setLoadingTimeline(value) {
-  loadingPage = value;
-}
-
-export function isForceDelayTimeline() {
-  return forceDelay;
-}
-
-export function setForceDelayTimeline(value) {
-  forceDelay = value;
-}
-
 export default function LoadingMsgPlaceholders({ keyName, count = 2 }) {
   const pl = [];
   const genPlaceholders = () => {

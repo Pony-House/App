@@ -31,6 +31,7 @@ class RoomTimeline extends EventEmitter {
     this._page = 0;
     this._pages = 0;
     this._selectEvent = null;
+    this.forceLoad = false;
 
     // Client Prepare
     this.matrixClient = initMatrix.matrixClient;
@@ -82,6 +83,10 @@ class RoomTimeline extends EventEmitter {
     return this.paginateTimeline(page);
   }
 
+  setForceLoad(value) {
+    if (typeof value === 'boolean') this.forceLoad = value;
+  }
+
   _activeEvents() {
     const tinyThis = this;
 
@@ -123,13 +128,18 @@ class RoomTimeline extends EventEmitter {
                 const getMsgConfig = tinyThis._buildPagination(1);
                 tinyThis._pages = await storageManager.getMessagesPagination(getMsgConfig);
 
-                if (!eventId) {
+                if (!eventId || tinyThis.forceLoad) {
                   const events = await storageManager.getMessages(getMsgConfig);
+                  while (tinyThis.timeline.length > 0) {
+                    tinyThis._deletingEventById(tinyThis.timeline[0].getId());
+                  }
+
                   if (!tinyThis.ended) {
                     for (const item in events) {
                       tinyThis._insertIntoTimeline(events[item], true, true);
                     }
                   }
+                  tinyThis.forceLoad = false;
                 } else tinyThis._selectEvent = eventId;
 
                 if (!tinyThis.ended) {
@@ -147,6 +157,7 @@ class RoomTimeline extends EventEmitter {
                     // if(!tinyThis.initialized) tinyThis.paginateTimeline(true);
                     tinyThis.initialized = true;
                     tinyThis.emit(cons.events.roomTimeline.READY, eventId || null);
+                    console.log(`[timeline] Timeline started ${this.roomId}`);
                   }
                 }
               }
@@ -232,7 +243,12 @@ class RoomTimeline extends EventEmitter {
   // Load Event timeline
   async loadEventTimeline(eventId) {
     try {
-      storageManager.syncTimeline(this.roomId, eventId);
+      if (!this.hasEventInTimeline(eventId)) {
+        this._selectEvent = eventId;
+        await this.paginateTimeline(true);
+      }
+
+      this.emit(cons.events.roomTimeline.READY, eventId);
       if (typeof eventId === 'string' && eventId.length > 0) urlParams.set('event_id', eventId);
       else urlParams.delete('event_id');
       return true;
@@ -299,7 +315,10 @@ class RoomTimeline extends EventEmitter {
   }
 
   _deletingEvent(event) {
-    const redacts = event.getContent()?.redacts;
+    return this._deletingEventById(event.getContent()?.redacts);
+  }
+
+  _deletingEventById(redacts, event = null) {
     const rEvent = this.deleteFromTimeline(redacts);
     this._deletingEventPlaces(redacts);
     this.emit(cons.events.roomTimeline.EVENT_REDACTED, rEvent, event);
@@ -336,8 +355,8 @@ class RoomTimeline extends EventEmitter {
 
           // Remove old timeline
           const clearTimeline = () => {
-            while (this.timeline.length > 0) {
-              this._deletingEvent(this.timeline[0].getId());
+            while (tinyThis.timeline.length > 0) {
+              tinyThis._deletingEventById(tinyThis.timeline[0].getId());
             }
           };
 

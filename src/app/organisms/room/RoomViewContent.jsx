@@ -9,7 +9,6 @@ import React, {
 import PropTypes from 'prop-types';
 import $ from 'jquery';
 
-import { rule3 } from '@src/util/tools';
 import moment from '@src/util/libs/momentjs';
 import windowEvents from '@src/util/libs/window';
 
@@ -38,17 +37,12 @@ import TimelineScroll, {
 } from './TimelineScroll';
 
 import EventLimit from './EventLimit';
-import tinyAPI from '../../../util/mods';
 import tinyFixScrollChat, { setMediaHeight } from '../../molecules/media/mediaFix';
 import matrixAppearance, { getAppearance } from '../../../util/libs/appearance';
 
 import handleOnClickCapture from './content/handleOnClickCapture';
 import RoomIntroContainer from './content/RoomIntroContainer';
-import LoadingMsgPlaceholders, {
-  isForceDelayTimeline,
-  setForceDelayTimeline,
-  setLoadingTimeline,
-} from './content/LoadingMsgPlaceholders';
+import LoadingMsgPlaceholders from './content/LoadingMsgPlaceholders';
 
 function renderEvent(
   timelineSVRef,
@@ -159,13 +153,7 @@ function useTimeline(roomTimeline, eventId, readUptoEvtStore, eventLimitRef) {
   return timelineInfo;
 }
 
-function usePaginate(
-  roomTimeline,
-  readUptoEvtStore,
-  forceUpdateLimit,
-  timelineScrollRef,
-  eventLimitRef,
-) {
+function usePaginate(roomTimeline, readUptoEvtStore, timelineScrollRef, eventLimitRef) {
   const [info, setInfo] = useState(null);
   const [pageLimit, setPageLimit] = useState(getAppearance('pageLimit'));
 
@@ -204,13 +192,10 @@ function usePaginate(
 
   const autoPaginate = useCallback(async () => {
     if (timelineScrollRef.current && eventLimitRef.current) {
-      setLoadingTimeline(true);
       const timelineScroll = timelineScrollRef.current;
-      const limit = eventLimitRef.current;
 
       if (roomTimeline.isOngoingPagination) {
         setMediaHeight();
-        setLoadingTimeline(false);
         return;
       }
 
@@ -219,36 +204,26 @@ function usePaginate(
           ? roomTimeline.timeline.length
           : 0;
 
+      // Paginate scroll
       if (timelineScroll) {
+        // Top page
         if (timelineScroll.bottom < SCROLL_TRIGGER_POS) {
-          if (limit.length < tLength) {
-            // paginate from memory
-            limit.paginate(false, pageLimit, tLength);
-            //
-            forceUpdateLimit();
-          } else if (roomTimeline.canPaginateForward()) {
-            // paginate from server.
+          if (roomTimeline.canPaginateForward()) {
             await roomTimeline.paginateTimeline(false);
             setMediaHeight();
-            setLoadingTimeline(false);
             return;
           }
         }
 
+        // Bottom page
         if (timelineScroll.top < SCROLL_TRIGGER_POS || roomTimeline.timeline.length < 1) {
-          if (limit.from > 0) {
-            // paginate from memory
-            limit.paginate(true, pageLimit, tLength);
-            forceUpdateLimit();
-          } else if (roomTimeline.canPaginateBackward()) {
-            // paginate from server.
+          if (roomTimeline.canPaginateBackward()) {
             await roomTimeline.paginateTimeline(true);
           }
         }
       }
 
       setMediaHeight();
-      setLoadingTimeline(false);
     }
   }, [roomTimeline]);
 
@@ -419,15 +394,16 @@ function RoomViewContent({
   const readUptoEvtStore = useStore(roomTimeline);
   const [onLimitUpdate, forceUpdateLimit] = useForceUpdate();
 
+  // Timeline Info
   const timelineInfo = useTimeline(roomTimeline, eventId, readUptoEvtStore, eventLimitRef);
   const [paginateInfo, autoPaginate] = usePaginate(
     roomTimeline,
     readUptoEvtStore,
-    forceUpdateLimit,
     timelineScrollRef,
     eventLimitRef,
   );
 
+  // Scroll data
   const [handleScroll, handleScrollToLive] = useHandleScroll(
     roomTimeline,
     autoPaginate,
@@ -437,8 +413,10 @@ function RoomViewContent({
     eventLimitRef,
   );
 
+  // Event detector
   const newEvent = useEventArrive(roomTimeline, readUptoEvtStore, timelineScrollRef, eventLimitRef);
 
+  // The timeline
   const { timeline } = roomTimeline;
 
   useLayoutEffect(() => {
@@ -615,19 +593,13 @@ function RoomViewContent({
 
   useEffect(() => {
     const forceUpdateTime = () => {
-      if (roomTimeline && roomTimeline.canPaginateForward() && !isForceDelayTimeline()) {
-        setForceDelayTimeline(true);
+      if (roomTimeline && roomTimeline.canPaginateForward()) {
         forceUpdateLimit();
       }
     };
 
-    const timeoutTime = setInterval(() => {
-      if (isForceDelayTimeline()) setForceDelayTimeline(false);
-    }, 200);
-
     windowEvents.on('setWindowVisible', forceUpdateTime);
     return () => {
-      clearInterval(timeoutTime);
       windowEvents.off('setWindowVisible', forceUpdateTime);
     };
   });
