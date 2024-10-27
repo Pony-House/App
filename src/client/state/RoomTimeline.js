@@ -502,12 +502,11 @@ class RoomTimeline extends EventEmitter {
 
   canPaginateBackward() {
     if (this.timeline[0]?.getType() === 'm.room.create') return false;
-    const tm = getFirstLinkedTimeline(this.activeTimeline);
-    return tm.getPaginationToken(Direction.Backward) !== null;
+    return this._page !== this._pages;
   }
 
   canPaginateForward() {
-    return !this.isServingLiveTimeline();
+    return this._page > 1;
   }
 
   isEncrypted() {

@@ -162,6 +162,10 @@ class StorageManager extends EventEmitter {
     this._syncTimelineCache = { usedIds: [], using: false, used: false, roomsUsed: [], data: [] };
     this._addToTimelineCache = { using: false, data: [] };
 
+    this._editedIds = {};
+    this._deletedIds = {};
+    this._threadIds = {};
+
     this._eventDbs = [
       'reactions',
       'messages_search',
@@ -672,6 +676,7 @@ class StorageManager extends EventEmitter {
   _eventFilter(event, data = {}, extraValue = null, filter = {}) {
     const date = event.getDate();
     const threadId = this._getEventThreadId(event);
+    const isRedacted = event.isRedacted() ? true : false;
 
     data.event_id = event.getId();
     data.is_transaction = data.event_id.startsWith('~') ? true : false;
@@ -682,7 +687,11 @@ class StorageManager extends EventEmitter {
     if (filter.room_id !== false) data.room_id = event.getRoomId();
     if (filter.content !== false) data.content = clone(event.getContent());
     if (filter.unsigned !== false) data.unsigned = clone(event.getUnsigned());
-    if (filter.redaction !== false) data.redaction = event.isRedacted();
+    if (filter.redaction !== false)
+      data.redaction =
+        isRedacted || typeof this._deletedIds[data.event_id] === 'boolean'
+          ? this._deletedIds[data.event_id]
+          : false;
 
     if (filter.thread_id !== false) {
       if (typeof threadId === 'string') data.thread_id = threadId;
@@ -1005,6 +1014,20 @@ class StorageManager extends EventEmitter {
 
   setMessageEdit(event) {
     const msgRelative = event.getRelation();
+    const replaceTs = event.getTs();
+
+    if (
+      msgRelative &&
+      (!this._editedIds[msgRelative.event_id] ||
+        replaceTs > this._editedIds[msgRelative.event_id].replace_to_ts)
+    ) {
+      this._editedIds[msgRelative.event_id] = {
+        replace_to_ts: replaceTs,
+        replace_to_id: event.getId(),
+        replace_to: event.getContent(),
+      };
+    }
+
     return this._setDataTemplate('messages_edit', 'dbMessageEdit', event, (data) => {
       data.replace_event_id = msgRelative.event_id;
     });
@@ -1078,9 +1101,23 @@ class StorageManager extends EventEmitter {
   setMessage(event) {
     const tinyThis = this;
     const setMessage = () =>
-      new Promise((resolve, reject) =>
+      new Promise((resolve, reject) => {
+        const eventId = event.getId();
+        const extraAdd = {
+          is_thread:
+            typeof tinyThis._threadIds[eventId] === 'boolean'
+              ? tinyThis._threadIds[eventId]
+              : false,
+        };
+
+        if (tinyThis._editedIds[eventId]) {
+          extraAdd.replace_to_ts = tinyThis._editedIds[eventId].replace_to_ts;
+          extraAdd.replace_to_id = tinyThis._editedIds[eventId].replace_to_id;
+          extraAdd.replace_to = tinyThis._editedIds[eventId].replace_to;
+        }
+
         tinyThis
-          ._setDataTemplate('messages', 'dbMessage', event, { is_thread: false })
+          ._setDataTemplate('messages', 'dbMessage', event, extraAdd)
           .then((result) => {
             const data = tinyThis._eventFilter(event);
             const tinyItem = {
@@ -1124,8 +1161,8 @@ class StorageManager extends EventEmitter {
               })
               .catch(reject);
           })
-          .catch(reject),
-      );
+          .catch(reject);
+      });
 
     const setMessageEdit = () =>
       new Promise((resolve, reject) =>
@@ -1272,6 +1309,7 @@ class StorageManager extends EventEmitter {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
       const threadId = tinyThis._getEventThreadId(event);
+      tinyThis._threadIds[threadId] = true;
       if (typeof threadId === 'string') {
         const eventId = event.getId();
         tinyThis.storeConnection
@@ -1304,6 +1342,7 @@ class StorageManager extends EventEmitter {
 
   _setRedaction(eventId, dbName, isRedacted = false) {
     const tinyThis = this;
+    this._deletedIds[eventId] = isRedacted;
     return new Promise((resolve, reject) =>
       tinyThis.storeConnection
         .update({
