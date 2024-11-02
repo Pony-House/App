@@ -1439,6 +1439,13 @@
   dependencies:
     undici-types "~6.19.2"
 
+"@types/node@22.7.5":
+  version "22.7.5"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-22.7.5.tgz#cfde981727a7ab3611a481510b473ae54442b92b"
+  integrity sha512-jML7s2NAzMWc//QSJ1a3prpk78cOPchGvXJsC3C6R6PSMoooztvRVQEz89gmBTBY1SPMaqo5teB4uNHPdetShQ==
+  dependencies:
+    undici-types "~6.19.2"
+
 "@types/node@^20.9.0":
   version "20.16.5"
   resolved "https://registry.npmjs.org/@types/node/-/node-20.16.5.tgz"
@@ -5662,10 +5669,10 @@ matrix-events-sdk@0.0.1:
   resolved "https://registry.npmjs.org/matrix-events-sdk/-/matrix-events-sdk-0.0.1.tgz"
   integrity sha512-1QEOsXO+bhyCroIe2/A5OwaxHvBm7EsSQ46DEDn8RBIfQwN5HWBpFvyWWR4QY0KHPPnnJdI99wgRiAl7Ad5qaA==
 
-matrix-js-sdk@34.8.0:
-  version "34.8.0"
-  resolved "https://registry.yarnpkg.com/matrix-js-sdk/-/matrix-js-sdk-34.8.0.tgz#7ee18fb2ca22fb96d72a6720d0e80f9de12dd4c6"
-  integrity sha512-zHYPE+vb6PP/dnRa6X3ktXf34yQg/Pct9r5CSP263hA4tRg5sKEVQgnY7KDADaABTvNMb9h7BZ5Xm9vjXsowNQ==
+matrix-js-sdk@34.9.0:
+  version "34.9.0"
+  resolved "https://registry.yarnpkg.com/matrix-js-sdk/-/matrix-js-sdk-34.9.0.tgz#58ec0d09f0119bfb883c0babdf791694e3d740a3"
+  integrity sha512-Fm/2uKFgVthk04GcEcXvb+I8PquPyupDCoAipVz+TE4FfVR0gPgem/vxfQPqy7Ejwvx9ClCP2B6giqcQVj1aqQ==
   dependencies:
     "@babel/runtime" "^7.12.5"
     "@matrix-org/matrix-sdk-crypto-wasm" "^9.0.0"
