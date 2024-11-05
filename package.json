@@ -64,7 +64,7 @@
     "@khanacademy/simple-markdown": "0.13.3",
     "@matrix-org/olm": "3.2.15",
     "@tippyjs/react": "4.2.6",
-    "@xmtp/xmtp-js": "13.0.2",
+    "@xmtp/xmtp-js": "13.0.3",
     "auto-launch": "5.0.6",
     "blurhash": "2.0.5",
     "bootstrap": "5.3.3",

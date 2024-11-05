@@ -1418,41 +1418,6 @@
   dependencies:
     undici-types "~6.19.2"
 
-"@types/node@22.7.5":
-  version "22.7.5"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-22.7.5.tgz#cfde981727a7ab3611a481510b473ae54442b92b"
-  integrity sha512-jML7s2NAzMWc//QSJ1a3prpk78cOPchGvXJsC3C6R6PSMoooztvRVQEz89gmBTBY1SPMaqo5teB4uNHPdetShQ==
-  dependencies:
-    undici-types "~6.19.2"
-
-"@types/node@22.7.5":
-  version "22.7.5"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-22.7.5.tgz#cfde981727a7ab3611a481510b473ae54442b92b"
-  integrity sha512-jML7s2NAzMWc//QSJ1a3prpk78cOPchGvXJsC3C6R6PSMoooztvRVQEz89gmBTBY1SPMaqo5teB4uNHPdetShQ==
-  dependencies:
-    undici-types "~6.19.2"
-
-"@types/node@22.7.5":
-  version "22.7.5"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-22.7.5.tgz#cfde981727a7ab3611a481510b473ae54442b92b"
-  integrity sha512-jML7s2NAzMWc//QSJ1a3prpk78cOPchGvXJsC3C6R6PSMoooztvRVQEz89gmBTBY1SPMaqo5teB4uNHPdetShQ==
-  dependencies:
-    undici-types "~6.19.2"
-
-"@types/node@22.7.5":
-  version "22.7.5"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-22.7.5.tgz#cfde981727a7ab3611a481510b473ae54442b92b"
-  integrity sha512-jML7s2NAzMWc//QSJ1a3prpk78cOPchGvXJsC3C6R6PSMoooztvRVQEz89gmBTBY1SPMaqo5teB4uNHPdetShQ==
-  dependencies:
-    undici-types "~6.19.2"
-
-"@types/node@22.7.5":
-  version "22.7.5"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-22.7.5.tgz#cfde981727a7ab3611a481510b473ae54442b92b"
-  integrity sha512-jML7s2NAzMWc//QSJ1a3prpk78cOPchGvXJsC3C6R6PSMoooztvRVQEz89gmBTBY1SPMaqo5teB4uNHPdetShQ==
-  dependencies:
-    undici-types "~6.19.2"
-
 "@types/node@^20.9.0":
   version "20.16.5"
   resolved "https://registry.npmjs.org/@types/node/-/node-20.16.5.tgz"
@@ -1797,10 +1762,10 @@
   resolved "https://registry.npmjs.org/@xmtp/user-preferences-bindings-wasm/-/user-preferences-bindings-wasm-0.3.6.tgz"
   integrity sha512-ANi6ikrO6YBaK978sMuEEnpREvFQQnMVaNdlviaLzmc07u4Of4s/VLNnavl4qTb4F4cvwSiBWou0wSYIE5SWYg==
 
-"@xmtp/xmtp-js@13.0.2":
-  version "13.0.2"
-  resolved "https://registry.yarnpkg.com/@xmtp/xmtp-js/-/xmtp-js-13.0.2.tgz#553e6c267c29475d0e75535b81f0846736b7f711"
-  integrity sha512-nXXM2eX0NNGYXZlOv313KjsF82yYEtJRRawIJfEDHDHq5T1/nzn8aafoagDQE6sBFGfjCGmG7i/n7Q1cVTqcbw==
+"@xmtp/xmtp-js@13.0.3":
+  version "13.0.3"
+  resolved "https://registry.yarnpkg.com/@xmtp/xmtp-js/-/xmtp-js-13.0.3.tgz#b954305367a3fcf16626613da92ac4c289fbacab"
+  integrity sha512-p8yCTW31y1lb6g+ZMHqRLnko6NolPX0+2rrFc6zJUB9XMH/D0qSzS3eIUnCt+9S1tIOXUyI7Shs5OxqCT7KhjA==
   dependencies:
     "@noble/secp256k1" "1.7.1"
     "@xmtp/consent-proof-signature" "^0.1.3"
