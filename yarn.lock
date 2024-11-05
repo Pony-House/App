@@ -1418,41 +1418,6 @@
   dependencies:
     undici-types "~6.19.2"
 
-"@types/node@22.7.5":
-  version "22.7.5"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-22.7.5.tgz#cfde981727a7ab3611a481510b473ae54442b92b"
-  integrity sha512-jML7s2NAzMWc//QSJ1a3prpk78cOPchGvXJsC3C6R6PSMoooztvRVQEz89gmBTBY1SPMaqo5teB4uNHPdetShQ==
-  dependencies:
-    undici-types "~6.19.2"
-
-"@types/node@22.7.5":
-  version "22.7.5"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-22.7.5.tgz#cfde981727a7ab3611a481510b473ae54442b92b"
-  integrity sha512-jML7s2NAzMWc//QSJ1a3prpk78cOPchGvXJsC3C6R6PSMoooztvRVQEz89gmBTBY1SPMaqo5teB4uNHPdetShQ==
-  dependencies:
-    undici-types "~6.19.2"
-
-"@types/node@22.7.5":
-  version "22.7.5"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-22.7.5.tgz#cfde981727a7ab3611a481510b473ae54442b92b"
-  integrity sha512-jML7s2NAzMWc//QSJ1a3prpk78cOPchGvXJsC3C6R6PSMoooztvRVQEz89gmBTBY1SPMaqo5teB4uNHPdetShQ==
-  dependencies:
-    undici-types "~6.19.2"
-
-"@types/node@22.7.5":
-  version "22.7.5"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-22.7.5.tgz#cfde981727a7ab3611a481510b473ae54442b92b"
-  integrity sha512-jML7s2NAzMWc//QSJ1a3prpk78cOPchGvXJsC3C6R6PSMoooztvRVQEz89gmBTBY1SPMaqo5teB4uNHPdetShQ==
-  dependencies:
-    undici-types "~6.19.2"
-
-"@types/node@22.7.5":
-  version "22.7.5"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-22.7.5.tgz#cfde981727a7ab3611a481510b473ae54442b92b"
-  integrity sha512-jML7s2NAzMWc//QSJ1a3prpk78cOPchGvXJsC3C6R6PSMoooztvRVQEz89gmBTBY1SPMaqo5teB4uNHPdetShQ==
-  dependencies:
-    undici-types "~6.19.2"
-
 "@types/node@^20.9.0":
   version "20.16.5"
   resolved "https://registry.npmjs.org/@types/node/-/node-20.16.5.tgz"
@@ -5379,10 +5344,10 @@ jsonfile@^6.0.1:
   optionalDependencies:
     graceful-fs "^4.1.6"
 
-jsstore@4.8.1:
-  version "4.8.1"
-  resolved "https://registry.yarnpkg.com/jsstore/-/jsstore-4.8.1.tgz#40c086297d74fe9579a4312fda7399ff5139c104"
-  integrity sha512-khrNTXA4sqzth7fW2IGKN3TccWi5hRlCptKrNgiVD2VchfwBPc4RfAES6G+NAeghhZrNt5ol7H8PIBWXf2re5Q==
+jsstore@4.8.2:
+  version "4.8.2"
+  resolved "https://registry.yarnpkg.com/jsstore/-/jsstore-4.8.2.tgz#515655acc5505fc90cc28496ee0b0e198dd82ec3"
+  integrity sha512-t/3qdOjkM8pH92cCyfjHqyT1KnxbcAoMPFigorbt3RBapJ2x7ZD0lPLLH5MPhkh4jzls4aTCDYpOupHBZ59H/w==
 
 "jsx-ast-utils@^2.4.1 || ^3.0.0", jsx-ast-utils@^3.3.5:
   version "3.3.5"
