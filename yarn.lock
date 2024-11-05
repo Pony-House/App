@@ -782,17 +782,17 @@
   resolved "https://registry.npmjs.org/@juggle/resize-observer/-/resize-observer-3.4.0.tgz"
   integrity sha512-dfLbk+PwWvFzSxwk3n5ySL0hfBog779o8h68wK/7/APo/7cgyWp5jcXockbxdk5kFRkbeXWm4Fbi9FrdN381sA==
 
-"@khanacademy/perseus-core@1.5.2":
-  version "1.5.2"
-  resolved "https://registry.yarnpkg.com/@khanacademy/perseus-core/-/perseus-core-1.5.2.tgz#f0d8e45b7cb4cacfc7a43803d61bd4aebd6b165c"
-  integrity sha512-aj7Co0VO4ZTUkx9Htm0AI1yGXcSz02aF3Gzkk25NI+3vCflOi7rxkq4MGi+1Tb1JIwDl3XxXe2UR2Sm8ztDzLQ==
+"@khanacademy/perseus-core@1.5.3":
+  version "1.5.3"
+  resolved "https://registry.yarnpkg.com/@khanacademy/perseus-core/-/perseus-core-1.5.3.tgz#5aa5ae30b10bbb580d618cf53bddbb3239237f00"
+  integrity sha512-TH3h4h1JE+CANcBM5l2vqj3fXEKeD4TVJ0Hw/pLZ4eDNi5UF7e1vTTqs0fXaV22kfNPRWxEpvKdFfRI6O6pAhQ==
 
-"@khanacademy/simple-markdown@0.13.3":
-  version "0.13.3"
-  resolved "https://registry.yarnpkg.com/@khanacademy/simple-markdown/-/simple-markdown-0.13.3.tgz#26514a3437a6a0c60a01f8a29bb94546f974a068"
-  integrity sha512-1/fPPrbJyFtdsp/Fx7GOPtwZ054xCGSjYeavEszWk/eTXhgd52a5zUSdiwxH56cn1CQ37eQUieH3ADm2Uybe2w==
+"@khanacademy/simple-markdown@0.13.4":
+  version "0.13.4"
+  resolved "https://registry.yarnpkg.com/@khanacademy/simple-markdown/-/simple-markdown-0.13.4.tgz#528adb59926abf52af545f3cbafb967a06130f77"
+  integrity sha512-zyqctbDvwL1L59mkilv/R1+n0YU2RSlrLgW7WbT1BjUSg+KnuJtRDyvMEIDSZrgWtOyO5+22nrBuO2AzAjBVdQ==
   dependencies:
-    "@khanacademy/perseus-core" "1.5.2"
+    "@khanacademy/perseus-core" "1.5.3"
 
 "@malept/cross-spawn-promise@^2.0.0":
   version "2.0.0"
@@ -1410,41 +1410,6 @@
   integrity sha512-NzaRNFV+FZkvK/KLCsNdTvID0SThyrs5SHB6tsD/lajr22FGC73N2QeDPM2wHtVde8mgcXuSsHQkH5cX1pbPLw==
   dependencies:
     undici-types "~6.19.8"
-
-"@types/node@22.7.5":
-  version "22.7.5"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-22.7.5.tgz#cfde981727a7ab3611a481510b473ae54442b92b"
-  integrity sha512-jML7s2NAzMWc//QSJ1a3prpk78cOPchGvXJsC3C6R6PSMoooztvRVQEz89gmBTBY1SPMaqo5teB4uNHPdetShQ==
-  dependencies:
-    undici-types "~6.19.2"
-
-"@types/node@22.7.5":
-  version "22.7.5"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-22.7.5.tgz#cfde981727a7ab3611a481510b473ae54442b92b"
-  integrity sha512-jML7s2NAzMWc//QSJ1a3prpk78cOPchGvXJsC3C6R6PSMoooztvRVQEz89gmBTBY1SPMaqo5teB4uNHPdetShQ==
-  dependencies:
-    undici-types "~6.19.2"
-
-"@types/node@22.7.5":
-  version "22.7.5"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-22.7.5.tgz#cfde981727a7ab3611a481510b473ae54442b92b"
-  integrity sha512-jML7s2NAzMWc//QSJ1a3prpk78cOPchGvXJsC3C6R6PSMoooztvRVQEz89gmBTBY1SPMaqo5teB4uNHPdetShQ==
-  dependencies:
-    undici-types "~6.19.2"
-
-"@types/node@22.7.5":
-  version "22.7.5"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-22.7.5.tgz#cfde981727a7ab3611a481510b473ae54442b92b"
-  integrity sha512-jML7s2NAzMWc//QSJ1a3prpk78cOPchGvXJsC3C6R6PSMoooztvRVQEz89gmBTBY1SPMaqo5teB4uNHPdetShQ==
-  dependencies:
-    undici-types "~6.19.2"
-
-"@types/node@22.7.5":
-  version "22.7.5"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-22.7.5.tgz#cfde981727a7ab3611a481510b473ae54442b92b"
-  integrity sha512-jML7s2NAzMWc//QSJ1a3prpk78cOPchGvXJsC3C6R6PSMoooztvRVQEz89gmBTBY1SPMaqo5teB4uNHPdetShQ==
-  dependencies:
-    undici-types "~6.19.2"
 
 "@types/node@22.7.5":
   version "22.7.5"
