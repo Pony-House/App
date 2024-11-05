@@ -126,7 +126,7 @@
   "devDependencies": {
     "@capacitor/cli": "6.1.2",
     "@esbuild-plugins/node-globals-polyfill": "0.2.3",
-    "@eslint/js": "9.13.0",
+    "@eslint/js": "9.14.0",
     "@rollup/plugin-inject": "5.0.5",
     "@rollup/plugin-wasm": "6.2.2",
     "@types/node": "22.8.2",
