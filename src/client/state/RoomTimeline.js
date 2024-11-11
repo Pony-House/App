@@ -284,13 +284,13 @@ class RoomTimeline extends EventEmitter {
 
   // Insert into timeline
   _insertIntoTimeline(mEvent, isFirstTime = false, forceAdd = false) {
+    const pageLimit = getAppearance('pageLimit');
     if (
       (this._page < 2 || forceAdd) &&
       !mEvent.isRedacted() &&
       cons.supportMessageTypes.indexOf(mEvent.getType()) > -1 &&
       (this.timeline.length < pageLimit || mEvent.getTs() > this.timeline[0].getTs())
     ) {
-      const pageLimit = getAppearance('pageLimit');
       const eventId = mEvent.getId();
 
       const msgIndex = this.timeline.findIndex((item) => item.getId() === eventId);
