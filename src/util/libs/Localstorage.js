@@ -320,7 +320,6 @@ class StorageManager extends EventEmitter {
     this._timelineInsertTypes = {
       'pony.house.crdt': (event) => tinyThis.setCrdt(event),
       'm.reaction': (event) => tinyThis.setReaction(event),
-      'm.room.encrypted': (event) => tinyThis.setEncrypted(event),
     };
 
     for (const item in cons.supportMessageTypes) {
@@ -673,7 +672,7 @@ class StorageManager extends EventEmitter {
         : null;
   }
 
-  _eventFilter(event, data = {}, extraValue = null, filter = {}) {
+  _eventFilter(event, data = {}, extraValue = null) {
     const date = event.getDate();
     const threadId = this._getEventThreadId(event);
     const isRedacted = event.isRedacted() ? true : false;
@@ -682,23 +681,22 @@ class StorageManager extends EventEmitter {
     data.is_transaction = data.event_id.startsWith('~') ? true : false;
     data.e_status = event.status;
 
-    if (filter.type !== false) data.type = event.getType();
-    if (filter.sender !== false) data.sender = event.getSender();
-    if (filter.room_id !== false) data.room_id = event.getRoomId();
-    if (filter.content !== false) data.content = clone(event.getContent());
-    if (filter.unsigned !== false) data.unsigned = clone(event.getUnsigned());
-    if (filter.redaction !== false)
-      data.redaction =
-        isRedacted || typeof this._deletedIds[data.event_id] === 'boolean'
+    data.type = event.getType();
+    data.sender = event.getSender();
+    data.room_id = event.getRoomId();
+    data.content = clone(event.getContent());
+    data.unsigned = clone(event.getUnsigned());
+    data.redaction =
+      typeof isRedacted === 'boolean'
+        ? isRedacted
+        : typeof this._deletedIds[data.event_id] === 'boolean'
           ? this._deletedIds[data.event_id]
           : false;
 
-    if (filter.thread_id !== false) {
-      if (typeof threadId === 'string') data.thread_id = threadId;
-      else data.thread_id = 'NULL';
-    }
+    if (typeof threadId === 'string') data.thread_id = threadId;
+    else data.thread_id = 'NULL';
 
-    if (filter.origin_server_ts !== false && date) data.origin_server_ts = date.getTime();
+    if (date) data.origin_server_ts = date.getTime();
 
     if (typeof data.age !== 'number') delete data.age;
     if (typeof data.type !== 'string') delete data.type;
@@ -769,9 +767,9 @@ class StorageManager extends EventEmitter {
     });
   }
 
-  _setDataTemplate = (dbName, dbEvent, event, extraValue = null, filter = {}) => {
+  _setDataTemplate = (dbName, dbEvent, event, extraValue = null) => {
     const tinyThis = this;
-    const data = tinyThis._eventFilter(event, {}, extraValue, filter);
+    const data = tinyThis._eventFilter(event, {}, extraValue);
     return new Promise((resolve, reject) =>
       tinyThis.storeConnection
         .insert({
@@ -1287,10 +1285,6 @@ class StorageManager extends EventEmitter {
 
   deleteReactionById(event) {
     return this._deleteDataByIdTemplate('reactions', 'dbReactionDeleted', event);
-  }
-
-  setEncrypted(event) {
-    return this._setDataTemplate('encrypted', 'dbEncrypted', event);
   }
 
   deleteEncryptedById(event) {
