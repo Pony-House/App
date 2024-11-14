@@ -33,6 +33,19 @@ export function decryptAllEventsOfTimeline(eventTimeline) {
   return Promise.allSettled(decryptionPromises);
 }
 
+export function clearTimeline(tm, keepLastEvent = false) {
+  const events = tm.getEvents();
+  const eventsId = [];
+  for (const item in events) {
+    const i = Number(item);
+    if ((i > 0 && i < events.length - 1) || !keepLastEvent) eventsId.push(events[item].getId());
+  }
+
+  for (const item in eventsId) {
+    tm.removeEvent(eventsId[item]);
+  }
+}
+
 export function hideMemberEvents(mEvent) {
   const content = mEvent.getContent();
   const prevContent = mEvent.getPrevContent();

@@ -223,8 +223,6 @@ export const startDb = async (tinyThis) => {
           room_id: { notNull: false, dataType: DATA_TYPE.String },
           thread_id: { notNull: false, dataType: DATA_TYPE.String },
 
-          is_thread: { notNull: false, dataType: DATA_TYPE.Boolean },
-
           content: { notNull: false, dataType: DATA_TYPE.Object },
           unsigned: { notNull: false, dataType: DATA_TYPE.Object },
           embeds: { notNull: false, dataType: DATA_TYPE.Array },
@@ -293,6 +291,11 @@ export const startDb = async (tinyThis) => {
                 notNull: false,
                 dataType: DATA_TYPE.String,
               },
+            },
+          },
+          24: {
+            drop: {
+              is_thread: {},
             },
           },
         },
@@ -392,6 +395,14 @@ export const startDb = async (tinyThis) => {
               },
             },
           },
+        },
+      },
+
+      {
+        name: 'threads',
+        columns: {
+          event_id: { primaryKey: true, autoIncrement: false },
+          room_id: { notNull: false, dataType: DATA_TYPE.String },
         },
       },
 

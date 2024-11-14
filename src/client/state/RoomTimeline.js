@@ -32,6 +32,7 @@ class RoomTimeline extends EventEmitter {
     this._pages = 0;
     this._selectEvent = null;
     this.forceLoad = false;
+    this.lastEvent = null;
 
     // Client Prepare
     this.matrixClient = initMatrix.matrixClient;
@@ -210,7 +211,7 @@ class RoomTimeline extends EventEmitter {
     };
 
     // Thread added events
-    this._onIsThreadEvent = (r, mEvent) => {
+    this._onThreadEvent = (r, mEvent) => {
       if (!tinyThis._belongToRoom(mEvent)) return;
       if (!tinyThis.ended) {
       }
@@ -228,7 +229,7 @@ class RoomTimeline extends EventEmitter {
     storageManager.on('dbMessageUpdate', this._onMessage);
     storageManager.on('dbReaction', this._onReaction);
     storageManager.on('dbTimeline', this._onTimeline);
-    storageManager.on('dbEventIsThread', this._onIsThreadEvent);
+    storageManager.on('dbThreads', this._onThreadEvent);
     storageManager.on(`dbTimelineLoaded-${this.roomId}`, this._startTimeline);
   }
 
@@ -265,8 +266,7 @@ class RoomTimeline extends EventEmitter {
   }
 
   // Build pagination
-  _buildPagination(page, eventId) {
-    const limit = getAppearance('pageLimit');
+  _buildPagination(page, eventId, limit = getAppearance('pageLimit')) {
     const getMsgConfig = {
       roomId: this.roomId,
       showRedaction: false,
@@ -285,13 +285,15 @@ class RoomTimeline extends EventEmitter {
   // Insert into timeline
   _insertIntoTimeline(mEvent, isFirstTime = false, forceAdd = false) {
     const pageLimit = getAppearance('pageLimit');
+    const eventTs = mEvent.getTs();
     if (
       (this._page < 2 || forceAdd) &&
       !mEvent.isRedacted() &&
       cons.supportMessageTypes.indexOf(mEvent.getType()) > -1 &&
-      (this.timeline.length < pageLimit || mEvent.getTs() > this.timeline[0].getTs())
+      (this.timeline.length < pageLimit || eventTs > this.timeline[0].getTs())
     ) {
       const eventId = mEvent.getId();
+      if (!this.lastEvent || eventTs > this.lastEvent.getTs()) this.lastEvent = mEvent;
 
       const msgIndex = this.timeline.findIndex((item) => item.getId() === eventId);
       if (msgIndex < 0) {
@@ -344,6 +346,12 @@ class RoomTimeline extends EventEmitter {
 
       // Try time
       try {
+        // Get Last Page
+        if (this._page > 1 && !this.lastEvent) {
+          const firstTimeline = await storageManager.getMessages(this._buildPagination(1, null, 1));
+          if (firstTimeline[0]) this.lastEvent = firstTimeline[0];
+        }
+
         if (oldPage > 0 || this._selectEvent) {
           let events;
           const tinyThis = this;
@@ -517,7 +525,7 @@ class RoomTimeline extends EventEmitter {
   getReadUpToEventId() {
     const userId = this.matrixClient.getUserId();
     if (!userId) return null;
-    return this.thread?.getEventReadUpTo(userId) ?? this.room.getEventReadUpTo(userId);
+    return this.lastEvent;
   }
 
   getEventIndex(eventId) {
@@ -540,7 +548,7 @@ class RoomTimeline extends EventEmitter {
     storageManager.off('dbMessageUpdate', this._onMessage);
     storageManager.off('dbReaction', this._onReaction);
     storageManager.off('dbTimeline', this._onTimeline);
-    storageManager.off('dbEventIsThread', this._onIsThreadEvent);
+    storageManager.off('dbThreads', this._onThreadEvent);
     storageManager.off(`dbTimelineLoaded-${this.roomId}`, this._startTimeline);
   }
 }

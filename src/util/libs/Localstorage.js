@@ -20,6 +20,31 @@ import { toTitleCase } from '../tools';
 const genKey = () => generateApiKey().replace(/\~/g, 'pud');
 const SYNC_TIMELINE_DOWNLOAD_LIMIT = 100;
 
+const dontExistTimelineTimeout =
+  typeof __ENV_APP__.TIMELINE_TIMEOUT !== 'number' ||
+  !Number.isFinite(__ENV_APP__.TIMELINE_TIMEOUT) ||
+  Number.isNaN(__ENV_APP__.TIMELINE_TIMEOUT) ||
+  __ENV_APP__.TIMELINE_TIMEOUT <= 0;
+
+let TIMELINE_TIMEOUT_MULTI = 0;
+
+export const waitTimelineTimeout = () =>
+  new Promise((resolve) => {
+    if (dontExistTimelineTimeout) resolve();
+    else {
+      const tinyTimeout =
+        __ENV_APP__.TIMELINE_TIMEOUT +
+        Number(__ENV_APP__.TIMELINE_TIMEOUT_MULTI * TIMELINE_TIMEOUT_MULTI);
+
+      setTimeout(() => resolve(), tinyTimeout);
+      TIMELINE_TIMEOUT_MULTI++;
+      setTimeout(() => {
+        TIMELINE_TIMEOUT_MULTI--;
+        if (TIMELINE_TIMEOUT_MULTI < 0) TIMELINE_TIMEOUT_MULTI = 0;
+      }, 1000);
+    }
+  });
+
 const insertObjWhere = (data, name, obj) => {
   if (objType(obj, 'object')) {
     for (const item in obj) {
@@ -105,12 +130,6 @@ class LocalStorageEvent extends EventEmitter {
   };
 
   getThreadId = () => this.threadId;
-  isThread = () =>
-    typeof this.event?.is_thread === 'boolean'
-      ? this.event.is_thread
-      : this.threadId === this.event?.event_id
-        ? true
-        : false;
   getThread = () => this.thread;
 
   getPrevContent = () => this?.getUnsigned().prev_content || {};
@@ -155,12 +174,15 @@ class StorageManager extends EventEmitter {
     this.isPersisted = null;
 
     // Db
-    this._dbVersion = 23;
+    this._dbVersion = 25;
     this._oldDbVersion = this.getNumber('ponyHouse-db-version') || 0;
     this.dbName = 'pony-house-database';
     this._timelineSyncCache = this.getJson('ponyHouse-timeline-sync', 'obj');
     this._syncTimelineCache = { usedIds: [], using: false, used: false, roomsUsed: [], data: [] };
-    this._addToTimelineCache = { using: false, data: [] };
+
+    this._addToTimelineCache = {};
+    this._addToTimelineCache.default = { using: false, data: [] };
+    this._addToTimelineCache.sync = { using: false, data: [] };
 
     this._editedIds = {};
     this._deletedIds = {};
@@ -174,6 +196,7 @@ class StorageManager extends EventEmitter {
       'crdt',
       'timeline',
       'encrypted',
+      'threads',
     ];
 
     for (const item in this._eventDbs) {
@@ -369,6 +392,8 @@ class StorageManager extends EventEmitter {
         this._syncTimelineCache.roomsUsed.push(roomId);
 
       // if (!isNext) room.refreshLiveTimeline().catch(console.error);
+      // if (room) clearTimeline(room.getLiveTimeline(), true);
+
       tinyThis._syncTimelineNext();
     };
 
@@ -377,6 +402,7 @@ class StorageManager extends EventEmitter {
       if (room && typeof room.roomId === 'string') {
         const mx = initMatrix.matrixClient;
         const tm = timeline || room.getLiveTimeline();
+        await waitTimelineTimeout();
         if (room.hasEncryptionStateEvent()) await decryptAllEventsOfTimeline(tm);
         const roomId = room.roomId;
 
@@ -404,14 +430,18 @@ class StorageManager extends EventEmitter {
           if (Array.isArray(events) && events.length > 0) {
             let lastTimelineEventId = null;
 
+            console.log(`[room-db-sync] [${roomId}] Adding new events...`);
             for (const item in events) {
               const eventIdp = events[item].getId();
               if (this._syncTimelineCache.usedIds.indexOf(eventIdp) < 0) {
                 this._syncTimelineCache.usedIds.push(eventIdp);
-                this.addToTimeline(events[item]);
+                this.addToTimeline(events[item], 'sync');
                 lastTimelineEventId = eventIdp;
               }
             }
+
+            await this.waitAddTimeline('sync');
+            console.log(`[room-db-sync] [${roomId}] New events added!`);
 
             if (lastTimelineEventId) {
               this._timelineSyncCache[roomId] = {
@@ -420,18 +450,21 @@ class StorageManager extends EventEmitter {
               };
               this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
             }
-          }
-        }
+          } else console.log(`[room-db-sync] [${roomId}] No data found to save.`);
+        } else
+          console.log(`[room-db-sync] [${roomId}] Data load complete! Skipping data saving...`);
 
         // Next Timeline
         const nextTimelineToken = tm.getPaginationToken(Direction.Backward);
         if (!isComplete && nextTimelineToken) {
+          console.log(`[room-db-sync] [${roomId}] Preparing next step...`);
           this._syncTimelineCache.used = true;
           // Next checkpoint
           if (!checkPoint || !firstTime) {
             // Validator
             if (lastEventId !== this._timelineSyncCache[roomId].lastEvent) {
               // Next page
+              await waitTimelineTimeout();
               await mx.paginateEventTimeline(tm, {
                 backwards: Direction.Forward,
                 limit: SYNC_TIMELINE_DOWNLOAD_LIMIT,
@@ -461,6 +494,7 @@ class StorageManager extends EventEmitter {
 
           // Next event id
           else if (lastEventId !== this._timelineSyncCache[roomId].lastEvent) {
+            await waitTimelineTimeout();
             const eTimeline = await mx.getEventTimeline(
               room.getUnfilteredTimelineSet(),
               checkPoint,
@@ -499,40 +533,23 @@ class StorageManager extends EventEmitter {
   _syncTimelineNext() {
     if (this._syncTimelineCache.data.length > 0) {
       const data = this._syncTimelineCache.data.shift();
-      if (
-        typeof __ENV_APP__.TIMELINE_TIMEOUT !== 'number' ||
-        !Number.isFinite(__ENV_APP__.TIMELINE_TIMEOUT) ||
-        Number.isNaN(__ENV_APP__.TIMELINE_TIMEOUT) ||
-        __ENV_APP__.TIMELINE_TIMEOUT <= 0
-      )
-        this._syncTimelineRun(
+      const tinyThis = this;
+      waitTimelineTimeout().then(() =>
+        tinyThis._syncTimelineRun(
           data.room,
           data.eventId,
           data.checkpoint,
           data.timeline,
           data.firstTime,
-        );
-      else {
-        const tinyThis = this;
-        setTimeout(
-          () =>
-            tinyThis._syncTimelineRun(
-              data.room,
-              data.eventId,
-              data.checkpoint,
-              data.timeline,
-              data.firstTime,
-            ),
-          __ENV_APP__.TIMELINE_TIMEOUT,
-        );
-      }
+        ),
+      );
     } else {
       console.log(`[room-db-sync] All complete!`);
       if (this._syncTimelineCache.used) {
         const tinyThis = this;
         const tinyRoomsUsed = clone(this._syncTimelineCache.roomsUsed);
 
-        console.log(`[room-db-sync] Updating redaction data...`);
+        /* console.log(`[room-db-sync] Updating redaction data...`);
         tinyThis.storeConnection
           .select({
             from: 'timeline',
@@ -578,6 +595,7 @@ class StorageManager extends EventEmitter {
                   }
 
                   // Check threads
+                  await waitTimelineTimeout();
                   if (mEvent.threadId) await tinyThis._setIsThread(mEvent, true);
                 }
                 console.log(`[room-db-sync] Thread and more redaction data request sent!`);
@@ -598,6 +616,18 @@ class StorageManager extends EventEmitter {
               .catch(console.error);
           })
           .catch(console.error);
+          */
+
+        // Complete!
+        for (const item in tinyRoomsUsed) {
+          const usedRoom = tinyRoomsUsed[item];
+          if (this._timelineSyncCache[usedRoom]) {
+            this._timelineSyncCache[usedRoom].isComplete = true;
+            this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
+          }
+
+          console.log(`[room-db-sync] Database checker complete!`);
+        }
       }
 
       this._syncTimelineCache.usedIds = [];
@@ -639,12 +669,19 @@ class StorageManager extends EventEmitter {
     }
 
     const timeline = await this.storeConnection.remove({ from: 'timeline', where });
+    await waitTimelineTimeout();
     const encrypted = await this.storeConnection.remove({ from: 'encrypted', where });
+    await waitTimelineTimeout();
     const messages = await this.storeConnection.remove({ from: 'messages', where });
+    await waitTimelineTimeout();
     const reactions = await this.storeConnection.remove({ from: 'reactions', where });
+    await waitTimelineTimeout();
     const members = await this.storeConnection.remove({ from: 'members', where });
+    await waitTimelineTimeout();
     const messagesEdit = await this.storeConnection.remove({ from: 'messages_edit', where });
+    await waitTimelineTimeout();
     const messagesSearch = await this.storeConnection.remove({ from: 'messages_search', where });
+    await waitTimelineTimeout();
     const receipt = await this.deleteReceiptByRoomId(roomId);
 
     return {
@@ -755,7 +792,7 @@ class StorageManager extends EventEmitter {
                 })
                 .then((result) => {
                   tinyThis.emit('dbMember', result, { event: clone(data) });
-                  resolve(result);
+                  waitTimelineTimeout().then(() => resolve(result));
                 })
                 .catch(tinyReject);
             } else resolve(null);
@@ -779,7 +816,7 @@ class StorageManager extends EventEmitter {
         })
         .then((result) => {
           tinyThis.emit(dbEvent, result, tinyThis.convertToEventFormat(data));
-          resolve(result);
+          waitTimelineTimeout().then(() => resolve(result));
         })
         .catch(reject),
     );
@@ -799,7 +836,7 @@ class StorageManager extends EventEmitter {
         })
         .then((result) => {
           tinyThis.emit(dbEvent, result, event);
-          resolve(result);
+          waitTimelineTimeout().then(() => resolve(result));
         })
         .catch(reject),
     );
@@ -1059,7 +1096,7 @@ class StorageManager extends EventEmitter {
         })
         .then((result) => {
           tinyThis.emit('dbReceipt', result, { event: clone(data) });
-          resolve(result);
+          waitTimelineTimeout().then(() => resolve(result));
         })
         .catch(reject);
     });
@@ -1078,7 +1115,7 @@ class StorageManager extends EventEmitter {
         })
         .then((result) => {
           tinyThis.emit('dbReceiptDeleted', result);
-          resolve(result);
+          waitTimelineTimeout().then(() => resolve(result));
         })
         .catch(reject),
     );
@@ -1101,12 +1138,7 @@ class StorageManager extends EventEmitter {
     const setMessage = () =>
       new Promise((resolve, reject) => {
         const eventId = event.getId();
-        const extraAdd = {
-          is_thread:
-            typeof tinyThis._threadIds[eventId] === 'boolean'
-              ? tinyThis._threadIds[eventId]
-              : false,
-        };
+        const extraAdd = {};
 
         if (tinyThis._editedIds[eventId]) {
           extraAdd.replace_to_ts = tinyThis._editedIds[eventId].replace_to_ts;
@@ -1155,7 +1187,7 @@ class StorageManager extends EventEmitter {
               })
               .then((result2) => {
                 tinyThis.emit('dbMessageSearch', result2, tinyItem);
-                resolve(result);
+                waitTimelineTimeout().then(() => resolve(result));
               })
               .catch(reject);
           })
@@ -1248,10 +1280,10 @@ class StorageManager extends EventEmitter {
                 })
                 .then((result2) => {
                   tinyThis.emit('dbMessageSearch', result2, tinyItem);
-                  resolve(result);
+                  waitTimelineTimeout().then(() => resolve(result));
                 })
                 .catch(reject);
-            } else resolve(result);
+            } else waitTimelineTimeout().then(() => resolve(result));
           })
           .catch(reject),
       );
@@ -1305,29 +1337,19 @@ class StorageManager extends EventEmitter {
       const threadId = tinyThis._getEventThreadId(event);
       tinyThis._threadIds[threadId] = true;
       if (typeof threadId === 'string') {
-        const eventId = event.getId();
+        const data = {
+          event_id: threadId,
+          room_id: event.getRoomId(),
+        };
         tinyThis.storeConnection
-          .update({
-            in: 'messages',
-            set: {
-              is_thread: true,
-            },
-            where: {
-              event_id: threadId,
-            },
+          .insert({
+            into: 'threads',
+            upsert: true,
+            values: [data],
           })
-          .then((noOfRowsUpdated) => {
-            if (typeof noOfRowsUpdated === 'number' && noOfRowsUpdated > 0)
-              tinyThis.emit(
-                'dbEventIsThread',
-                {
-                  eventId,
-                  threadId,
-                  noOfRowsUpdated,
-                },
-                event,
-              );
-            resolve(noOfRowsUpdated);
+          .then((result) => {
+            tinyThis.emit('dbThreads', result, { event: clone(data) });
+            waitTimelineTimeout().then(() => resolve(result));
           })
           .catch(reject);
       } else resolve(null);
@@ -1356,7 +1378,7 @@ class StorageManager extends EventEmitter {
               noOfRowsUpdated,
               isRedacted,
             });
-          resolve(noOfRowsUpdated);
+          waitTimelineTimeout().then(() => resolve(noOfRowsUpdated));
         })
         .catch(reject),
     );
@@ -1389,59 +1411,76 @@ class StorageManager extends EventEmitter {
     }
   }
 
-  _addToTimelineRun(event) {
+  _addToTimelineRun(event, resolve, reject, where) {
     const tinyThis = this;
-    return new Promise((resolve, reject) => {
-      const tinyReject = (err) => {
-        console.error('[indexed-db] ERROR SAVING TIMELINE DATA!');
-        console.error(err);
-        tinyThis.emit('dbTimeline-Error', err);
-        tinyThis._addToTimeline();
-        reject(err);
-      };
+    const tinyReject = (err) => {
+      console.error('[indexed-db] ERROR SAVING TIMELINE DATA!');
+      console.error(err);
+      tinyThis.emit('dbTimeline-Error', err);
+      tinyThis._addToTimeline(where);
+      reject(err);
+    };
 
-      const tinyComplete = async (result) => {
-        await tinyThis._setIsThread(event);
-        tinyThis._addToTimeline();
-        resolve(result);
-      };
+    const tinyComplete = async (result) => {
+      await tinyThis._setIsThread(event);
+      tinyThis._addToTimeline(where);
+      resolve(result);
+    };
 
-      const eventType = event.getType();
-      if (typeof tinyThis._timelineInsertTypes[eventType] === 'function')
-        tinyThis._timelineInsertTypes[eventType](event).then(tinyComplete).catch(tinyReject);
-      else {
-        tinyThis
-          .setTimeline(event)
-          .then(async (result) => {
-            try {
-              if (eventType === 'm.room.redaction') await tinyThis._sendSetRedaction(event);
-              if (eventType === 'm.room.member') await tinyThis.setMember(event);
-              tinyComplete(result);
-            } catch (err) {
-              tinyReject(err);
-            }
-          })
-          .catch(tinyReject);
-      }
+    const eventType = event.getType();
+    if (typeof this._timelineInsertTypes[eventType] === 'function')
+      this._timelineInsertTypes[eventType](event).then(tinyComplete).catch(tinyReject);
+    else {
+      this.setTimeline(event)
+        .then(async (result) => {
+          try {
+            if (eventType === 'm.room.redaction') await tinyThis._sendSetRedaction(event);
+            if (eventType === 'm.room.member') await tinyThis.setMember(event);
+            tinyComplete(result);
+          } catch (err) {
+            tinyReject(err);
+          }
+        })
+        .catch(tinyReject);
+    }
+  }
+
+  _addToTimeline(where) {
+    if (this._addToTimelineCache[where].data.length > 0) {
+      const eventData = this._addToTimelineCache[where].data.shift();
+      this._addToTimelineRun(eventData.event, eventData.resolve, eventData.reject, eventData.where);
+      if (this._addToTimelineCache[where].data.length < __ENV_APP__.TIMELINE_EVENTS_PER_TIME)
+        this._addToTimeline(where);
+    } else {
+      this._addToTimelineCache[where].using = false;
+    }
+  }
+
+  waitAddTimeline(where) {
+    const tinyThis = this;
+    return new Promise((resolve) => {
+      const tinyWaitTime = () => {
+        if (!tinyThis._addToTimelineCache[where].using) resolve();
+        else setTimeout(tinyWaitTime, 200);
+      };
+      tinyWaitTime();
     });
   }
 
-  _addToTimeline() {
-    if (this._addToTimelineCache.data.length > 0) {
-      const event = this._addToTimelineCache.data.shift();
-      this._addToTimelineRun(event);
-    } else {
-      this._addToTimelineCache.using = false;
-    }
-  }
-
-  addToTimeline(event) {
-    if (!this._addToTimelineCache.using) {
-      this._addToTimelineCache.using = true;
-      this._addToTimelineRun(event.toSnapshot());
-    } else {
-      this._addToTimelineCache.data.push(event.toSnapshot());
-    }
+  async addToTimeline(event, where = 'default') {
+    const tinyThis = this;
+    const eventSnap = event.toSnapshot();
+    return new Promise((resolve, reject) => {
+      if (
+        !tinyThis._addToTimelineCache[where].using ||
+        tinyThis._addToTimelineCache[where].data.length < __ENV_APP__.TIMELINE_EVENTS_PER_TIME
+      ) {
+        tinyThis._addToTimelineCache[where].using = true;
+        tinyThis._addToTimelineRun(eventSnap, resolve, reject, where);
+      } else {
+        tinyThis._addToTimelineCache[where].data.push({ event: eventSnap, resolve, reject, where });
+      }
+    });
   }
 
   async _syncSendEvent(eventId, roomId, threadId, key) {
