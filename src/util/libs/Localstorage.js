@@ -178,7 +178,14 @@ class StorageManager extends EventEmitter {
     this._oldDbVersion = this.getNumber('ponyHouse-db-version') || 0;
     this.dbName = 'pony-house-database';
     this._timelineSyncCache = this.getJson('ponyHouse-timeline-sync', 'obj');
-    this._syncTimelineCache = { usedIds: [], using: false, used: false, roomsUsed: [], data: [] };
+    this._syncTimelineCache = {
+      usedIds: [],
+      roomId: null,
+      using: false,
+      used: false,
+      roomsUsed: [],
+      data: [],
+    };
 
     this._addToTimelineCache = {};
     this._addToTimelineCache.default = { using: false, data: [] };
@@ -374,6 +381,7 @@ class StorageManager extends EventEmitter {
   // Sync Timeline
   async _syncTimelineRun(room, eventId, checkpoint = null, timeline = null, firstTime = false) {
     const tinyThis = this;
+    this._syncTimelineCache.roomId = null;
     const loadComplete = (roomId, checkPoint, lastEventId, isNext, err) => {
       const tinyData = {
         roomId,
@@ -394,6 +402,7 @@ class StorageManager extends EventEmitter {
       // if (!isNext) room.refreshLiveTimeline().catch(console.error);
       // if (room) clearTimeline(room.getLiveTimeline(), true);
 
+      tinyThis._sendSyncStatus();
       tinyThis._syncTimelineNext();
     };
 
@@ -405,6 +414,9 @@ class StorageManager extends EventEmitter {
         await waitTimelineTimeout();
         if (room.hasEncryptionStateEvent()) await decryptAllEventsOfTimeline(tm);
         const roomId = room.roomId;
+        this._syncTimelineCache.roomId = roomId;
+
+        this._sendSyncStatus();
 
         // Get checkpoint
         const lastEventId =
@@ -634,13 +646,15 @@ class StorageManager extends EventEmitter {
       this._syncTimelineCache.roomsUsed = [];
       this._syncTimelineCache.using = false;
       this._syncTimelineCache.used = false;
+      this._syncTimelineCache.roomId = null;
+      this._sendSyncStatus();
     }
   }
 
   _syncTimeline(room, eventId, checkpoint = null, timeline = null) {
     if (room && typeof room.roomId === 'string') {
       if (this._syncTimelineCache.using) {
-        this._syncTimelineCache.data.push({
+        this._syncTimelineCache.data.unshift({
           roomId: room.roomId,
           eventId,
           room,
@@ -648,11 +662,16 @@ class StorageManager extends EventEmitter {
           timeline,
           firstTime: true,
         });
+        this._sendSyncStatus();
       } else {
         this._syncTimelineCache.using = true;
         this._syncTimelineRun(room, eventId, checkpoint, timeline, true);
       }
     }
+  }
+
+  _sendSyncStatus() {
+    this.emit('timelineSyncStatus', this._syncTimelineCache);
   }
 
   syncTimeline(roomId, eventId, checkpoint = null) {
