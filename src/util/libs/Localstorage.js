@@ -99,7 +99,7 @@ class LocalStorageEvent extends EventEmitter {
       return this.threadId;
     }
     const unsigned = this.getUnsigned();
-    if (typeof unsigned[UNSIGNED_THREAD_ID_FIELD.name] === 'string') {
+    if (unsigned && typeof unsigned[UNSIGNED_THREAD_ID_FIELD.name] === 'string') {
       return unsigned[UNSIGNED_THREAD_ID_FIELD.name];
     }
     return undefined;
@@ -1367,7 +1367,7 @@ class StorageManager extends EventEmitter {
             values: [data],
           })
           .then((result) => {
-            tinyThis.emit('dbThreads', result, { event: clone(data) });
+            tinyThis.emit('dbThreads', result, tinyThis.convertToEventFormat(data));
             waitTimelineTimeout().then(() => resolve(result));
           })
           .catch(reject);
