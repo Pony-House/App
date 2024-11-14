@@ -546,7 +546,7 @@ class StorageManager extends EventEmitter {
     } else {
       console.log(`[room-db-sync] All complete!`);
       if (this._syncTimelineCache.used) {
-        const tinyThis = this;
+        // const tinyThis = this;
         const tinyRoomsUsed = clone(this._syncTimelineCache.roomsUsed);
 
         /* console.log(`[room-db-sync] Updating redaction data...`);

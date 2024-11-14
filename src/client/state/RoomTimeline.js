@@ -525,7 +525,7 @@ class RoomTimeline extends EventEmitter {
   getReadUpToEventId() {
     const userId = this.matrixClient.getUserId();
     if (!userId) return null;
-    return this.lastEvent;
+    return this.lastEvent ? this.lastEvent.getId() : null;
   }
 
   getEventIndex(eventId) {
