@@ -1,5 +1,4 @@
 import EventEmitter from 'events';
-import { Direction } from 'matrix-js-sdk';
 
 import storageManager from '@src/util/libs/Localstorage';
 import { getAppearance } from '@src/util/libs/appearance';
@@ -14,10 +13,11 @@ import {
   isEdited,
   isReaction,
   hideMemberEvents,
-  getFirstLinkedTimeline,
   getLastLinkedTimeline,
 } from './Timeline/functions';
 import installYjs from './Timeline/yjs';
+
+const timelineCache = {};
 
 // Class
 class RoomTimeline extends EventEmitter {
@@ -27,12 +27,8 @@ class RoomTimeline extends EventEmitter {
 
     // These are local timelines
     this.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
-    this.timeline = [];
-    this._page = 0;
-    this._pages = 0;
     this._selectEvent = null;
     this.forceLoad = false;
-    this.lastEvent = null;
 
     // Client Prepare
     this.matrixClient = initMatrix.matrixClient;
@@ -41,14 +37,28 @@ class RoomTimeline extends EventEmitter {
     this.initialized = false;
     this.ended = false;
 
-    this.timeline = [];
     this.editedTimeline = new Map();
     this.reactionTimeline = new Map();
 
     this.room = this.matrixClient.getRoom(roomId);
     this.room.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
 
-    this._consoleTag = `[timeline] [${roomId}]`;
+    this.timelineId = `${roomId}${threadId ? `_${threadId}` : ''}`;
+
+    if (!timelineCache[this.timelineId])
+      timelineCache[this.timelineId] = {
+        timeline: [],
+        page: 0,
+        pages: 0,
+        lastEvent: null,
+        threadId,
+        roomId,
+      };
+
+    this.timelineCache = timelineCache[this.timelineId];
+    this.timeline = this.timelineCache.timeline;
+
+    this._consoleTag = `[timeline] [${roomId}]${threadId ? ` [${threadId}]` : ''}`;
 
     // Nothing! Tiny cancel time.
     if (this.room === null) {
@@ -73,11 +83,11 @@ class RoomTimeline extends EventEmitter {
   }
 
   getPages() {
-    return this._pages;
+    return this.timelineCache.pages;
   }
 
   getPage() {
-    return this._page;
+    return this.timelineCache.page;
   }
 
   setPage(page) {
@@ -97,7 +107,7 @@ class RoomTimeline extends EventEmitter {
         console.log(`[timeline] Starting timeline ${this.roomId}`);
         const tinyError = (err) => {
           console.error(err);
-          alert(message, 'Timeline load error');
+          alert(err.message, 'Timeline load error');
         };
 
         if (!data.err) {
@@ -126,22 +136,28 @@ class RoomTimeline extends EventEmitter {
               }
 
               if (!tinyThis.ended) {
-                const getMsgConfig = tinyThis._buildPagination(1);
-                tinyThis._pages = await storageManager.getMessagesPagination(getMsgConfig);
+                const getMsgConfig = tinyThis._buildPagination({ page: 1 });
 
-                if (!eventId || tinyThis.forceLoad) {
-                  const events = await storageManager.getMessages(getMsgConfig);
-                  while (tinyThis.timeline.length > 0) {
-                    tinyThis._deletingEventById(tinyThis.timeline[0].getId());
-                  }
+                if (tinyThis.timelineCache.pages < 1) {
+                  tinyThis.timelineCache.pages =
+                    await storageManager.getMessagesPagination(getMsgConfig);
+                }
 
-                  if (!tinyThis.ended) {
-                    for (const item in events) {
-                      tinyThis._insertIntoTimeline(events[item], true, true);
+                if (tinyThis.timelineCache.timeline.length < 1) {
+                  if (!eventId || tinyThis.forceLoad) {
+                    const events = await storageManager.getMessages(getMsgConfig);
+                    while (tinyThis.timelineCache.timeline.length > 0) {
+                      tinyThis._deletingEventById(tinyThis.timelineCache.timeline[0].getId());
                     }
-                  }
-                  tinyThis.forceLoad = false;
-                } else tinyThis._selectEvent = eventId;
+
+                    if (!tinyThis.ended) {
+                      for (const item in events) {
+                        tinyThis._insertIntoTimeline(events[item], undefined, true, true);
+                      }
+                    }
+                    tinyThis.forceLoad = false;
+                  } else tinyThis._selectEvent = eventId;
+                }
 
                 if (!tinyThis.ended) {
                   if (tinyThis._ydoc.initialized) {
@@ -172,16 +188,19 @@ class RoomTimeline extends EventEmitter {
 
     // Message events
     this._onMessage = async (r, mEvent) => {
-      if (!tinyThis._belongToRoom(mEvent) && !mEvent.isRedacted()) return;
+      const tmc = tinyThis.getTimelineCache(mEvent);
+      if (!tmc && !mEvent.isRedacted()) return;
       if (!tinyThis.ended) {
-        this._pages = await storageManager.getMessagesPagination(this._buildPagination());
+        tmc.pages = await storageManager.getMessagesPagination(
+          this._buildPagination({ threadId: mEvent.getThreadId(), roomId: mEvent.getRoomId() }),
+        );
         if (!tinyThis.ended) {
           // Check event
           if (!mEvent.isSending() || mEvent.getSender() === initMatrix.matrixClient.getUserId()) {
             // Check isEdited
 
             // Send into the timeline
-            tinyThis._insertIntoTimeline(mEvent);
+            tinyThis._insertIntoTimeline(mEvent, tmc);
           }
         }
       }
@@ -190,7 +209,7 @@ class RoomTimeline extends EventEmitter {
     // Reaction events
     this._onReaction = (r, mEvent) => {
       if (!tinyThis.ended) {
-        if (!tinyThis._belongToRoom(mEvent)) return;
+        if (!tinyThis.belongToRoom(mEvent)) return;
         console.log(
           `${mEvent.getType()} ${mEvent.getRoomId()} ${mEvent.getId()} Reaction Wait ${mEvent.getSender()}`,
           mEvent.getContent(),
@@ -203,23 +222,26 @@ class RoomTimeline extends EventEmitter {
     // Timeline events
     this._onTimeline = async (r, mEvent) => {
       if (!tinyThis.ended) {
-        if (!tinyThis._belongToRoom(mEvent)) return;
-        this._pages = await storageManager.getMessagesPagination(this._buildPagination());
-        if (mEvent.getType() !== 'm.room.redaction') tinyThis._insertIntoTimeline(mEvent);
+        const tmc = tinyThis.getTimelineCache(mEvent);
+        if (!tmc) return;
+        tmc.pages = await storageManager.getMessagesPagination(
+          this._buildPagination({ threadId: mEvent.getThreadId(), roomId: mEvent.getRoomId() }),
+        );
+        if (mEvent.getType() !== 'm.room.redaction') tinyThis._insertIntoTimeline(mEvent, tmc);
         else tinyThis._deletingEvent(mEvent);
       }
     };
 
     // Thread added events
     this._onThreadEvent = (r, mEvent) => {
-      if (!tinyThis._belongToRoom(mEvent)) return;
+      if (!tinyThis.belongToRoom(mEvent)) return;
       if (!tinyThis.ended) {
       }
     };
 
     // Crdt events
     this._onCrdt = (r, mEvent) => {
-      if (!tinyThis._belongToRoom(mEvent)) return;
+      if (!tinyThis.belongToRoom(mEvent)) return;
       if (!tinyThis.ended) tinyThis.sendCrdtToTimeline(mEvent);
     };
 
@@ -258,17 +280,34 @@ class RoomTimeline extends EventEmitter {
     }
   }
 
+  // Get TimelineCache
+  getTimelineCache(event) {
+    const threadId = event.getThreadId();
+    const roomId = event.getRoomId();
+    return timelineCache[`${roomId}${threadId ? `_${threadId}` : ''}`];
+  }
+
   // Belong to Room
-  _belongToRoom(event) {
+  belongToRoom(event) {
     return (
       event.getRoomId() === this.roomId && (!this.threadId || event.getThreadId() === this.threadId)
     );
   }
 
+  belongToTimelineList(event) {
+    return this.getTimelineCache(event) ? true : false;
+  }
+
   // Build pagination
-  _buildPagination(page, eventId, limit = getAppearance('pageLimit')) {
+  _buildPagination(config = {}) {
+    const threadId = config.threadId || this.threadId;
+    const roomId = config.roomId || this.roomId;
+    const page = config.page;
+    const eventId = config.eventId;
+    const limit = config.limit || getAppearance('pageLimit');
+
     const getMsgConfig = {
-      roomId: this.roomId,
+      roomId: roomId,
       showRedaction: false,
       limit:
         typeof limit === 'number' && !Number.isNaN(limit) && Number.isFinite(limit) && limit > 0
@@ -276,38 +315,40 @@ class RoomTimeline extends EventEmitter {
           : 10,
     };
     if (typeof page === 'number') getMsgConfig.page = page;
-    if (!this.threadId) getMsgConfig.showThreads = false;
+    if (!threadId) getMsgConfig.showThreads = false;
     if (typeof eventId === 'string') getMsgConfig.eventId = eventId;
-    else getMsgConfig.threadId = this.threadId;
+    else getMsgConfig.threadId = threadId;
     return getMsgConfig;
   }
 
   // Insert into timeline
-  _insertIntoTimeline(mEvent, isFirstTime = false, forceAdd = false) {
+  _insertIntoTimeline(mEvent, tmc = this.timelineCache, isFirstTime = false, forceAdd = false) {
     const pageLimit = getAppearance('pageLimit');
     const eventTs = mEvent.getTs();
     if (
-      (this._page < 2 || forceAdd) &&
+      (tmc.page < 2 || forceAdd) &&
       !mEvent.isRedacted() &&
       cons.supportMessageTypes.indexOf(mEvent.getType()) > -1 &&
-      (this.timeline.length < pageLimit || eventTs > this.timeline[0].getTs())
+      (tmc.timeline.length < pageLimit || eventTs > tmc.timeline[0].getTs())
     ) {
       const eventId = mEvent.getId();
-      if (!this.lastEvent || eventTs > this.lastEvent.getTs()) this.lastEvent = mEvent;
+      if (!tmc.lastEvent || eventTs > tmc.lastEvent.getTs()) tmc.lastEvent = mEvent;
 
-      const msgIndex = this.timeline.findIndex((item) => item.getId() === eventId);
+      const msgIndex = tmc.timeline.findIndex((item) => item.getId() === eventId);
       if (msgIndex < 0) {
-        this.timeline.push(mEvent);
-        if (this.timeline.length > pageLimit) {
-          const removedEvent = this.timeline.shift();
+        tmc.timeline.push(mEvent);
+        if (tmc.timeline.length > pageLimit) {
+          const removedEvent = tmc.timeline.shift();
           this._deletingEventPlaces(removedEvent.getId());
         }
 
-        this.timeline.sort((a, b) => a.getTs() - b.getTs());
-      } else this.timeline[msgIndex] = mEvent;
+        tmc.timeline.sort((a, b) => a.getTs() - b.getTs());
+      } else tmc.timeline[msgIndex] = mEvent;
 
-      if (mEvent.isEdited()) this.editedTimeline.set(eventId, [mEvent.getEditedContent()]);
-      if (!isFirstTime) this.emit(cons.events.roomTimeline.EVENT, mEvent);
+      if (tmc.roomId === this.roomId && (!tmc.threadId || tmc.threadId === this.threadId)) {
+        if (mEvent.isEdited()) this.editedTimeline.set(eventId, [mEvent.getEditedContent()]);
+        if (!isFirstTime) this.emit(cons.events.roomTimeline.EVENT, mEvent);
+      }
     }
   }
 
@@ -332,24 +373,26 @@ class RoomTimeline extends EventEmitter {
     if (!this.ended) {
       // Initialization
       if (this.isOngoingPagination) return false;
-      const oldPage = this._page;
+      const oldPage = this.timelineCache.page;
 
       if (typeof backwards === 'boolean') {
-        if (backwards) this._page++;
-        else this._page--;
-      } else if (typeof backwards === 'number') this._page = backwards;
+        if (backwards) this.timelineCache.page++;
+        else this.timelineCache.page--;
+      } else if (typeof backwards === 'number') this.timelineCache.page = backwards;
 
       this.isOngoingPagination = true;
 
       // Old Size
-      const oldSize = this.timeline.length;
+      const oldSize = this.timelineCache.timeline.length;
 
       // Try time
       try {
         // Get Last Page
-        if (this._page > 1 && !this.lastEvent) {
-          const firstTimeline = await storageManager.getMessages(this._buildPagination(1, null, 1));
-          if (firstTimeline[0]) this.lastEvent = firstTimeline[0];
+        if (this.timelineCache.page > 1 && !this.timelineCache.lastEvent) {
+          const firstTimeline = await storageManager.getMessages(
+            this._buildPagination({ page: 1, limit: 1 }),
+          );
+          if (firstTimeline[0]) this.timelineCache.lastEvent = firstTimeline[0];
         }
 
         if (oldPage > 0 || this._selectEvent) {
@@ -358,14 +401,18 @@ class RoomTimeline extends EventEmitter {
 
           // Normal get page
           const normalGetData = async () => {
-            tinyThis._pages = await storageManager.getMessagesPagination(this._buildPagination());
-            events = await storageManager.getMessages(this._buildPagination(this._page));
+            tinyThis.timelineCache.pages = await storageManager.getMessagesPagination(
+              this._buildPagination(),
+            );
+            events = await storageManager.getMessages(
+              this._buildPagination({ page: this.timelineCache.page }),
+            );
           };
 
           // Remove old timeline
           const clearTimeline = () => {
-            while (tinyThis.timeline.length > 0) {
-              tinyThis._deletingEventById(tinyThis.timeline[0].getId());
+            while (tinyThis.timelineCache.timeline.length > 0) {
+              tinyThis._deletingEventById(tinyThis.timelineCache.timeline[0].getId());
             }
           };
 
@@ -378,13 +425,13 @@ class RoomTimeline extends EventEmitter {
           // Use event id
           if (!this.ended && this._selectEvent) {
             const data = await storageManager.getLocationMessagesId(
-              this._buildPagination(undefined, this._selectEvent),
+              this._buildPagination({ eventId: this._selectEvent }),
             );
 
             if (!this.ended) {
               if (data && data.success) {
-                this._pages = data.pages;
-                this._page = data.page;
+                this.timelineCache.pages = data.pages;
+                this.timelineCache.page = data.page;
                 events = data.items;
               } else await normalGetData();
 
@@ -396,14 +443,14 @@ class RoomTimeline extends EventEmitter {
           // Insert events into the timeline
           if (!this.ended && Array.isArray(events)) {
             for (const item in events) {
-              this._insertIntoTimeline(events[item], true, true);
+              this._insertIntoTimeline(events[item], undefined, true, true);
             }
           }
         }
 
         if (!this.ended) {
           // Loaded Check
-          const loaded = this.timeline.length - oldSize;
+          const loaded = this.timelineCache.timeline.length - oldSize;
 
           // Complete
           this.emit(cons.events.roomTimeline.PAGINATED, backwards, loaded);
@@ -466,7 +513,7 @@ class RoomTimeline extends EventEmitter {
   }
 
   getEvents() {
-    return this.timeline;
+    return this.timelineCache.timeline;
   }
 
   // Has Event inside the visible timeline
@@ -482,10 +529,10 @@ class RoomTimeline extends EventEmitter {
     if (!readUpToEvent) return -1;
     const rTs = readUpToEvent.getTs();
 
-    const tLength = this.timeline.length;
+    const tLength = this.timelineCache.timeline.length;
 
     for (let i = 0; i < tLength; i += 1) {
-      const mEvent = this.timeline[i];
+      const mEvent = this.timelineCache.timeline[i];
       if (mEvent.getTs() > rTs) return i;
     }
 
@@ -496,7 +543,7 @@ class RoomTimeline extends EventEmitter {
   deleteFromTimeline(eventId) {
     const i = this.getEventIndex(eventId);
     if (i === -1) return undefined;
-    return this.timeline.splice(i, 1)[0];
+    return this.timelineCache.timeline.splice(i, 1)[0];
   }
 
   // Checar se isso ainda vai continuar sendo usado.
@@ -510,12 +557,12 @@ class RoomTimeline extends EventEmitter {
   }
 
   canPaginateBackward() {
-    if (this.timeline[0]?.getType() === 'm.room.create') return false;
-    return this._page !== this._pages;
+    if (this.timelineCache.timeline[0]?.getType() === 'm.room.create') return false;
+    return this.timelineCache.page !== this.timelineCache.pages;
   }
 
   canPaginateForward() {
-    return this._page > 1;
+    return this.timelineCache.page > 1;
   }
 
   isEncrypted() {
@@ -525,19 +572,19 @@ class RoomTimeline extends EventEmitter {
   getReadUpToEventId() {
     const userId = this.matrixClient.getUserId();
     if (!userId) return null;
-    return this.lastEvent ? this.lastEvent.getId() : null;
+    return this.timelineCache.lastEvent ? this.timelineCache.lastEvent.getId() : null;
   }
 
   getEventIndex(eventId) {
-    return this.timeline.findIndex((mEvent) => mEvent.getId() === eventId);
+    return this.timelineCache.timeline.findIndex((mEvent) => mEvent.getId() === eventId);
   }
 
   findEventByIdInTimelineSet(eventId) {
-    return this.timeline[this.getEventIndex(eventId)] ?? null;
+    return this.timelineCache.timeline[this.getEventIndex(eventId)] ?? null;
   }
 
   findEventById(eventId) {
-    return this.timeline[this.getEventIndex(eventId)] ?? null;
+    return this.timelineCache.timeline[this.getEventIndex(eventId)] ?? null;
   }
 
   removeInternalListeners() {
