@@ -10,7 +10,7 @@ import MxcUrl from '@src/util/libs/MxcUrl';
 import envAPI from '@src/util/libs/env';
 import { startTimestamp } from '@src/util/markdown';
 import attemptDecryption from '@src/util/libs/attemptDecryption';
-import { preloadImages } from '@src/util/tools';
+import { preloadImages } from '@src/util/tools2';
 import {
   defaultAvatar,
   defaultProfileBanner,

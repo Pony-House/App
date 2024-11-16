@@ -174,7 +174,7 @@ class StorageManager extends EventEmitter {
     this.isPersisted = null;
 
     // Db
-    this._dbVersion = 25;
+    this._dbVersion = 26;
     this._oldDbVersion = this.getNumber('ponyHouse-db-version') || 0;
     this.dbName = 'pony-house-database';
     this._timelineSyncCache = this.getJson('ponyHouse-timeline-sync', 'obj');
@@ -1066,7 +1066,7 @@ class StorageManager extends EventEmitter {
     return data;
   }
 
-  setMessageEdit(event) {
+  async setMessageEdit(event) {
     const msgRelative = event.getRelation();
     const replaceTs = event.getTs();
 
@@ -1075,6 +1075,21 @@ class StorageManager extends EventEmitter {
       (!this._editedIds[msgRelative.event_id] ||
         replaceTs > this._editedIds[msgRelative.event_id].replace_to_ts)
     ) {
+      await this.storeConnection.insert({
+        into: 'messages_primary_edit',
+        upsert: true,
+        values: [
+          {
+            replace_id: msgRelative.event_id,
+            event_id: event.getId(),
+            room_id: event.getRoomId(),
+            thread_id: event.getThread()?.id,
+            content: event.getContent(),
+            origin_server_ts: replaceTs,
+          },
+        ],
+      });
+
       this._editedIds[msgRelative.event_id] = {
         replace_to_ts: replaceTs,
         replace_to_id: event.getId(),

@@ -112,22 +112,6 @@ export default defineConfig(({ command, mode }) => {
     VERSION: pkg.version,
     DEPS: pkg.dependencies,
     PLATFORM: process.platform,
-    CUSTOM_DNS: {
-
-      ENABLED: addBooleanToEnv('CUSTOM_DNS'),
-      PORT: Number(env.CUSTOM_DNS_PORT),
-
-      BLOCKCHAIN: {
-
-        ud: {
-          polygon: env.UD_POLYGON_DNS,
-        },
-
-        ens: env.ETHEREUM_DNS,
-
-      },
-
-    },
 
     INFO: {
       name: String(pkg.short_name),

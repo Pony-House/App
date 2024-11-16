@@ -18,6 +18,7 @@ global.Buffer = Buffer;
 // global.Buffer = global.Buffer || Buffer;
 function StartApp(appProtocol) {
   global.getEnvApp = () => clone(__ENV_APP__);
+  console.log(`[app] Starting...`);
 
   const pageType = urlParams.get('type');
   const pageId = urlParams.get('id');
@@ -38,6 +39,7 @@ function StartApp(appProtocol) {
     typeof pageId === 'string' &&
     pageId.length > 0
   ) {
+    console.log(`[app] Chatroom mode.`);
     if (pageType === 'chatroom') {
       const hs = urlParams.get('hs');
       return root.render(

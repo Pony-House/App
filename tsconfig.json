@@ -39,6 +39,9 @@
     }
   },
   "exclude": [
+    "android",
+    "docs",
+    "flatpak",
     "node_modules",
     "dist",
     "vendor",

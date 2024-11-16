@@ -9,4 +9,5 @@ import './scss/default.scss';
 
 import StartApp from './start';
 
+console.log('[index] File detected! Starting app!');
 StartApp('vite');

@@ -145,7 +145,8 @@ class RoomTimeline extends EventEmitter {
 
                 if (tinyThis.timelineCache.timeline.length < 1) {
                   if (!eventId || tinyThis.forceLoad) {
-                    const events = await storageManager.getMessages(getMsgConfig);
+                    const getMsgTinyCfg = tinyThis._buildPagination({ page: 1, isMsgs: true });
+                    const events = await storageManager.getMessages(getMsgTinyCfg);
                     while (tinyThis.timelineCache.timeline.length > 0) {
                       tinyThis._deletingEventById(tinyThis.timelineCache.timeline[0].getId());
                     }
@@ -314,6 +315,13 @@ class RoomTimeline extends EventEmitter {
           ? limit
           : 10,
     };
+
+    /* if(config.isMsgs) {
+      getMsgConfig.join = {
+        with: 'messages_primary_edit',
+      };
+    } */
+
     if (typeof page === 'number') getMsgConfig.page = page;
     if (!threadId) getMsgConfig.showThreads = false;
     if (typeof eventId === 'string') getMsgConfig.eventId = eventId;
@@ -390,7 +398,7 @@ class RoomTimeline extends EventEmitter {
         // Get Last Page
         if (this.timelineCache.page > 1 && !this.timelineCache.lastEvent) {
           const firstTimeline = await storageManager.getMessages(
-            this._buildPagination({ page: 1, limit: 1 }),
+            this._buildPagination({ page: 1, limit: 1, isMsgs: true }),
           );
           if (firstTimeline[0]) this.timelineCache.lastEvent = firstTimeline[0];
         }
@@ -405,7 +413,7 @@ class RoomTimeline extends EventEmitter {
               this._buildPagination(),
             );
             events = await storageManager.getMessages(
-              this._buildPagination({ page: this.timelineCache.page }),
+              this._buildPagination({ page: this.timelineCache.page, isMsgs: true }),
             );
           };
 

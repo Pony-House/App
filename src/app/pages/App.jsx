@@ -8,7 +8,7 @@ import { startWeb3 } from '@src/util/web3';
 import Auth from '@src/app/templates/auth/Auth';
 import Client from '@src/app/templates/client/Client';
 
-import web3Talk from '@src/util/web3/xmtp';
+// import web3Talk from '@src/util/web3/xmtp';
 import envAPI from '@src/util/libs/env';
 import libreTranslate from '@src/util/libs/libreTranslate';
 import { useDevToolsStatus } from '../templates/client/useDevToolsStatus';
@@ -23,7 +23,8 @@ function App() {
 
   if (!firstTime) {
     libreTranslate.start();
-    startWeb3(() => web3Talk.start());
+    // startWeb3(() => web3Talk.start());
+    startWeb3();
   } else {
     return null;
   }
