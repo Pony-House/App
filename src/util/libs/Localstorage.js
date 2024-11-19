@@ -197,7 +197,7 @@ class StorageManager extends EventEmitter {
     this.isPersisted = null;
 
     // Db
-    this._dbVersion = 26;
+    this._dbVersion = 27;
     this._oldDbVersion = this.getNumber('ponyHouse-db-version') || 0;
     this.dbName = 'pony-house-database';
     this._timelineSyncCache = this.getJson('ponyHouse-timeline-sync', 'obj');
@@ -820,6 +820,9 @@ class StorageManager extends EventEmitter {
         data.user_id = event.getSender();
         data.room_id = event.getRoomId();
         data.type = content.membership;
+
+        data.avatar_url = content.avatar_url;
+        data.display_name = content.displayname;
 
         if (date) data.origin_server_ts = date.getTime();
         data.id = `${data.user_id}:${data.room_id}`;

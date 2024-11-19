@@ -423,10 +423,26 @@ export const startDb = async (tinyThis) => {
         columns: {
           id: { primaryKey: true, autoIncrement: false },
           type: { notNull: false, dataType: DATA_TYPE.String },
+          avatar_url: { notNull: false, dataType: DATA_TYPE.String },
+          display_name: { notNull: false, dataType: DATA_TYPE.String },
 
           user_id: { notNull: false, dataType: DATA_TYPE.String },
           room_id: { notNull: false, dataType: DATA_TYPE.String },
           origin_server_ts: { notNull: true, dataType: DATA_TYPE.Number },
+        },
+        alter: {
+          27: {
+            add: {
+              avatar_url: {
+                notNull: false,
+                dataType: DATA_TYPE.String,
+              },
+              display_name: {
+                notNull: false,
+                dataType: DATA_TYPE.String,
+              },
+            },
+          },
         },
       },
     ],
