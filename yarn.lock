@@ -549,11 +549,6 @@
     minimatch "^3.1.2"
     strip-json-comments "^3.1.1"
 
-"@eslint/js@9.14.0":
-  version "9.14.0"
-  resolved "https://registry.yarnpkg.com/@eslint/js/-/js-9.14.0.tgz#2347a871042ebd11a00fd8c2d3d56a265ee6857e"
-  integrity sha512-pFoEtFWCPyDOl+C6Ift+wC7Ro89otjigCf5vcuWqWgqNSQbRrpjSvdeE6ofLz4dHmyxD5f7gIdGT4+p36L6Twg==
-
 "@eslint/js@9.15.0":
   version "9.15.0"
   resolved "https://registry.yarnpkg.com/@eslint/js/-/js-9.15.0.tgz#df0e24fe869143b59731942128c19938fdbadfb5"
@@ -5650,10 +5645,10 @@ matrix-events-sdk@0.0.1:
   resolved "https://registry.npmjs.org/matrix-events-sdk/-/matrix-events-sdk-0.0.1.tgz"
   integrity sha512-1QEOsXO+bhyCroIe2/A5OwaxHvBm7EsSQ46DEDn8RBIfQwN5HWBpFvyWWR4QY0KHPPnnJdI99wgRiAl7Ad5qaA==
 
-matrix-js-sdk@34.9.0:
-  version "34.9.0"
-  resolved "https://registry.yarnpkg.com/matrix-js-sdk/-/matrix-js-sdk-34.9.0.tgz#58ec0d09f0119bfb883c0babdf791694e3d740a3"
-  integrity sha512-Fm/2uKFgVthk04GcEcXvb+I8PquPyupDCoAipVz+TE4FfVR0gPgem/vxfQPqy7Ejwvx9ClCP2B6giqcQVj1aqQ==
+matrix-js-sdk@34.11.1:
+  version "34.11.1"
+  resolved "https://registry.yarnpkg.com/matrix-js-sdk/-/matrix-js-sdk-34.11.1.tgz#b9a6d8212d8417682265769b3088c4717458089c"
+  integrity sha512-rDbIUIqEsN/pbHb6haBQmjxxgeb9G3Df2IhPPOotUbX6R1KseA8yJ6TAY0YySM2zVaBV3yZ6dnKWexF/uWvZfA==
   dependencies:
     "@babel/runtime" "^7.12.5"
     "@matrix-org/matrix-sdk-crypto-wasm" "^9.0.0"
