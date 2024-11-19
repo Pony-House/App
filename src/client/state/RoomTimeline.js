@@ -336,7 +336,7 @@ class RoomTimeline extends EventEmitter {
     if (
       (tmc.page < 2 || forceAdd) &&
       !mEvent.isRedacted() &&
-      cons.supportMessageTypes.indexOf(mEvent.getType()) > -1 &&
+      cons.supportEventTypes.indexOf(mEvent.getType()) > -1 &&
       (tmc.timeline.length < pageLimit || eventTs > tmc.timeline[0].getTs())
     ) {
       const eventId = mEvent.getId();

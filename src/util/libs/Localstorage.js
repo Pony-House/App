@@ -352,8 +352,8 @@ class StorageManager extends EventEmitter {
       'm.reaction': (event) => tinyThis.setReaction(event),
     };
 
-    for (const item in cons.supportMessageTypes) {
-      this._timelineInsertTypes[cons.supportMessageTypes[item]] = (event) => this.setMessage(event);
+    for (const item in cons.supportEventTypes) {
+      this._timelineInsertTypes[cons.supportEventTypes[item]] = (event) => this.setMessage(event);
     }
 
     window.addEventListener('storage', function (e) {
@@ -1463,7 +1463,12 @@ class StorageManager extends EventEmitter {
 
     const eventType = event.getType();
     if (typeof this._timelineInsertTypes[eventType] === 'function')
-      this._timelineInsertTypes[eventType](event).then(tinyComplete).catch(tinyReject);
+      this._timelineInsertTypes[eventType](event)
+        .then(async (tinyData) => {
+          if (eventType === 'm.room.member') await tinyThis.setMember(event);
+          tinyComplete(tinyData);
+        })
+        .catch(tinyReject);
     else {
       this.setTimeline(event)
         .then(async (result) => {

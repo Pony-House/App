@@ -28,8 +28,6 @@ const cons = {
     'm.sticker',
   ],
 
-  supportMessageTypes: ['m.room.create', 'm.room.message', 'm.room.pinned_events', 'm.sticker'],
-
   supportReceiptTypes: ['m.read', 'm.read.private'],
 
   notifs: {
