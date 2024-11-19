@@ -36,6 +36,7 @@ class RoomTimeline extends EventEmitter {
     this.roomAlias = roomAlias;
     this.initialized = false;
     this.ended = false;
+    this.firstStart = false;
 
     this.editedTimeline = new Map();
     this.reactionTimeline = new Map();
@@ -176,6 +177,7 @@ class RoomTimeline extends EventEmitter {
                     tinyThis.initialized = true;
                     tinyThis.emit(cons.events.roomTimeline.READY, eventId || null);
                     console.log(`[timeline] Timeline started ${this.roomId}`);
+                    tinyThis.firstStart = true;
                   }
                 }
               }
@@ -254,6 +256,18 @@ class RoomTimeline extends EventEmitter {
     storageManager.on('dbTimeline', this._onTimeline);
     storageManager.on('dbThreads', this._onThreadEvent);
     storageManager.on(`dbTimelineLoaded-${this.roomId}`, this._startTimeline);
+  }
+
+  async waitFirstSync() {
+    if (this.firstStart) return true;
+    else {
+      const tinyThis = this;
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          tinyThis.waitFirstSync().then(resolve).catch(reject);
+        }, 100);
+      });
+    }
   }
 
   // Load live timeline

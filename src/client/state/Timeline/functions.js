@@ -5,6 +5,11 @@ import settings from '../settings';
 
 export const setEventTimeline = async (roomTimeline, eId) => {
   if (typeof eId === 'string') {
+    if (!roomTimeline.firstStart) {
+      storageManager.syncTimeline(roomTimeline.roomId);
+      await roomTimeline.waitFirstSync();
+    }
+
     const isLoaded = await roomTimeline.loadEventTimeline(eId);
     if (isLoaded) return;
     // if eventTimeline failed to load,
