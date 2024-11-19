@@ -96,7 +96,13 @@ function RoomViewFloating({ roomId, roomTimeline, refRoomInput, refcmdInput }) {
   const handleScrollToBottom = () => {
     roomTimeline.emit(cons.events.roomTimeline.SCROLL_TO_LIVE);
     urlParams.delete('event_id');
-    setIsAtBottom(true);
+    if (roomTimeline.getPage() === 1) setIsAtBottom(true);
+    else {
+      roomTimeline
+        .paginateTimeline(1)
+        .then(() => setIsAtBottom(true))
+        .catch((err) => console.error(err));
+    }
   };
 
   const roomInput = $(refRoomInput.current);
