@@ -4,6 +4,7 @@ import {
   UNSIGNED_THREAD_ID_FIELD,
   THREAD_RELATION_TYPE,
   EventType,
+  MatrixEventEvent,
 } from 'matrix-js-sdk';
 import clone from 'clone';
 import { generateApiKey } from 'generate-api-key';
@@ -209,6 +210,9 @@ class StorageManager extends EventEmitter {
       roomsUsed: [],
       data: [],
     };
+
+    this._sendingEventCache = {};
+    this._eventsLoadWaiting = this.getJson('ponyHouse-storage-loading', 'obj');
 
     this._addToTimelineCache = {};
     this._addToTimelineCache.default = { using: false, data: [] };
@@ -1568,7 +1572,51 @@ class StorageManager extends EventEmitter {
     if (room) {
       const mEvent = room.getEventForTxnId(key);
       if (mEvent) this.addToTimeline(mEvent);
+      this._syncDeleteSendEvent(roomId, threadId, key, 'dbEventCacheReady', 'SENT');
     }
+  }
+
+  _syncDeleteSendEvent(roomId, threadId, key, emitName, emitData) {
+    if (this._sendingEventCache[key]) {
+      this.emit(
+        emitName,
+        {
+          roomId,
+          threadId,
+          key,
+        },
+        this._sendingEventCache[key],
+      );
+      this._sendingEventCache[key].status = emitData;
+      this._sendingEventCache[key].event.e_status = emitData;
+      this._sendingEventCache[key].emit(MatrixEventEvent.Status, emitData);
+      delete this._sendingEventCache[key];
+    }
+  }
+
+  _syncPrepareSendEvent(roomId, threadId, key, eventName, content) {
+    this._sendingEventCache[key] = this.convertToEventFormat({
+      room_id: roomId,
+      thread_id: threadId,
+      e_status: 'sending',
+      event_id: key,
+      type: eventName,
+      content,
+      origin_server_ts: new Date().getTime(),
+      unsigned: {},
+      redaction: false,
+      sender: initMatrix.matrixClient.getUserId(),
+    });
+    this.emit(
+      'dbEventCachePreparing',
+      {
+        roomId,
+        threadId,
+        key,
+        eventName,
+      },
+      this._sendingEventCache[key],
+    );
   }
 
   async redactEvent(roomId, eventId, reason) {
@@ -1591,15 +1639,21 @@ class StorageManager extends EventEmitter {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
       const key = genKey();
+      const tinyError = (err) => {
+        tinyThis._syncDeleteSendEvent(roomId, null, key, 'dbEventCacheError', 'CANCELLED');
+        reject(err);
+      };
+
+      tinyThis._syncPrepareSendEvent(roomId, null, key, eventName, content);
       initMatrix.matrixClient
         .sendEvent(roomId, eventName, content, key)
         .then((msgData) =>
           tinyThis
             ._syncSendEvent(msgData?.event_id, roomId, undefined, key)
             .then(() => resolve(msgData))
-            .catch(reject),
+            .catch(tinyError),
         )
-        .catch(reject);
+        .catch(tinyError);
     });
   }
 
@@ -1607,15 +1661,21 @@ class StorageManager extends EventEmitter {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
       const key = genKey();
+      const tinyError = (err) => {
+        tinyThis._syncDeleteSendEvent(roomId, threadId, key, 'dbEventCacheError', 'CANCELLED');
+        reject(err);
+      };
+
+      tinyThis._syncPrepareSendEvent(roomId, threadId, key, eventName, content);
       initMatrix.matrixClient
         .sendEvent(roomId, threadId, eventName, content, key)
         .then((msgData) =>
           tinyThis
             ._syncSendEvent(msgData?.event_id, roomId, threadId, key)
             .then(() => resolve(msgData))
-            .catch(reject),
+            .catch(tinyError),
         )
-        .catch(reject);
+        .catch(tinyError);
     });
   }
 
@@ -1623,15 +1683,21 @@ class StorageManager extends EventEmitter {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
       const key = genKey();
+      const tinyError = (err) => {
+        tinyThis._syncDeleteSendEvent(roomId, null, key, 'dbEventCacheError', 'CANCELLED');
+        reject(err);
+      };
+
+      tinyThis._syncPrepareSendEvent(roomId, null, key, 'm.room.message', content);
       initMatrix.matrixClient
         .sendMessage(roomId, content, key)
         .then((msgData) =>
           tinyThis
             ._syncSendEvent(msgData?.event_id, roomId, undefined, key)
             .then(() => resolve(msgData))
-            .catch(reject),
+            .catch(tinyError),
         )
-        .catch(reject);
+        .catch(tinyError);
     });
   }
 
@@ -1639,15 +1705,21 @@ class StorageManager extends EventEmitter {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
       const key = genKey();
+      const tinyError = (err) => {
+        tinyThis._syncDeleteSendEvent(roomId, threadId, key, 'dbEventCacheError', 'CANCELLED');
+        reject(err);
+      };
+
+      tinyThis._syncPrepareSendEvent(roomId, threadId, key, 'm.room.message', content);
       initMatrix.matrixClient
         .sendMessage(roomId, threadId, content, key)
         .then((msgData) =>
           tinyThis
             ._syncSendEvent(msgData?.event_id, roomId, threadId, key)
             .then(() => resolve(msgData))
-            .catch(reject),
+            .catch(tinyError),
         )
-        .catch(reject);
+        .catch(tinyError);
     });
   }
 

@@ -209,6 +209,38 @@ class RoomTimeline extends EventEmitter {
       }
     };
 
+    this._onYourMessage = (data, mEvent) => {
+      const tmc = tinyThis.getTimelineCache(mEvent);
+      if (!tmc) return;
+      if (!tinyThis.ended) {
+        tinyThis._insertIntoTimeline(mEvent, tmc);
+      }
+    };
+
+    this._onYourMessageComplete = (data, mEvent) => {
+      const tmc = tinyThis.getTimelineCache(mEvent);
+      if (!tmc) return;
+      if (!tinyThis.ended) {
+        const eventId = mEvent.getId();
+        const msgIndex = tmc.timeline.findIndex((item) => item.getId() === eventId);
+        if (msgIndex > -1) {
+          this.timelineCache.timeline.splice(msgIndex, 1);
+          this._deletingEventPlaces(eventId);
+        }
+      }
+    };
+
+    this._onYourMessageError = (data, mEvent) => {
+      const tmc = tinyThis.getTimelineCache(mEvent);
+      if (!tmc) return;
+      if (!tinyThis.ended) {
+        const eventId = mEvent.getId();
+        const msgIndex = tmc.timeline.findIndex((item) => item.getId() === eventId);
+        if (msgIndex > -1) {
+        }
+      }
+    };
+
     // Reaction events
     this._onReaction = (r, mEvent) => {
       if (!tinyThis.ended) {
@@ -247,6 +279,11 @@ class RoomTimeline extends EventEmitter {
       if (!tinyThis.belongToRoom(mEvent)) return;
       if (!tinyThis.ended) tinyThis.sendCrdtToTimeline(mEvent);
     };
+
+    // Event Status Events
+    storageManager.on('dbEventCachePreparing', this._onYourMessage);
+    storageManager.on('dbEventCacheReady', this._onYourMessageComplete);
+    storageManager.on('dbEventCacheError', this._onYourMessageError);
 
     // Prepare events
     storageManager.on('dbCrdt', this._onCrdt);
@@ -612,6 +649,9 @@ class RoomTimeline extends EventEmitter {
   removeInternalListeners() {
     this.ended = true;
     this._disableYdoc();
+    storageManager.off('dbEventCachePreparing', this._onYourMessage);
+    storageManager.off('dbEventCacheReady', this._onYourMessageComplete);
+    storageManager.off('dbEventCacheError', this._onYourMessageError);
     storageManager.off('dbCrdt', this._onCrdt);
     storageManager.off('dbMessage', this._onMessage);
     storageManager.off('dbMessageUpdate', this._onMessage);
