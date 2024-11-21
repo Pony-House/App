@@ -262,9 +262,6 @@ export function openThreadsMessageModal(room) {
                       if (modal) modal.hide();
                       try {
                         // Go to timeline
-                        const roomTimeline = getRoomInfo().roomTimeline;
-                        const isLoaded = await roomTimeline.loadEventTimeline(eventId);
-                        if (!isLoaded) roomTimeline.loadLiveTimeline();
                         selectRoom(roomId, undefined, { threadId: eventId, force: true });
                       } catch (err) {
                         console.error(err);

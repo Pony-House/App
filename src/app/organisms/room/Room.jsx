@@ -78,6 +78,9 @@ function Room() {
       setIsRoomMode(roomType === 'room' ? true : false);
     };
     const setRoomSelected = (roomId, threadId, eventId, forceScroll) => {
+      console.log(
+        `[selected-room] ${roomId}${threadId ? `:${threadId}` : ''}${eventId ? ` ${eventId}` : ''}`,
+      );
       const roomTimeline = new RoomTimeline(roomId, threadId);
 
       sendRoomInfo({

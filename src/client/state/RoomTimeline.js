@@ -105,7 +105,7 @@ class RoomTimeline extends EventEmitter {
     // Start timeline events
     this._startTimeline = async (data, eventId) => {
       if (!tinyThis.ended) {
-        console.log(`[timeline] Starting timeline ${this.roomId}`);
+        console.log(`${this._consoleTag} Starting timeline`);
         const tinyError = (err) => {
           console.error(err);
           alert(err.message, 'Timeline load error');
@@ -176,7 +176,7 @@ class RoomTimeline extends EventEmitter {
                     // if(!tinyThis.initialized) tinyThis.paginateTimeline(true);
                     tinyThis.initialized = true;
                     tinyThis.emit(cons.events.roomTimeline.READY, eventId || null);
-                    console.log(`[timeline] Timeline started ${this.roomId}`);
+                    console.log(`${this._consoleTag} Timeline started`);
                     tinyThis.firstStart = true;
                   }
                 }

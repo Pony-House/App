@@ -930,8 +930,14 @@ class StorageManager extends EventEmitter {
     insertObjWhere(data, 'content', content);
     insertObjWhere(data, 'unsigned', unsigned);
     addCustomSearch(data.where, customWhere);
-    if (typeof threadId === 'string' && data.where.thread_id !== 'NULL')
+    if (typeof threadId === 'string' && data.where.thread_id !== 'NULL') {
       data.where.thread_id = threadId;
+      data.where.or = {
+        room_id: data.where.room_id,
+        event_id: threadId,
+      };
+    }
+
     if (typeof type === 'string') data.where.type = type;
 
     if (typeof showThreads === 'boolean') {
@@ -1005,8 +1011,15 @@ class StorageManager extends EventEmitter {
     insertObjWhere(data, 'content', content);
     insertObjWhere(data, 'unsigned', unsigned);
     addCustomSearch(data.where, customWhere);
-    if (typeof threadId === 'string') data.where.thread_id = threadId;
     if (typeof type === 'string') data.where.type = type;
+
+    if (typeof threadId === 'string') {
+      data.where.thread_id = threadId;
+      data.where.or = {
+        room_id: data.where.room_id,
+        event_id: threadId,
+      };
+    }
     return this.storeConnection.count(data);
   }
 
