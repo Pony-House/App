@@ -1618,9 +1618,9 @@ function Message({
   const [messageStatus, setMessageStatus] = useState(mEvent.status);
 
   mEvent.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
-  const onMsgStatus = (e) => {
-    console.log(`[your-message] [status] [${e.getId()}]`, e.status);
-    setMessageStatus(e.status);
+  const onMsgStatus = (status) => {
+    console.log(`[your-message] [status] [${mEvent.getId()}]`, status);
+    setMessageStatus(status);
   };
 
   const onMsgRefresh = (e) => {
