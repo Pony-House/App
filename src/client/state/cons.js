@@ -174,6 +174,7 @@ const cons = {
     },
 
     roomTimeline: {
+      PAGES_UPDATED: 'PAGES_UPDATED',
       READY: 'READY',
       EVENT: 'EVENT',
       PAGINATED: 'PAGINATED',

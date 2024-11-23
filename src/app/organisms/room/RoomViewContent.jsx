@@ -1,11 +1,4 @@
-import React, {
-  useState,
-  useEffect,
-  useLayoutEffect,
-  useCallback,
-  useRef,
-  useReducer,
-} from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
 import $ from 'jquery';
 
@@ -378,7 +371,6 @@ function RoomViewContent({
   refRoomInput,
   isLoading,
 }) {
-  const [, forceUpdate] = useReducer((count) => count + 1, 0);
   const [throttle] = useState(new Throttle());
   const [pageLimit, setPageLimit] = useState(getAppearance('pageLimit'));
   const [useManualCheck] = useState(true);

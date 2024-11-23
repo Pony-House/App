@@ -118,7 +118,7 @@ class RoomTimeline extends EventEmitter {
                 let thread = tinyThis.room.getThread(tinyThis.threadId);
                 if (!thread) {
                   await initMatrix.matrixClient.getEventTimeline(
-                    tinyThis.room.getUnfilteredTimelineSet(),
+                    tinyThis.getUnfilteredTimelineSet(),
                     tinyThis.threadId,
                   );
 
@@ -142,6 +142,7 @@ class RoomTimeline extends EventEmitter {
                 if (tinyThis.timelineCache.pages < 1) {
                   tinyThis.timelineCache.pages =
                     await storageManager.getMessagesPagination(getMsgConfig);
+                  tinyThis.emit(cons.events.roomTimeline.PAGES_UPDATED, tinyThis.timelineCache);
                 }
 
                 if (tinyThis.timelineCache.timeline.length < 1) {
@@ -173,7 +174,11 @@ class RoomTimeline extends EventEmitter {
                   }
 
                   if (!tinyThis.ended) {
-                    // if(!tinyThis.initialized) tinyThis.paginateTimeline(true);
+                    if (tinyThis.timelineCache.page < 1) {
+                      tinyThis.timelineCache.page = 1;
+                      tinyThis.emit(cons.events.roomTimeline.PAGES_UPDATED, tinyThis.timelineCache);
+                    }
+
                     tinyThis.initialized = true;
                     tinyThis.emit(cons.events.roomTimeline.READY, eventId || null);
                     console.log(`${this._consoleTag} Timeline started`);
@@ -259,9 +264,6 @@ class RoomTimeline extends EventEmitter {
       if (!tinyThis.ended) {
         const tmc = tinyThis.getTimelineCache(mEvent);
         if (!tmc) return;
-        tmc.pages = await storageManager.getMessagesPagination(
-          this._buildPagination({ threadId: mEvent.getThreadId(), roomId: mEvent.getRoomId() }),
-        );
         if (mEvent.getType() !== 'm.room.redaction') tinyThis._insertIntoTimeline(mEvent, tmc);
         else tinyThis._deletingEvent(mEvent);
       }
@@ -485,6 +487,7 @@ class RoomTimeline extends EventEmitter {
             events = await storageManager.getMessages(
               this._buildPagination({ page: this.timelineCache.page, isMsgs: true }),
             );
+            tinyThis.emit(cons.events.roomTimeline.PAGES_UPDATED, tinyThis.timelineCache);
           };
 
           // Remove old timeline
@@ -511,6 +514,7 @@ class RoomTimeline extends EventEmitter {
                 this.timelineCache.pages = data.pages;
                 this.timelineCache.page = data.page;
                 events = data.items;
+                tinyThis.emit(cons.events.roomTimeline.PAGES_UPDATED, tinyThis.timelineCache);
               } else await normalGetData();
 
               this._selectEvent = null;
@@ -626,7 +630,9 @@ class RoomTimeline extends EventEmitter {
 
   // Checar se isso ainda vai continuar sendo usado.
   getUnfilteredTimelineSet() {
-    return this.room.getUnfilteredTimelineSet();
+    return !this.thread
+      ? this.room.getUnfilteredTimelineSet()
+      : this.thread.getUnfilteredTimelineSet();
   }
 
   // Checar se isso ainda vai continuar sendo usado.
@@ -635,7 +641,11 @@ class RoomTimeline extends EventEmitter {
   }
 
   canPaginateBackward() {
-    if (this.timelineCache.timeline[0]?.getType() === 'm.room.create') return false;
+    if (
+      this.timelineCache.timeline[0] &&
+      this.timelineCache.timeline[0]?.getType() === 'm.room.create'
+    )
+      return false;
     return this.timelineCache.page !== this.timelineCache.pages;
   }
 
