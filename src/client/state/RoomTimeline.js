@@ -292,7 +292,10 @@ class RoomTimeline extends EventEmitter {
     storageManager.on('dbReaction', this._onReaction);
     storageManager.on('dbTimeline', this._onTimeline);
     storageManager.on('dbThreads', this._onThreadEvent);
-    storageManager.on(`dbTimelineLoaded-${this.roomId}`, this._startTimeline);
+    storageManager.on(
+      `dbTimelineLoaded-${this.roomId}${this.threadId ? `-${this.threadId}` : ''}`,
+      this._startTimeline,
+    );
   }
 
   async waitFirstSync() {
@@ -310,7 +313,23 @@ class RoomTimeline extends EventEmitter {
   // Load live timeline
   async loadLiveTimeline() {
     this.activeTimeline = this.liveTimeline;
-    storageManager.syncTimeline(this.roomId);
+
+    if (this.threadId) {
+      this.thread = this.threadId && this.room ? this.room.getThread(this.threadId) : null;
+      if (!this.thread) {
+        this.thread = await initMatrix.matrixClient.getThreadTimeline(
+          this.liveTimeline,
+          this.threadId,
+        );
+      }
+
+      if (this.thread) {
+        this.liveTimeline = this.thread.liveTimeline;
+        this.activeTimeline = this.liveTimeline;
+      }
+    }
+
+    storageManager.syncTimeline(this.roomId, this.threadId);
     updateRoomInfo();
     return true;
   }
@@ -658,7 +677,10 @@ class RoomTimeline extends EventEmitter {
     storageManager.off('dbReaction', this._onReaction);
     storageManager.off('dbTimeline', this._onTimeline);
     storageManager.off('dbThreads', this._onThreadEvent);
-    storageManager.off(`dbTimelineLoaded-${this.roomId}`, this._startTimeline);
+    storageManager.off(
+      `dbTimelineLoaded-${this.roomId}${this.threadId ? `-${this.threadId}` : ''}`,
+      this._startTimeline,
+    );
   }
 }
 
