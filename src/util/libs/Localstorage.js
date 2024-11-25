@@ -229,8 +229,6 @@ class StorageManager extends EventEmitter {
       'messages_edit',
       'crdt',
       'timeline',
-      'encrypted',
-      'threads',
     ];
 
     for (const item in this._eventDbs) {
@@ -249,6 +247,7 @@ class StorageManager extends EventEmitter {
         roomId = null,
         type = null,
         limit = null,
+        join = null,
 
         body = null,
         formattedBody = null,
@@ -266,6 +265,7 @@ class StorageManager extends EventEmitter {
           roomId,
           type,
           limit,
+          join,
           customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
         });
 
@@ -276,6 +276,7 @@ class StorageManager extends EventEmitter {
         showRedaction = null,
         showTransaction = false,
         type = null,
+        join = null,
 
         body = null,
         formattedBody = null,
@@ -291,6 +292,7 @@ class StorageManager extends EventEmitter {
           showRedaction,
           showTransaction,
           type,
+          join,
           customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
         });
 
@@ -302,6 +304,7 @@ class StorageManager extends EventEmitter {
         showTransaction = false,
         type = null,
         limit = null,
+        join = null,
 
         body = null,
         formattedBody = null,
@@ -318,6 +321,7 @@ class StorageManager extends EventEmitter {
           showTransaction,
           type,
           limit,
+          join,
           customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
         });
 
@@ -330,6 +334,7 @@ class StorageManager extends EventEmitter {
         type = null,
         limit = null,
         page = null,
+        join = null,
 
         body = null,
         formattedBody = null,
@@ -347,6 +352,7 @@ class StorageManager extends EventEmitter {
           type,
           limit,
           page,
+          join,
           customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
         });
 
