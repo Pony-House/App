@@ -555,7 +555,8 @@ class RoomsInput extends EventEmitter {
       null,
       mEvent,
     );
-    await storageManager.sendMessage(roomId, content);
+    if (!threadId) await storageManager.sendMessage(roomId, content, true);
+    else await storageManager.sendMessageThread(roomId, threadId, content, true);
   }
 }
 

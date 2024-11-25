@@ -1648,46 +1648,52 @@ class StorageManager extends EventEmitter {
     });
   }
 
-  sendMessage(roomId, content) {
+  sendMessage(roomId, content, isEdit = false) {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
       const key = genKey();
       const tinyError = (err) => {
-        tinyThis._syncDeleteSendEvent(roomId, null, key, 'dbEventCacheError', 'CANCELLED');
+        if (!isEdit)
+          tinyThis._syncDeleteSendEvent(roomId, null, key, 'dbEventCacheError', 'CANCELLED');
         reject(err);
       };
 
-      tinyThis._syncPrepareSendEvent(roomId, null, key, 'm.room.message', content);
+      if (!isEdit) tinyThis._syncPrepareSendEvent(roomId, null, key, 'm.room.message', content);
       initMatrix.matrixClient
         .sendMessage(roomId, content, key)
-        .then((msgData) =>
-          tinyThis
-            ._syncSendEvent(msgData?.event_id, roomId, undefined, key)
-            .then(() => resolve(msgData))
-            .catch(tinyError),
-        )
+        .then((msgData) => {
+          if (!isEdit)
+            tinyThis
+              ._syncSendEvent(msgData?.event_id, roomId, undefined, key)
+              .then(() => resolve(msgData))
+              .catch(tinyError);
+          else resolve(msgData);
+        })
         .catch(tinyError);
     });
   }
 
-  sendMessageThread(roomId, threadId, content) {
+  sendMessageThread(roomId, threadId, content, isEdit = false) {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
       const key = genKey();
       const tinyError = (err) => {
-        tinyThis._syncDeleteSendEvent(roomId, threadId, key, 'dbEventCacheError', 'CANCELLED');
+        if (!isEdit)
+          tinyThis._syncDeleteSendEvent(roomId, threadId, key, 'dbEventCacheError', 'CANCELLED');
         reject(err);
       };
 
-      tinyThis._syncPrepareSendEvent(roomId, threadId, key, 'm.room.message', content);
+      if (!isEdit) tinyThis._syncPrepareSendEvent(roomId, threadId, key, 'm.room.message', content);
       initMatrix.matrixClient
         .sendMessage(roomId, threadId, content, key)
-        .then((msgData) =>
-          tinyThis
-            ._syncSendEvent(msgData?.event_id, roomId, threadId, key)
-            .then(() => resolve(msgData))
-            .catch(tinyError),
-        )
+        .then((msgData) => {
+          if (!isEdit)
+            tinyThis
+              ._syncSendEvent(msgData?.event_id, roomId, threadId, key)
+              .then(() => resolve(msgData))
+              .catch(tinyError);
+          else resolve(msgData);
+        })
         .catch(tinyError);
     });
   }
