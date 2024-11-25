@@ -29,6 +29,7 @@ import {
 import tinyClipboard from '@src/util/libs/Clipboard';
 
 import storageManager from '@src/util/libs/Localstorage';
+import { decryptAllEventsOfTimeline } from '@src/client/state/Timeline/functions';
 
 import Text from '../../atoms/text/Text';
 import { btModal, resizeWindowChecker, toast } from '../../../util/tools';
@@ -835,7 +836,7 @@ function shouldShowThreadSummary(mEvent, roomTimeline) {
       roomTimeline.timeline.length > 0 &&
       // thread.lastEvent &&
       // don't show the thread summary if we're in a thread
-      roomTimeline.thread === undefined
+      !roomTimeline.thread
     );
   }
   return false;
@@ -880,18 +881,34 @@ const MessageOptions = React.memo(
     }
 
     const myPowerlevel = room.getMember(myUserId)?.powerLevel;
-    const canIRedact = room.currentState.hasSufficientPowerLevelFor('redact', myPowerlevel);
-    const canSendReaction = room.currentState.maySendEvent('m.reaction', myUserId);
+    const currentState = getCurrentState(room);
+
+    const canIRedact = currentState.hasSufficientPowerLevelFor('redact', myPowerlevel);
+    const canSendReaction = currentState.maySendEvent('m.reaction', myUserId);
     const canCreateThread =
-      room.currentState.maySendEvent('m.thread', myUserId) &&
+      currentState.maySendEvent('m.thread', myUserId) &&
       // this message is already a thread
       !shouldShowThreadSummary(mEvent, roomTimeline) &&
       // can't create threads in threads
-      roomTimeline.thread === undefined;
+      !roomTimeline.thread;
 
-    const createThread = () => {
-      room.createThread(eventId, mEvent, [mEvent], true);
-      selectRoom(roomId, eventId, eventId);
+    const createThread = async () => {
+      setLoadingPage('Creating thread...');
+      let tEvent = room.findEventById(mEvent.getId());
+      if (!tEvent) {
+        await mx.getEventTimeline(room.getUnfilteredTimelineSet(), mEvent.getId());
+
+        const tm = room.getLiveTimeline();
+        if (room.hasEncryptionStateEvent()) await decryptAllEventsOfTimeline(tm);
+
+        tEvent = room.findEventById(mEvent.getId());
+      }
+
+      if (!room.getThread(mEvent.getId())) {
+        if (tEvent) room.createThread(eventId, tEvent, [tEvent], true);
+        setLoadingPage(false);
+        if (tEvent) selectRoom(roomId, eventId, eventId);
+      } else selectRoom(roomId, eventId, eventId);
     };
 
     useEffect(() => {

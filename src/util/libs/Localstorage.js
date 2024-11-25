@@ -746,7 +746,7 @@ class StorageManager extends EventEmitter {
           ? this._deletedIds[data.event_id]
           : false;
 
-    if (typeof threadId === 'string') data.thread_id = threadId;
+    if (typeof threadId === 'string' && threadId !== data.event_id) data.thread_id = threadId;
     else data.thread_id = 'NULL';
 
     if (date) data.origin_server_ts = date.getTime();
