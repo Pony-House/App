@@ -242,10 +242,10 @@
     tslib "^2.4.0"
     xml2js "^0.5.0"
 
-"@capacitor/clipboard@6.0.1":
-  version "6.0.1"
-  resolved "https://registry.npmjs.org/@capacitor/clipboard/-/clipboard-6.0.1.tgz"
-  integrity sha512-aN6QsZD79Z605sK9YA8JtJLuD5vI/WrPzT/RCWUWBWPdFzhnRdT45dbsnQVvL2kzzm5aTsCAPepkdRqpvWwCGA==
+"@capacitor/clipboard@6.0.2":
+  version "6.0.2"
+  resolved "https://registry.yarnpkg.com/@capacitor/clipboard/-/clipboard-6.0.2.tgz#4d2a797e8f5c3494c61d50a2355075d92687b7b2"
+  integrity sha512-jQ6UeFra5NP58THNZNb7HtzOZU7cHsjgrbQGVuMTgsK1uTILZpNeh+pfqHbKggba6KaNh5DAsJvEVQGpIR1VBA==
 
 "@capacitor/core@6.1.2":
   version "6.1.2"
@@ -548,11 +548,6 @@
     js-yaml "^4.1.0"
     minimatch "^3.1.2"
     strip-json-comments "^3.1.1"
-
-"@eslint/js@9.14.0":
-  version "9.14.0"
-  resolved "https://registry.yarnpkg.com/@eslint/js/-/js-9.14.0.tgz#2347a871042ebd11a00fd8c2d3d56a265ee6857e"
-  integrity sha512-pFoEtFWCPyDOl+C6Ift+wC7Ro89otjigCf5vcuWqWgqNSQbRrpjSvdeE6ofLz4dHmyxD5f7gIdGT4+p36L6Twg==
 
 "@eslint/js@9.15.0":
   version "9.15.0"
