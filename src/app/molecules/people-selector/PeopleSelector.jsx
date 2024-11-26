@@ -91,13 +91,13 @@ function PeopleSelector({
         size="small"
         isDefaultImage
       />
-      {canUsePresence() && !disableStatus ? (
+      {canUsePresence() && !disableStatus && user ? (
         <UserStatusIcon classbase="" user={user} presenceData={accountContent} />
       ) : null}
 
       <div className="small people-selector__name text-start">
         <span className="emoji-size-fix">{twemojifyReact(name)}</span>
-        {!disableStatus ? (
+        {!disableStatus && user ? (
           <UserCustomStatus
             emojiFix=""
             className={`very-small text-gray text-truncate emoji-size-fix-2`}

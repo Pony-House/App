@@ -91,6 +91,23 @@ const executeDecryptAllEventsOfTimeline = async (tm, roomId) =>
     } else decryptingCache[roomId].push({ resolve, reject });
   });
 
+const objWhereChecker = (join, dataCheck = {}, isClone = false) => {
+  const newJson = !isClone ? clone(!Array.isArray(join) ? [join] : join) : join;
+  const itemsChecker = (items) => {
+    for (const item in items) {
+      if (typeof items[item] === 'string') {
+        for (const item2 in dataCheck)
+          if (items[item].includes(`{${item2}}`))
+            items[item] = items[item].replace(`{${item2}}`, dataCheck[item2]);
+      } else if (objType(items[item], 'object') || Array.isArray(items[item]))
+        itemsChecker(items[item], dataCheck, true);
+    }
+  };
+
+  for (const index in newJson) itemsChecker(newJson[index]);
+  return newJson;
+};
+
 class LocalStorageEvent extends EventEmitter {
   constructor(event) {
     super();
@@ -225,14 +242,50 @@ class StorageManager extends EventEmitter {
     this._eventDbs = [
       'reactions',
       'messages_search',
-      'messages',
       'messages_edit',
       'crdt',
       'timeline',
+      {
+        name: 'messages',
+        join: [
+          {
+            where: {
+              room_id: '{room_id}',
+            },
+            type: 'left',
+            with: 'threads',
+            on: `threads.event_id=messages.event_id`,
+            as: {
+              event_id: 'is_thread_root',
+              room_id: 'is_thread_room_root',
+            },
+          },
+          {
+            with: 'messages_primary_edit',
+            on: `messages_primary_edit.event_id=messages.event_id`,
+            type: 'left',
+            where: {
+              room_id: '{room_id}',
+            },
+            as: {
+              event_id: 'primary_replace_event_id',
+              room_id: 'primary_replace_room_id',
+              thread_id: 'primary_replace_thread_id',
+              replace_id: 'primary_replace_to_id',
+              content: 'primary_replace_to',
+              origin_server_ts: 'primary_replace_to_ts',
+            },
+          },
+        ],
+      },
     ];
 
     for (const item in this._eventDbs) {
-      const nameParts = this._eventDbs[item].split('_');
+      const data =
+        typeof this._eventDbs[item] === 'string'
+          ? { name: this._eventDbs[item] }
+          : this._eventDbs[item];
+      const nameParts = data.name.split('_');
       let funcName = '';
       for (let i = 0; i < nameParts.length; i++) {
         funcName += toTitleCase(nameParts[i]);
@@ -256,7 +309,7 @@ class StorageManager extends EventEmitter {
         url = null,
       }) =>
         this._findEventIdInPagination({
-          from: this._eventDbs[item],
+          from: data.name,
           eventId,
           threadId,
           showThreads,
@@ -265,7 +318,7 @@ class StorageManager extends EventEmitter {
           roomId,
           type,
           limit,
-          join,
+          join: join || data.join,
           customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
         });
 
@@ -285,14 +338,14 @@ class StorageManager extends EventEmitter {
         url = null,
       }) =>
         this._eventsCounter({
-          from: this._eventDbs[item],
+          from: data.name,
           roomId,
           threadId,
           showThreads,
           showRedaction,
           showTransaction,
           type,
-          join,
+          join: join || data.join,
           customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
         });
 
@@ -313,7 +366,7 @@ class StorageManager extends EventEmitter {
         url = null,
       }) =>
         this._eventsPaginationCount({
-          from: this._eventDbs[item],
+          from: data.name,
           roomId,
           threadId,
           showThreads,
@@ -321,7 +374,7 @@ class StorageManager extends EventEmitter {
           showTransaction,
           type,
           limit,
-          join,
+          join: join || data.join,
           customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
         });
 
@@ -343,7 +396,7 @@ class StorageManager extends EventEmitter {
         url = null,
       }) =>
         this._eventsDataTemplate({
-          from: this._eventDbs[item],
+          from: data.name,
           roomId,
           threadId,
           showThreads,
@@ -352,7 +405,7 @@ class StorageManager extends EventEmitter {
           type,
           limit,
           page,
-          join,
+          join: join || data.join,
           customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
         });
 
@@ -364,7 +417,7 @@ class StorageManager extends EventEmitter {
         showRedaction = null,
       }) =>
         this._eventsDataTemplate({
-          from: this._eventDbs[item],
+          from: data.name,
           roomId,
           threadId,
           eventId,
@@ -886,8 +939,8 @@ class StorageManager extends EventEmitter {
   }) {
     const data = { from };
     data.where = { room_id: roomId };
-    data.order = { type: 'desc', by: orderBy };
-    if (join) data.join = join;
+    data.order = { type: 'desc', by: `${join ? `${from}.` : ''}${orderBy}` };
+    if (join) data.join = objWhereChecker(join, { room_id: roomId });
 
     insertObjWhere(data, 'content', content);
     insertObjWhere(data, 'unsigned', unsigned);
@@ -969,7 +1022,7 @@ class StorageManager extends EventEmitter {
 
     if (showTransaction !== true) data.where.is_transaction = false;
 
-    if (join) data.join = join;
+    if (join) data.join = objWhereChecker(join, { room_id: roomId });
     insertObjWhere(data, 'content', content);
     insertObjWhere(data, 'unsigned', unsigned);
     addCustomSearch(data.where, customWhere);
