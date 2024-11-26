@@ -2,7 +2,6 @@ import storageManager from '../../Localstorage';
 
 const version18 = async (connection) => {
   storageManager.resetAllTimelineSyncData();
-  await connection.clear('encrypted');
   await connection.clear('timeline');
   await connection.clear('crdt');
   await connection.clear('messages_edit');

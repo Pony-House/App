@@ -238,7 +238,7 @@ class StorageManager extends EventEmitter {
     this.isPersisted = null;
 
     // Db
-    this._dbVersion = 27;
+    this._dbVersion = 28;
     this._oldDbVersion = this.getNumber('ponyHouse-db-version') || 0;
     this.dbName = 'pony-house-database';
     this._timelineSyncCache = this.getJson('ponyHouse-timeline-sync', 'obj');
@@ -768,9 +768,9 @@ class StorageManager extends EventEmitter {
 
     const timeline = await this.storeConnection.remove({ from: 'timeline', where });
     await waitTimelineTimeout();
-    const encrypted = await this.storeConnection.remove({ from: 'encrypted', where });
-    await waitTimelineTimeout();
     const messages = await this.storeConnection.remove({ from: 'messages', where });
+    await waitTimelineTimeout();
+    const crdt = await this.storeConnection.remove({ from: 'crdt', where });
     await waitTimelineTimeout();
     const reactions = await this.storeConnection.remove({ from: 'reactions', where });
     await waitTimelineTimeout();
@@ -783,8 +783,8 @@ class StorageManager extends EventEmitter {
     const receipt = await this.deleteReceiptByRoomId(roomId);
 
     return {
+      crdt,
       timeline,
-      encrypted,
       messages,
       reactions,
       members,
@@ -813,6 +813,7 @@ class StorageManager extends EventEmitter {
     const isRedacted = event.isRedacted() ? true : false;
 
     data.event_id = event.getId();
+    data.state_key = event.getStateKey();
     data.is_transaction = data.event_id.startsWith('~') ? true : false;
     data.e_status = event.status;
 
@@ -837,6 +838,7 @@ class StorageManager extends EventEmitter {
     if (typeof data.type !== 'string') delete data.type;
     if (typeof data.sender !== 'string') delete data.sender;
     if (typeof data.room_id !== 'string') delete data.room_id;
+    if (typeof data.state_key !== 'string') delete data.state_key;
 
     if (!objType(data.content, 'object')) delete data.content;
     if (!objType(data.unsigned, 'object')) delete data.unsigned;
@@ -1446,10 +1448,6 @@ class StorageManager extends EventEmitter {
 
   deleteReactionById(event) {
     return this._deleteDataByIdTemplate('reactions', 'dbReactionDeleted', event);
-  }
-
-  deleteEncryptedById(event) {
-    return this._deleteDataByIdTemplate('encrypted', 'dbEncryptedDeleted', event);
   }
 
   setTimeline(event) {

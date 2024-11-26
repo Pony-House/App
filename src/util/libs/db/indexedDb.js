@@ -28,44 +28,6 @@ export const startDb = async (tinyThis) => {
       },
 
       {
-        name: 'encrypted',
-        columns: {
-          event_id: { primaryKey: true, autoIncrement: false },
-
-          type: { notNull: false, dataType: DATA_TYPE.String },
-          sender: { notNull: false, dataType: DATA_TYPE.String },
-          room_id: { notNull: false, dataType: DATA_TYPE.String },
-          thread_id: { notNull: false, dataType: DATA_TYPE.String },
-
-          content: { notNull: false, dataType: DATA_TYPE.Object },
-          unsigned: { notNull: false, dataType: DATA_TYPE.Object },
-
-          is_transaction: { notNull: true, dataType: DATA_TYPE.Boolean },
-          e_status: { notNull: false, dataType: DATA_TYPE.String },
-          redaction: { notNull: true, dataType: DATA_TYPE.Boolean },
-          origin_server_ts: { notNull: true, dataType: DATA_TYPE.Number },
-        },
-        alter: {
-          22: {
-            add: {
-              is_transaction: {
-                notNull: true,
-                dataType: DATA_TYPE.Boolean,
-              },
-            },
-            23: {
-              add: {
-                e_status: {
-                  notNull: false,
-                  dataType: DATA_TYPE.String,
-                },
-              },
-            },
-          },
-        },
-      },
-
-      {
         name: 'timeline',
         columns: {
           event_id: { primaryKey: true, autoIncrement: false },
@@ -74,6 +36,8 @@ export const startDb = async (tinyThis) => {
           sender: { notNull: false, dataType: DATA_TYPE.String },
           room_id: { notNull: false, dataType: DATA_TYPE.String },
           thread_id: { notNull: false, dataType: DATA_TYPE.String },
+
+          state_key: { notNull: false, dataType: DATA_TYPE.String },
 
           content: { notNull: false, dataType: DATA_TYPE.Object },
           unsigned: { notNull: false, dataType: DATA_TYPE.Object },
@@ -100,6 +64,14 @@ export const startDb = async (tinyThis) => {
           23: {
             add: {
               e_status: {
+                notNull: false,
+                dataType: DATA_TYPE.String,
+              },
+            },
+          },
+          28: {
+            add: {
+              state_key: {
                 notNull: false,
                 dataType: DATA_TYPE.String,
               },
@@ -235,6 +207,8 @@ export const startDb = async (tinyThis) => {
           room_id: { notNull: false, dataType: DATA_TYPE.String },
           thread_id: { notNull: false, dataType: DATA_TYPE.String },
 
+          state_key: { notNull: false, dataType: DATA_TYPE.String },
+
           content: { notNull: false, dataType: DATA_TYPE.Object },
           unsigned: { notNull: false, dataType: DATA_TYPE.Object },
           embeds: { notNull: false, dataType: DATA_TYPE.Array },
@@ -310,6 +284,14 @@ export const startDb = async (tinyThis) => {
               is_thread: {},
             },
           },
+          28: {
+            add: {
+              state_key: {
+                notNull: false,
+                dataType: DATA_TYPE.String,
+              },
+            },
+          },
         },
       },
 
@@ -370,6 +352,8 @@ export const startDb = async (tinyThis) => {
         columns: {
           event_id: { primaryKey: true, autoIncrement: false },
 
+          state_key: { notNull: false, dataType: DATA_TYPE.String },
+
           sender: { notNull: false, dataType: DATA_TYPE.String },
           room_id: { notNull: false, dataType: DATA_TYPE.String },
           thread_id: { notNull: false, dataType: DATA_TYPE.String },
@@ -402,6 +386,14 @@ export const startDb = async (tinyThis) => {
           23: {
             add: {
               e_status: {
+                notNull: false,
+                dataType: DATA_TYPE.String,
+              },
+            },
+          },
+          28: {
+            add: {
+              state_key: {
                 notNull: false,
                 dataType: DATA_TYPE.String,
               },
