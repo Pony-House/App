@@ -115,6 +115,14 @@ class LocalStorageEvent extends EventEmitter {
     this.event = event;
     this.room = initMatrix.matrixClient.getRoom(this.event.room_id);
 
+    if (this.event.is_thread_root) this.event.thread_id = this.event.is_thread_root;
+
+    if (this.event.primary_replace_event_id) {
+      this.event.replace_to = this.event.primary_replace_to;
+      this.event.replace_to_id = this.event.primary_replace_to_id;
+      this.event.replace_to_ts = this.event.primary_replace_to_ts;
+    }
+
     this.threadId =
       typeof this.event?.thread_id === 'string' && this.event?.thread_id !== 'NULL'
         ? this.event?.thread_id
@@ -124,6 +132,21 @@ class LocalStorageEvent extends EventEmitter {
     this.sender = this.room ? this.room.getMember(this.event.sender) : null;
     this.replyEventId = this.getWireContent()['m.relates_to']?.['m.in_reply_to']?.event_id;
     this.threadRootId = this.threadRootId();
+
+    if (typeof this.event.primary_replace_event_id !== 'undefined')
+      delete this.event.primary_replace_event_id;
+    if (typeof this.event.primary_replace_room_id !== 'undefined')
+      delete this.event.primary_replace_room_id;
+    if (typeof this.event.primary_replace_thread_id !== 'undefined')
+      delete this.event.primary_replace_thread_id;
+    if (typeof this.event.primary_replace_to !== 'undefined') delete this.event.primary_replace_to;
+    if (typeof this.event.primary_replace_to_id !== 'undefined')
+      delete this.event.primary_replace_to_id;
+    if (typeof this.event.primary_replace_to_ts !== 'undefined')
+      delete this.event.primary_replace_to_ts;
+    if (typeof this.event.is_thread_room_root !== 'undefined')
+      delete this.event.is_thread_room_root;
+    if (typeof this.event.is_thread_root !== 'undefined') delete this.event.is_thread_root;
 
     this.thread = { id: this.threadId };
   }
