@@ -21,7 +21,7 @@ export default function RoomIntroContainer({ event, timeline }) {
   const mxcUrl = initMatrix.mxcUrl;
 
   const { roomList } = initMatrix;
-  const { room, thread } = timeline;
+  const { room, thread, threadId } = timeline;
 
   const rootContent = thread && thread.rootEvent ? thread.rootEvent.getContent() : null;
   const roomTitle =
@@ -47,11 +47,11 @@ export default function RoomIntroContainer({ event, timeline }) {
     : twemojifyReact('', undefined, true);
   const nameJsx = twemojifyReact(roomTitle);
 
-  const syncMessage = storageManager.isRoomSyncing(room.roomId) ? (
+  const syncMessage = storageManager.isRoomSyncing(room.roomId, threadId) ? (
     <>
       <br />
       <strong className="small">
-        <Spinner className="d-inline-block me-3" size="sm" /> This room is being synced. History
+        <Spinner className="d-inline-block me-2" size="sm" /> This room is being synced. History
         scroll functions are temporarily disabled.
       </strong>
     </>

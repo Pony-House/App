@@ -37,6 +37,7 @@ import { openThreadsMessageModal } from '../../../util/libs/thread';
 import { getRoomInfo } from './Room';
 import RoomWidget from './RoomWidget';
 import Spinner from '@src/app/atoms/spinner/Spinner';
+import Tooltip from '@src/app/atoms/tooltip/Tooltip';
 
 function RoomViewHeader({ roomId, threadId, roomAlias, roomItem, disableActions = false }) {
   const [, forceUpdate] = useForceUpdate();
@@ -179,8 +180,10 @@ function RoomViewHeader({ roomId, threadId, roomAlias, roomItem, disableActions 
                 isDefaultImage
               />
               <span className="me-2 text-truncate d-inline-block room-name">
-                {!storageManager.isRoomSyncing(roomTimeline.roomId) && (
-                  <Spinner className="me-3" size="sm" />
+                {!storageManager.isRoomSyncing(roomTimeline.roomId, roomTimeline.threadId) && (
+                  <Tooltip placement="bottom" content="Room being synced...">
+                    <Spinner className="me-2" size="sm" />
+                  </Tooltip>
                 )}
                 {twemojifyReact(roomName)}
                 {objType(contentThread, 'object') ? (
