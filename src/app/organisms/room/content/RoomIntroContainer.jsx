@@ -10,6 +10,8 @@ import { twemojifyReact } from '@src/util/twemojify';
 import { useForceUpdate } from '../../../hooks/useForceUpdate';
 import RoomIntro from '../../../molecules/room-intro/RoomIntro';
 import cons from '../../../../client/state/cons';
+import storageManager from '@src/util/libs/Localstorage';
+import Spinner from '@src/app/atoms/spinner/Spinner';
 
 export default function RoomIntroContainer({ event, timeline }) {
   const [, nameForceUpdate] = useForceUpdate();
@@ -44,12 +46,24 @@ export default function RoomIntroContainer({ event, timeline }) {
     ? twemojifyReact(roomTopic || '', undefined, true)
     : twemojifyReact('', undefined, true);
   const nameJsx = twemojifyReact(roomTitle);
+
+  const syncMessage = storageManager.isRoomSyncing(room.roomId) ? (
+    <>
+      <br />
+      <strong className="small">
+        <Spinner className="d-inline-block" size="small" /> This room is being synced. History
+        scroll functions are temporarily disabled.
+      </strong>
+    </>
+  ) : null;
+
   const desc =
     isDM && !thread ? (
       <>
         This is the beginning of your direct message history with @<strong>{nameJsx}</strong>
         {'. '}
         {topic}
+        {syncMessage}
       </>
     ) : (
       <>
@@ -57,6 +71,7 @@ export default function RoomIntroContainer({ event, timeline }) {
         <strong>{nameJsx}</strong>
         {` ${!thread ? 'room' : 'thread'}.${!thread ? ' ' : ''}`}
         {topic}
+        {syncMessage}
       </>
     );
 

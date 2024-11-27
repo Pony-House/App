@@ -36,6 +36,7 @@ import matrixAppearance, { getAppearance } from '../../../util/libs/appearance';
 import handleOnClickCapture from './content/handleOnClickCapture';
 import RoomIntroContainer from './content/RoomIntroContainer';
 import LoadingMsgPlaceholders from './content/LoadingMsgPlaceholders';
+import storageManager from '@src/util/libs/Localstorage';
 
 function renderEvent(
   timelineSVRef,
@@ -201,7 +202,10 @@ function usePaginate(roomTimeline, readUptoEvtStore, timelineScrollRef, eventLim
       if (timelineScroll) {
         // Top page
         if (timelineScroll.bottom < SCROLL_TRIGGER_POS) {
-          if (roomTimeline.canPaginateForward()) {
+          if (
+            !storageManager.isRoomSyncing(roomTimeline.roomId) &&
+            roomTimeline.canPaginateForward()
+          ) {
             await roomTimeline.paginateTimeline(false);
             setMediaHeight();
             return;
@@ -210,7 +214,10 @@ function usePaginate(roomTimeline, readUptoEvtStore, timelineScrollRef, eventLim
 
         // Bottom page
         if (timelineScroll.top < SCROLL_TRIGGER_POS || roomTimeline.timeline.length < 1) {
-          if (roomTimeline.canPaginateBackward()) {
+          if (
+            !storageManager.isRoomSyncing(roomTimeline.roomId) &&
+            roomTimeline.canPaginateBackward()
+          ) {
             await roomTimeline.paginateTimeline(true);
           }
         }
@@ -614,7 +621,7 @@ function RoomViewContent({
 
     // Need pagination backward
     if (roomTimeline.canPaginateBackward() || limit.from > 0) {
-      if (!isGuest)
+      if (!storageManager.isRoomSyncing(roomTimeline.roomId) && !isGuest)
         tl.push(
           <LoadingMsgPlaceholders
             keyName="chatscroll-1"
@@ -709,7 +716,7 @@ function RoomViewContent({
 
     // Need pagination forward
     if (roomTimeline.canPaginateForward() || limit.length < timeline.length) {
-      if (!isGuest)
+      if (!storageManager.isRoomSyncing(roomTimeline.roomId) && !isGuest)
         tl.push(
           <LoadingMsgPlaceholders
             keyName="chatscroll-2"

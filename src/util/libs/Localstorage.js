@@ -14,7 +14,11 @@ import { objType } from 'for-promise/utils/lib.mjs';
 import initMatrix from '@src/client/initMatrix';
 import { decryptAllEventsOfTimeline } from '@src/client/state/Timeline/functions';
 import cons from '@src/client/state/cons';
-import { getMemberEventType } from '@src/app/organisms/room/MemberEvents';
+import {
+  getMemberEventType,
+  memberEventAllowed,
+  MemberEventsList,
+} from '@src/app/organisms/room/MemberEvents';
 
 import { startDb } from './db/indexedDb';
 import { toTitleCase } from '../tools';
@@ -22,6 +26,50 @@ import { toTitleCase } from '../tools';
 const genKey = () => generateApiKey().replace(/\~/g, 'pud');
 const SYNC_TIMELINE_DOWNLOAD_LIMIT = 100;
 const getTableName = (tableData) => (typeof tableData === 'string' ? tableData : tableData.name);
+
+const finishWhereDbPrepare = (memberType, threadId, data) => {
+  if (typeof threadId === 'string' && data.where.thread_id !== 'NULL') {
+    data.where = [data.where];
+    data.where.push({
+      thread_id: threadId,
+      or: {
+        event_id: threadId,
+      },
+    });
+  }
+
+  if (typeof memberType === 'string' || Array.isArray(memberType)) {
+    if (!Array.isArray(data.where)) data.where = [data.where];
+    const memberEventItem = {};
+    const memberEventUsed = false;
+    let selectedObj = null;
+
+    for (const item in MemberEventsList) {
+      const canAdd =
+        MemberEventsList[item] === memberType && memberEventAllowed(MemberEventsList[item]);
+
+      if (Array.isArray(memberType)) {
+        if (canAdd) {
+          memberEventUsed = true;
+          if (selectedObj) {
+            selectedObj.or = { member_type: MemberEventsList[item] };
+            selectedObj = selectedObj.or;
+          } else {
+            memberEventItem.member_type = 'NULL';
+            memberEventItem.or.member_type = MemberEventsList[item];
+            selectedObj = memberEventItem.or;
+          }
+        }
+      } else if (canAdd) {
+        data.where[0].member_type = 'NULL';
+        data.where[0].or.member_type = MemberEventsList[item];
+        break;
+      }
+    }
+
+    if (memberEventUsed) data.where.push(memberEventItem);
+  }
+};
 
 const dontExistTimelineTimeout =
   typeof __ENV_APP__.TIMELINE_TIMEOUT !== 'number' ||
@@ -149,6 +197,9 @@ class LocalStorageEvent extends EventEmitter {
     if (typeof this.event.is_thread_room_root !== 'undefined')
       delete this.event.is_thread_room_root;
     if (typeof this.event.is_thread_root !== 'undefined') delete this.event.is_thread_root;
+
+    if (typeof this.event.member_type !== 'undefined' && this.event.member_type === 'NULL')
+      delete this.event.member_type;
 
     this.thread = { id: this.threadId };
   }
@@ -326,6 +377,7 @@ class StorageManager extends EventEmitter {
         type = null,
         limit = null,
         join = null,
+        memberType = null,
 
         body = null,
         formattedBody = null,
@@ -343,6 +395,7 @@ class StorageManager extends EventEmitter {
           roomId,
           type,
           limit,
+          memberType,
           join: join || data.join,
           customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
         });
@@ -355,6 +408,7 @@ class StorageManager extends EventEmitter {
         showTransaction = false,
         type = null,
         join = null,
+        memberType = null,
 
         body = null,
         formattedBody = null,
@@ -370,6 +424,7 @@ class StorageManager extends EventEmitter {
           showRedaction,
           showTransaction,
           type,
+          memberType,
           join: join || data.join,
           customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
         });
@@ -383,6 +438,7 @@ class StorageManager extends EventEmitter {
         type = null,
         limit = null,
         join = null,
+        memberType = null,
 
         body = null,
         formattedBody = null,
@@ -399,6 +455,7 @@ class StorageManager extends EventEmitter {
           showTransaction,
           type,
           limit,
+          memberType,
           join: join || data.join,
           customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
         });
@@ -413,6 +470,7 @@ class StorageManager extends EventEmitter {
         limit = null,
         page = null,
         join = null,
+        memberType = null,
 
         body = null,
         formattedBody = null,
@@ -430,6 +488,7 @@ class StorageManager extends EventEmitter {
           type,
           limit,
           page,
+          memberType,
           join: join || data.join,
           customWhere: { body, mimetype: mimeType, url, format, formatted_body: formattedBody },
         });
@@ -440,6 +499,7 @@ class StorageManager extends EventEmitter {
         type = null,
         eventId = null,
         showRedaction = null,
+        memberType = null,
       }) =>
         this._eventsDataTemplate({
           from: data.name,
@@ -448,6 +508,7 @@ class StorageManager extends EventEmitter {
           eventId,
           showRedaction,
           type,
+          memberType,
         });
     }
 
@@ -820,7 +881,7 @@ class StorageManager extends EventEmitter {
     data.e_status = event.status;
 
     data.type = event.getType();
-    data.member_type = getMemberEventType(event);
+    data.member_type = getMemberEventType(event) || 'NULL';
 
     data.sender = event.getSender();
     data.room_id = event.getRoomId();
@@ -963,6 +1024,7 @@ class StorageManager extends EventEmitter {
     limit = null,
     page = null,
     orderBy = 'origin_server_ts',
+    memberType = null,
     customWhere = null,
     join = null,
   }) {
@@ -974,13 +1036,6 @@ class StorageManager extends EventEmitter {
     insertObjWhere(data, 'content', content);
     insertObjWhere(data, 'unsigned', unsigned);
     addCustomSearch(data.where, customWhere);
-    if (typeof threadId === 'string' && data.where.thread_id !== 'NULL') {
-      data.where.thread_id = threadId;
-      data.where.or = {
-        room_id: data.where.room_id,
-        event_id: threadId,
-      };
-    }
 
     if (typeof type === 'string') data.where.type = type;
 
@@ -1006,6 +1061,7 @@ class StorageManager extends EventEmitter {
         }
       }
 
+      finishWhereDbPrepare(memberType, threadId, data);
       const result = await this.storeConnection.select(data);
       if (Array.isArray(result)) {
         for (const item in result) {
@@ -1016,6 +1072,7 @@ class StorageManager extends EventEmitter {
     } else {
       data.where.event_id = eventId;
       data.limit = 1;
+      finishWhereDbPrepare(memberType, threadId, data);
       const result = await this.storeConnection.select(data);
       if (Array.isArray(result) && result.length > 0 && result[0])
         return this.convertToEventFormat(result[0]);
@@ -1033,6 +1090,7 @@ class StorageManager extends EventEmitter {
     unsigned = null,
     content = null,
     type = null,
+    memberType,
     customWhere = null,
     join = null,
   }) {
@@ -1057,13 +1115,7 @@ class StorageManager extends EventEmitter {
     addCustomSearch(data.where, customWhere);
     if (typeof type === 'string') data.where.type = type;
 
-    if (typeof threadId === 'string') {
-      data.where.thread_id = threadId;
-      data.where.or = {
-        room_id: data.where.room_id,
-        event_id: threadId,
-      };
-    }
+    finishWhereDbPrepare(memberType, threadId, data);
     return this.storeConnection.count(data);
   }
 
@@ -1078,6 +1130,7 @@ class StorageManager extends EventEmitter {
     content = null,
     type = null,
     limit = null,
+    memberType = null,
     customWhere = null,
     join = null,
   }) {
@@ -1091,6 +1144,7 @@ class StorageManager extends EventEmitter {
       unsigned,
       content,
       type,
+      memberType,
       customWhere,
       join,
     });
@@ -1113,6 +1167,7 @@ class StorageManager extends EventEmitter {
     limit = null,
     unsigned = null,
     content = null,
+    memberType,
     customWhere = null,
     join = null,
   }) {
@@ -1128,6 +1183,7 @@ class StorageManager extends EventEmitter {
       content,
       type,
       limit,
+      memberType,
       customWhere,
       join,
     });
@@ -1146,6 +1202,7 @@ class StorageManager extends EventEmitter {
         type,
         limit,
         page: p,
+        memberType,
         customWhere,
         join,
       });

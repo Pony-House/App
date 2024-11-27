@@ -20,6 +20,7 @@ import AvatarRemovedMessage from './chat-messages/AvatarRemoved';
 import NameSetsMessage from './chat-messages/NameSets';
 import NameChangedMessage from './chat-messages/NameChanged';
 import NameRemovedMessage from './chat-messages/NameRemoved';
+import settings from '@src/client/state/settings';
 
 export function getTimelineJSXMessages() {
   return {
@@ -91,6 +92,37 @@ export function getTimelineJSXMessages() {
     },
   };
 }
+
+export const MemberEventsList = [
+  'join',
+  'leave',
+
+  'invite',
+  'cancelInvite',
+  'rejectInvite',
+
+  'kick',
+  'ban',
+  'unban',
+
+  'avatarSets',
+  'avatarChanged',
+  'avatarRemoved',
+
+  'nameSets',
+  'nameChanged',
+  'nameRemoved',
+];
+
+export const memberEventAllowed = (item) =>
+  ((item !== 'avatarSets' &&
+    item !== 'avatarChanged' &&
+    item !== 'avatarRemoved' &&
+    item !== 'nameSets' &&
+    item !== 'nameChanged' &&
+    item !== 'nameRemoved') ||
+    !settings.hideNickAvatarEvents) &&
+  ((item !== 'leave' && item !== 'join') || !settings.hideMembershipEvents);
 
 // User Events
 export const makeReturnObj = (variant, content) => ({
