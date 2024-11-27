@@ -4,16 +4,15 @@ import clone from 'clone';
 import { ethers } from 'ethers';
 import provider from 'eth-provider';
 import Web3WsProvider from 'web3-providers-ws';
+import { objType } from 'for-promise/utils/lib.mjs';
 
+import storageManager from '../libs/Localstorage';
 import moment from '@src/util/libs/momentjs';
 import modWeb3Cfg from '@mods/web3';
-
-import { objType } from 'for-promise/utils/lib.mjs';
 
 import startStatus from './status';
 import initMatrix from '../../client/initMatrix';
 import envAPI from '../libs/env';
-import storageManager from '../libs/Localstorage';
 
 const tinyCrypto = {};
 let web3;
@@ -177,11 +176,6 @@ tinyCrypto.connected = false;
 tinyCrypto.providerConnected = false;
 tinyCrypto.protocol = null;
 
-tinyCrypto.config = Object.freeze({
-  usd: modWeb3Cfg.usd,
-  networks: getWeb3Cfg()?.networks ?? {},
-});
-
 tinyCrypto.errors = Object.freeze({
   noWallet: () => new Error('No wallet connected detected.'),
   noProvider: () => new Error('No provider connected detected.'),
@@ -203,6 +197,11 @@ tinyCrypto.decimals = Object.freeze({
 
 // Module
 const startWeb3 = (/* tcall */) => {
+  tinyCrypto.config = Object.freeze({
+    usd: modWeb3Cfg.usd,
+    networks: getWeb3Cfg()?.networks ?? {},
+  });
+
   // Check if Web3 has been injected by the browser (Mist/MetaMask).
   if (
     envAPI.get('WEB3') &&

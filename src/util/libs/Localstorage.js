@@ -14,12 +14,14 @@ import { objType } from 'for-promise/utils/lib.mjs';
 import initMatrix from '@src/client/initMatrix';
 import { decryptAllEventsOfTimeline } from '@src/client/state/Timeline/functions';
 import cons from '@src/client/state/cons';
+import { getMemberEventType } from '@src/app/organisms/room/MemberEvents';
 
 import { startDb } from './db/indexedDb';
 import { toTitleCase } from '../tools';
 
 const genKey = () => generateApiKey().replace(/\~/g, 'pud');
 const SYNC_TIMELINE_DOWNLOAD_LIMIT = 100;
+const getTableName = (tableData) => (typeof tableData === 'string' ? tableData : tableData.name);
 
 const dontExistTimelineTimeout =
   typeof __ENV_APP__.TIMELINE_TIMEOUT !== 'number' ||
@@ -238,7 +240,7 @@ class StorageManager extends EventEmitter {
     this.isPersisted = null;
 
     // Db
-    this._dbVersion = 28;
+    this._dbVersion = 29;
     this._oldDbVersion = this.getNumber('ponyHouse-db-version') || 0;
     this.dbName = 'pony-house-database';
     this._timelineSyncCache = this.getJson('ponyHouse-timeline-sync', 'obj');
@@ -818,6 +820,8 @@ class StorageManager extends EventEmitter {
     data.e_status = event.status;
 
     data.type = event.getType();
+    data.member_type = getMemberEventType(event);
+
     data.sender = event.getSender();
     data.room_id = event.getRoomId();
     data.content = clone(event.getContent());
@@ -1518,12 +1522,16 @@ class StorageManager extends EventEmitter {
       if (content) {
         // Normal way
         if (typeof content.redacts === 'string')
-          await this._setRedaction(content.redacts, this._eventDbs[dbIndex], true);
+          await this._setRedaction(content.redacts, getTableName(this._eventDbs[dbIndex]), true);
         // String
         else if (Array.isArray(content.redacts)) {
           for (const item in content.redacts) {
             if (typeof content.redacts[item] === 'string')
-              await this._setRedaction(content.redacts[item], this._eventDbs[dbIndex], true);
+              await this._setRedaction(
+                content.redacts[item],
+                getTableName(this._eventDbs[dbIndex]),
+                true,
+              );
           }
         }
 
@@ -1531,7 +1539,7 @@ class StorageManager extends EventEmitter {
         if (unsigned && typeof unsigned.transaction_id === 'string')
           await this._setRedaction(
             `~${event.getRoomId()}:${unsigned.transaction_id}`,
-            this._eventDbs[dbIndex],
+            getTableName(this._eventDbs[dbIndex]),
             true,
           );
       }
