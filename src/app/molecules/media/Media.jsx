@@ -428,7 +428,7 @@ function Audio({ content = {}, link, file = null, roomId, threadId }) {
       <div className="audio-container">
         {url === null && isLoading && (
           <center className="r-howler-previewer">
-            <Spinner size="small" />
+            <Spinner className="small" />
           </center>
         )}
         {url === null && !isLoading && (

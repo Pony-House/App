@@ -3,7 +3,10 @@ import PropTypes from 'prop-types';
 
 function Spinner({ size = '', style = 'spinner-border', className = null }) {
   return (
-    <div className={`${style} ${size}${className ? ` ${className}` : ''}`} role="status">
+    <div
+      className={`${style} ${size ? `spinner-border-${size}` : ''}${className ? ` ${className}` : ''}`}
+      role="status"
+    >
       <span className="visually-hidden">Loading...</span>
     </div>
   );

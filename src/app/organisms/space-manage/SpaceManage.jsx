@@ -240,7 +240,7 @@ function SpaceManageFooter({ parentId, selected }) {
 
   return (
     <div className="space-manage__footer">
-      {process && <Spinner size="small" />}
+      {process && <Spinner className="small" />}
       <Text weight="medium">{process || `${selected.length} item selected`}</Text>
       {!process && (
         <>
@@ -418,7 +418,7 @@ function SpaceManageContent({ roomId, requestClose }) {
       )}
       {isLoading && (
         <div className="mt-2 space-manage__content-loading text-center">
-          <Spinner size="small" />
+          <Spinner className="small" />
           <Text>Loading rooms...</Text>
         </div>
       )}

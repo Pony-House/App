@@ -55,7 +55,7 @@ function CreateKeyBackupDialog({ keyData }) {
     <div className="key-backup__create">
       {done === false && (
         <div>
-          <Spinner size="small" />
+          <Spinner className="small" />
           <Text>Creating backup...</Text>
         </div>
       )}
@@ -125,7 +125,7 @@ function RestoreKeyBackupDialog({ keyData }) {
     <div className="key-backup__restore">
       {(status === false || status.message) && (
         <div>
-          <Spinner size="small" />
+          <Spinner className="small" />
           <Text>{status.message ?? 'Restoring backup keys...'}</Text>
         </div>
       )}
@@ -173,7 +173,7 @@ function DeleteKeyBackupDialog({ requestClose }) {
       <Text weight="medium">Deleting key backup is permanent.</Text>
       <Text>All encrypted messages keys stored on server will be deleted.</Text>
       {isDeleting ? (
-        <Spinner size="small" />
+        <Spinner className="small" />
       ) : (
         <Button variant="danger" onClick={deleteBackup}>
           Delete
@@ -243,7 +243,7 @@ function KeyBackup() {
     ));
 
   const renderOptions = () => {
-    if (keyBackup === undefined) return <Spinner size="small" />;
+    if (keyBackup === undefined) return <Spinner className="small" />;
     if (keyBackup === null)
       return (
         <Button variant="outline-primary" onClick={openCreateKeyBackup}>

@@ -77,7 +77,7 @@ function InviteList({ isOpen, onRequestClose }) {
         inviterName={inviterName}
         options={
           procInvite.has(myRoom.roomId) ? (
-            <Spinner size="small" />
+            <Spinner className="small" />
           ) : (
             <div className="invite-btn__container">
               <Button className="me-2" onClick={() => rejectInvite(myRoom.roomId)}>
@@ -118,7 +118,7 @@ function InviteList({ isOpen, onRequestClose }) {
               id={myRoom.getDMInviter() || roomId}
               options={
                 procInvite.has(myRoom.roomId) ? (
-                  <Spinner size="small" />
+                  <Spinner className="small" />
                 ) : (
                   <div className="invite-btn__container">
                     <Button className="me-2" onClick={() => rejectInvite(myRoom.roomId, true)}>

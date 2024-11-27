@@ -238,7 +238,7 @@ function DeviceManage() {
         }
         options={
           processing.includes(deviceId) ? (
-            <Spinner size="small" />
+            <Spinner className="small" />
           ) : (
             <>
               {isCSEnabled && canVerify && (

@@ -51,7 +51,7 @@ export default function RoomIntroContainer({ event, timeline }) {
     <>
       <br />
       <strong className="small">
-        <Spinner className="d-inline-block" size="small" /> This room is being synced. History
+        <Spinner className="d-inline-block me-3" size="sm" /> This room is being synced. History
         scroll functions are temporarily disabled.
       </strong>
     </>

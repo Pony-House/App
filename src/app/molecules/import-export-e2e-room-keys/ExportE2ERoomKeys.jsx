@@ -103,7 +103,7 @@ function ExportE2ERoomKeys() {
       </form>
       {status.type === cons.status.IN_FLIGHT && (
         <div className="import-e2e-room-keys__process">
-          <Spinner size="small" />
+          <Spinner className="small" />
           <Text variant="b2">{status.msg}</Text>
         </div>
       )}

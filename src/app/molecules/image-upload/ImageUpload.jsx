@@ -77,7 +77,7 @@ function ImageUpload({
             ) : (
               <RawIcon fa="fa-solid fa-plus" color="white" />
             ))}
-          {uploadPromise !== null && <Spinner size="small" />}
+          {uploadPromise !== null && <Spinner className="small" />}
         </div>
       </button>
       {(typeof imageSrc === 'string' || uploadPromise !== null) && (

@@ -127,7 +127,7 @@ function Changelog() {
             </>
           ) : (
             <div className="tiny-form-align-center">
-              <Spinner size="small" className="me-3" />
+              <Spinner className="small me-3" />
               Loading data...
             </div>
           )

@@ -101,7 +101,7 @@ function EmojiVerificationContent({ data, requestClose }) {
 
   const renderWait = () => (
     <>
-      <Spinner size="small" />
+      <Spinner className="small" />
       <Text>Waiting for response from other device...</Text>
     </>
   );

@@ -154,7 +154,7 @@ function Homeserver({ className }) {
         )
       ) : (
         <div className="homeserver-form__status flex--center noselect">
-          <Spinner size="small" />
+          <Spinner className="small" />
           <Text variant="b2">Checking storage settings...</Text>
         </div>
       )}
@@ -165,7 +165,7 @@ function Homeserver({ className }) {
       )}
       {process.isLoading && (
         <div className="homeserver-form__status flex--center noselect">
-          <Spinner size="small" />
+          <Spinner className="small" />
           <Text variant="b2">{process.message}</Text>
         </div>
       )}

@@ -164,7 +164,7 @@ function InviteUser({ isOpen, roomId, searchTerm, onRequestClose }) {
 
       if (mx.getUserId() === userId) return null;
       if (procUsers.has(userId)) {
-        return <Spinner size="small" />;
+        return <Spinner className="small" />;
       }
       if (createdDM.has(userId)) {
         // eslint-disable-next-line max-len
@@ -289,7 +289,7 @@ function InviteUser({ isOpen, roomId, searchTerm, onRequestClose }) {
         <div className="invite-user__search-status noselect">
           {typeof searchQuery.username !== 'undefined' && isSearching && (
             <div className="flex--center">
-              <Spinner size="small" />
+              <Spinner className="small" />
               <small className="ms-3">{`Searching for user "${__ENV_APP__.FORCE_SIMPLER_SAME_HASHTAG ? convertUserId(searchQuery.username) : searchQuery.username}"...`}</small>
             </div>
           )}

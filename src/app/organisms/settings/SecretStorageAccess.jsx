@@ -100,7 +100,7 @@ function SecretStorageAccess({ onComplete }) {
           </div>
         )}
       </form>
-      {process && <Spinner size="small" />}
+      {process && <Spinner className="small" />}
     </div>
   );
 }

@@ -36,6 +36,7 @@ import { openPinMessageModal } from '../../../util/libs/pinMessage';
 import { openThreadsMessageModal } from '../../../util/libs/thread';
 import { getRoomInfo } from './Room';
 import RoomWidget from './RoomWidget';
+import Spinner from '@src/app/atoms/spinner/Spinner';
 
 function RoomViewHeader({ roomId, threadId, roomAlias, roomItem, disableActions = false }) {
   const [, forceUpdate] = useForceUpdate();
@@ -131,7 +132,9 @@ function RoomViewHeader({ roomId, threadId, roomAlias, roomItem, disableActions 
     }
   };
 
-  const thread = threadId ? getRoomInfo().roomTimeline.room.getThread(threadId) : null;
+  const roomTimeline = getRoomInfo().roomTimeline;
+
+  const thread = threadId ? roomTimeline.room.getThread(threadId) : null;
   const contentThread = thread && thread.rootEvent ? thread.rootEvent.getContent() : null;
 
   return (
@@ -176,6 +179,9 @@ function RoomViewHeader({ roomId, threadId, roomAlias, roomItem, disableActions 
                 isDefaultImage
               />
               <span className="me-2 text-truncate d-inline-block room-name">
+                {!storageManager.isRoomSyncing(roomTimeline.roomId) && (
+                  <Spinner className="me-3" size="sm" />
+                )}
                 {twemojifyReact(roomName)}
                 {objType(contentThread, 'object') ? (
                   <strong className="ms-2">

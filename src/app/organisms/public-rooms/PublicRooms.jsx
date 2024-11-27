@@ -79,7 +79,7 @@ function TryJoinWithAlias({ alias, onRequestClose }) {
       )}
       {status.isJoining && (
         <>
-          <Spinner size="small" />
+          <Spinner className="small" />
           <Text>{`Joining ${alias}...`}</Text>
         </>
       )}
@@ -273,7 +273,7 @@ function PublicRooms({ isOpen, searchTerm, onRequestClose }) {
             )}
             {!isJoined &&
               (joiningRooms.has(room.room_id) ? (
-                <Spinner size="small" />
+                <Spinner className="small" />
               ) : (
                 <Button
                   onClick={() => joinRoom(room.aliases?.[0] || room.room_id)}
@@ -338,12 +338,12 @@ function PublicRooms({ isOpen, searchTerm, onRequestClose }) {
             isSearching &&
             (searchQuery.name === '' ? (
               <>
-                <Spinner size="small" />
+                <Spinner className="small" />
                 <div className="small">{`Loading public rooms from ${searchQuery.homeserver}...`}</div>
               </>
             ) : (
               <>
-                <Spinner size="small" />
+                <Spinner className="small" />
                 <div className="small">{`Searching for "${searchQuery.name}" on ${searchQuery.homeserver}...`}</div>
               </>
             ))}

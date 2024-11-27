@@ -99,7 +99,7 @@ function JoinAliasContent({ term, requestClose }) {
       <div className="join-alias__btn">
         {process ? (
           <>
-            <Spinner size="small" />
+            <Spinner className="small" />
             <Text>{process}</Text>
           </>
         ) : (

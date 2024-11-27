@@ -116,7 +116,7 @@ function ShortcutSpacesContent() {
       {spaceWithoutShortcut.map((spaceId) => renderSpace(spaceId, false))}
       {selected.length !== 0 && (
         <div className="shortcut-spaces__footer">
-          {process && <Spinner size="small" />}
+          {process && <Spinner className="small" />}
           <Text weight="medium">{process || `${selected.length} spaces selected`}</Text>
           {!process && (
             <Button onClick={handleAdd} variant="primary">

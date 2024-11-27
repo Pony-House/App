@@ -252,7 +252,7 @@ function CreateRoomContent({ isSpace, parentId = null, onRequestClose }) {
         </div>
         {isCreatingRoom && (
           <div className="create-room__loading">
-            <Spinner size="small" />
+            <Spinner className="small" />
             <Text>{`Creating ${isSpace ? 'space' : 'room'}...`}</Text>
           </div>
         )}

@@ -7,7 +7,7 @@ function SettingLoading({ title }) {
     <div className="card noselect">
       <ul className="list-group list-group-flush">
         <li className="list-group-item small pt-3 text-center">
-          <Spinner size="small" />
+          <Spinner className="small" />
         </li>
         <li className="list-group-item small pb-3 text-center">{title}</li>
       </ul>

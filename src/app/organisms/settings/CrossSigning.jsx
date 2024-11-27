@@ -133,7 +133,7 @@ function CrossSigningSetup() {
             Generate Key
           </Button>
         )}
-        {genWithPhrase === false && <Spinner size="small" />}
+        {genWithPhrase === false && <Spinner className="small" />}
       </div>
       <Text className="cross-signing__setup-divider">OR</Text>
       <Formik
@@ -187,7 +187,7 @@ function CrossSigningSetup() {
                 Set Phrase & Generate Key
               </Button>
             )}
-            {genWithPhrase === true && <Spinner size="small" />}
+            {genWithPhrase === true && <Spinner className="small" />}
           </form>
         )}
       </Formik>
