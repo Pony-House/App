@@ -138,6 +138,18 @@ function RoomViewHeader({ roomId, threadId, roomAlias, roomItem, disableActions 
   const thread = threadId ? roomTimeline.room.getThread(threadId) : null;
   const contentThread = thread && thread.rootEvent ? thread.rootEvent.getContent() : null;
 
+  useEffect(() => {
+    const handleRoomSyncUpdate = (syncTimelineCache) => {
+      if (roomId !== syncTimelineCache.roomId) return;
+      forceUpdate();
+    };
+
+    storageManager.on('timelineSyncStatus', handleRoomSyncUpdate);
+    return () => {
+      storageManager.off('timelineSyncStatus', handleRoomSyncUpdate);
+    };
+  });
+
   return (
     <Header>
       <ul className="navbar-nav mr-auto">
@@ -180,7 +192,7 @@ function RoomViewHeader({ roomId, threadId, roomAlias, roomItem, disableActions 
                 isDefaultImage
               />
               <span className="me-2 text-truncate d-inline-block room-name">
-                {!storageManager.isRoomSyncing(roomTimeline.roomId, roomTimeline.threadId) && (
+                {storageManager.isRoomSyncing(roomTimeline.roomId, roomTimeline.threadId) && (
                   <Tooltip placement="bottom" content="Room being synced...">
                     <Spinner className="me-2" size="sm" />
                   </Tooltip>
