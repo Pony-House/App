@@ -11,6 +11,7 @@ import Button from '../../atoms/button/Button';
 
 import { getUsersActionJsx } from './common';
 import urlParams from '../../../util/libs/urlParams';
+import storageManager from '@src/util/libs/Localstorage';
 
 function useJumpToEvent(roomTimeline) {
   const [eventId, setEventId] = useState(null);
@@ -96,7 +97,11 @@ function RoomViewFloating({ roomId, roomTimeline, refRoomInput, refcmdInput }) {
   const handleScrollToBottom = () => {
     roomTimeline.emit(cons.events.roomTimeline.SCROLL_TO_LIVE);
     urlParams.delete('event_id');
-    if (roomTimeline.getPage() === 1) setIsAtBottom(true);
+    if (
+      roomTimeline.getPage() === 1 ||
+      storageManager.isRoomSyncing(roomTimeline.roomId, roomTimeline.threadId)
+    )
+      setIsAtBottom(true);
     else {
       roomTimeline
         .paginateTimeline(1)

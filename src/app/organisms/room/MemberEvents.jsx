@@ -115,6 +115,7 @@ export const MemberEventsList = [
 ];
 
 export const memberEventAllowed = (item) =>
+  typeof item === 'string' &&
   ((item !== 'avatarSets' &&
     item !== 'avatarChanged' &&
     item !== 'avatarRemoved' &&

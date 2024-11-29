@@ -194,7 +194,7 @@ function RoomViewHeader({ roomId, threadId, roomAlias, roomItem, disableActions 
               <span className="me-2 text-truncate d-inline-block room-name">
                 {storageManager.isRoomSyncing(roomTimeline.roomId, roomTimeline.threadId) && (
                   <Tooltip placement="bottom" content="Room being synced...">
-                    <Spinner className="me-2" size="sm" />
+                    <Spinner className="me-1" size="sm" />
                   </Tooltip>
                 )}
                 {twemojifyReact(roomName)}

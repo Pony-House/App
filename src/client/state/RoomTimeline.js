@@ -16,6 +16,7 @@ import {
   getLastLinkedTimeline,
 } from './Timeline/functions';
 import installYjs from './Timeline/yjs';
+import { memberEventAllowed } from '@src/app/organisms/room/MemberEvents';
 
 const timelineCache = {};
 
@@ -198,6 +199,7 @@ class RoomTimeline extends EventEmitter {
     this._onMessage = async (r, mEvent) => {
       const tmc = tinyThis.getTimelineCache(mEvent);
       if (!tmc && !mEvent.isRedacted()) return;
+      if (!memberEventAllowed(mEvent.getMemberEventType())) return;
       if (!tinyThis.ended) {
         tmc.pages = await storageManager.getMessagesPagination(
           this._buildPagination({ threadId: mEvent.getThreadId(), roomId: mEvent.getRoomId() }),
@@ -260,10 +262,11 @@ class RoomTimeline extends EventEmitter {
     };
 
     // Timeline events
-    this._onTimeline = async (r, mEvent) => {
+    this._onTimeline = (r, mEvent) => {
       if (!tinyThis.ended) {
         const tmc = tinyThis.getTimelineCache(mEvent);
         if (!tmc) return;
+        if (!memberEventAllowed(mEvent.getMemberEventType())) return;
         if (mEvent.getType() !== 'm.room.redaction') tinyThis._insertIntoTimeline(mEvent, tmc);
         else tinyThis._deletingEvent(mEvent);
       }

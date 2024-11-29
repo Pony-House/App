@@ -51,7 +51,7 @@ export default function RoomIntroContainer({ event, timeline }) {
     <>
       <br />
       <strong className="small">
-        <Spinner className="d-inline-block me-2" size="sm" /> This room is being synced. History
+        <Spinner className="d-inline-block me-1" size="sm" /> This room is being synced. History
         scroll functions are temporarily disabled.
       </strong>
     </>
@@ -78,12 +78,18 @@ export default function RoomIntroContainer({ event, timeline }) {
   // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     const handleUpdate = () => nameForceUpdate();
+    const handleRoomSyncUpdate = (syncTimelineCache) => {
+      if (room.roomId !== syncTimelineCache.roomId) return;
+      nameForceUpdate();
+    };
 
+    storageManager.on('timelineSyncStatus', handleRoomSyncUpdate);
     roomList.on(cons.events.roomList.ROOM_PROFILE_UPDATED, handleUpdate);
     return () => {
       roomList.removeListener(cons.events.roomList.ROOM_PROFILE_UPDATED, handleUpdate);
+      storageManager.off('timelineSyncStatus', handleRoomSyncUpdate);
     };
-  }, []);
+  });
 
   return (
     <RoomIntro
