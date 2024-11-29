@@ -114,16 +114,17 @@ export const MemberEventsList = [
   'nameRemoved',
 ];
 
-export const memberEventAllowed = (item) =>
-  typeof item === 'string' &&
-  ((item !== 'avatarSets' &&
-    item !== 'avatarChanged' &&
-    item !== 'avatarRemoved' &&
-    item !== 'nameSets' &&
-    item !== 'nameChanged' &&
-    item !== 'nameRemoved') ||
-    !settings.hideNickAvatarEvents) &&
-  ((item !== 'leave' && item !== 'join') || !settings.hideMembershipEvents);
+export const memberEventAllowed = (item, ignoreNull = false) =>
+  (typeof item !== 'string' && ignoreNull) ||
+  (typeof item === 'string' &&
+    ((item !== 'avatarSets' &&
+      item !== 'avatarChanged' &&
+      item !== 'avatarRemoved' &&
+      item !== 'nameSets' &&
+      item !== 'nameChanged' &&
+      item !== 'nameRemoved') ||
+      !settings.hideNickAvatarEvents) &&
+    ((item !== 'leave' && item !== 'join') || !settings.hideMembershipEvents));
 
 // User Events
 export const makeReturnObj = (variant, content) => ({

@@ -199,7 +199,6 @@ class RoomTimeline extends EventEmitter {
     this._onMessage = async (r, mEvent) => {
       const tmc = tinyThis.getTimelineCache(mEvent);
       if (!tmc && !mEvent.isRedacted()) return;
-      if (!memberEventAllowed(mEvent.getMemberEventType())) return;
       if (!tinyThis.ended) {
         tmc.pages = await storageManager.getMessagesPagination(
           this._buildPagination({ threadId: mEvent.getThreadId(), roomId: mEvent.getRoomId() }),
@@ -266,7 +265,6 @@ class RoomTimeline extends EventEmitter {
       if (!tinyThis.ended) {
         const tmc = tinyThis.getTimelineCache(mEvent);
         if (!tmc) return;
-        if (!memberEventAllowed(mEvent.getMemberEventType())) return;
         if (mEvent.getType() !== 'm.room.redaction') tinyThis._insertIntoTimeline(mEvent, tmc);
         else tinyThis._deletingEvent(mEvent);
       }
@@ -400,6 +398,7 @@ class RoomTimeline extends EventEmitter {
 
   // Insert into timeline
   _insertIntoTimeline(mEvent, tmc = this.timelineCache, isFirstTime = false, forceAdd = false) {
+    if (!memberEventAllowed(mEvent.getMemberEventType(), true)) return;
     const pageLimit = getAppearance('pageLimit');
     const eventTs = mEvent.getTs();
     if (
