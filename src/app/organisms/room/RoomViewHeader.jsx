@@ -38,6 +38,7 @@ import { getRoomInfo } from './Room';
 import RoomWidget from './RoomWidget';
 import Spinner from '@src/app/atoms/spinner/Spinner';
 import Tooltip from '@src/app/atoms/tooltip/Tooltip';
+import storageManager from '@src/util/libs/Localstorage';
 
 function RoomViewHeader({ roomId, threadId, roomAlias, roomItem, disableActions = false }) {
   const [, forceUpdate] = useForceUpdate();
@@ -140,7 +141,11 @@ function RoomViewHeader({ roomId, threadId, roomAlias, roomItem, disableActions 
 
   useEffect(() => {
     const handleRoomSyncUpdate = (syncTimelineCache) => {
-      if (roomId !== syncTimelineCache.roomId) return;
+      if (
+        roomId !== syncTimelineCache.roomId &&
+        (!threadId || threadId !== syncTimelineCache.threadId)
+      )
+        return;
       forceUpdate();
     };
 
@@ -192,7 +197,7 @@ function RoomViewHeader({ roomId, threadId, roomAlias, roomItem, disableActions 
                 isDefaultImage
               />
               <span className="me-2 text-truncate d-inline-block room-name">
-                {storageManager.isRoomSyncing(roomTimeline.roomId, roomTimeline.threadId) && (
+                {roomTimeline.isRoomSyncing() && (
                   <Tooltip placement="bottom" content="Room being synced...">
                     <Spinner className="me-1" size="sm" />
                   </Tooltip>

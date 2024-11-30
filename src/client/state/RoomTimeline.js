@@ -372,6 +372,15 @@ class RoomTimeline extends EventEmitter {
     return this.getTimelineCache(event) ? true : false;
   }
 
+  // Can load page
+  canLoadNextPage() {
+    return !this.isRoomSyncing() && !this.isOngoingPagination && this.initialized;
+  }
+
+  isRoomSyncing() {
+    return storageManager.isRoomSyncing(this.roomId, this.threadId);
+  }
+
   // Build pagination
   _buildPagination(config = {}) {
     const threadId = config.threadId || this.threadId;

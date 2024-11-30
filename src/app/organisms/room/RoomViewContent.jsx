@@ -36,7 +36,6 @@ import matrixAppearance, { getAppearance } from '../../../util/libs/appearance';
 import handleOnClickCapture from './content/handleOnClickCapture';
 import RoomIntroContainer from './content/RoomIntroContainer';
 import LoadingMsgPlaceholders from './content/LoadingMsgPlaceholders';
-import storageManager from '@src/util/libs/Localstorage';
 
 function renderEvent(
   timelineSVRef,
@@ -202,10 +201,7 @@ function usePaginate(roomTimeline, readUptoEvtStore, timelineScrollRef, eventLim
       if (timelineScroll) {
         // Top page
         if (timelineScroll.bottom < SCROLL_TRIGGER_POS) {
-          if (
-            !storageManager.isRoomSyncing(roomTimeline.roomId, roomTimeline.threadId) &&
-            roomTimeline.canPaginateForward()
-          ) {
+          if (roomTimeline.canLoadNextPage() && roomTimeline.canPaginateForward()) {
             await roomTimeline.paginateTimeline(false);
             setMediaHeight();
             return;
@@ -214,10 +210,7 @@ function usePaginate(roomTimeline, readUptoEvtStore, timelineScrollRef, eventLim
 
         // Bottom page
         if (timelineScroll.top < SCROLL_TRIGGER_POS || roomTimeline.timeline.length < 1) {
-          if (
-            !storageManager.isRoomSyncing(roomTimeline.roomId, roomTimeline.threadId) &&
-            roomTimeline.canPaginateBackward()
-          ) {
+          if (roomTimeline.canLoadNextPage() && roomTimeline.canPaginateBackward()) {
             await roomTimeline.paginateTimeline(true);
           }
         }
@@ -621,7 +614,7 @@ function RoomViewContent({
 
     // Need pagination backward
     if (roomTimeline.canPaginateBackward() || limit.from > 0) {
-      if (!storageManager.isRoomSyncing(roomTimeline.roomId, roomTimeline.threadId) && !isGuest)
+      if (roomTimeline.canLoadNextPage() && !isGuest)
         tl.push(
           <LoadingMsgPlaceholders
             keyName="chatscroll-1"
@@ -716,7 +709,7 @@ function RoomViewContent({
 
     // Need pagination forward
     if (roomTimeline.canPaginateForward() || limit.length < timeline.length) {
-      if (!storageManager.isRoomSyncing(roomTimeline.roomId, roomTimeline.threadId) && !isGuest)
+      if (roomTimeline.canLoadNextPage() && !isGuest)
         tl.push(
           <LoadingMsgPlaceholders
             keyName="chatscroll-2"

@@ -47,15 +47,17 @@ export default function RoomIntroContainer({ event, timeline }) {
     : twemojifyReact('', undefined, true);
   const nameJsx = twemojifyReact(roomTitle);
 
-  const syncMessage = storageManager.isRoomSyncing(room.roomId, threadId) ? (
-    <>
-      <br />
-      <strong className="small">
-        <Spinner className="d-inline-block me-1" size="sm" /> This room is being synced. History
-        scroll functions are temporarily disabled.
-      </strong>
-    </>
-  ) : null;
+  const roomTimeline = getRoomInfo().roomTimeline;
+  const syncMessage =
+    roomTimeline && roomTimeline.isRoomSyncing() ? (
+      <>
+        <br />
+        <strong className="small">
+          <Spinner className="d-inline-block me-1" size="sm" /> This room is being synced. History
+          scroll functions are temporarily disabled.
+        </strong>
+      </>
+    ) : null;
 
   const desc =
     isDM && !thread ? (

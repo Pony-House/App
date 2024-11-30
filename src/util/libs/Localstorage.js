@@ -61,7 +61,18 @@ const finishWhereDbPrepare = (memberType, threadId, data, existMemberType = fals
     };
 
     const tinyComplete = () => {
-      // data.where.push({ or: memberEventItem })
+      // data.where.push({ or: memberEventItem[item] });
+      // TEMP CODE! I am expecting some solution to convert this code to the version above:
+      const originalWhere = clone(data.where);
+      for (const item in memberEventItem) {
+        const newData = { or: memberEventItem[item] };
+        for (const index in originalWhere) {
+          for (const i2 in originalWhere[index]) {
+            newData[i2] = originalWhere[index][i2];
+          }
+        }
+        data.where.push(newData);
+      }
     };
 
     if (memberValue.length < 1) {
