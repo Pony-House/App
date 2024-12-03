@@ -549,11 +549,6 @@
     minimatch "^3.1.2"
     strip-json-comments "^3.1.1"
 
-"@eslint/js@9.14.0":
-  version "9.14.0"
-  resolved "https://registry.yarnpkg.com/@eslint/js/-/js-9.14.0.tgz#2347a871042ebd11a00fd8c2d3d56a265ee6857e"
-  integrity sha512-pFoEtFWCPyDOl+C6Ift+wC7Ro89otjigCf5vcuWqWgqNSQbRrpjSvdeE6ofLz4dHmyxD5f7gIdGT4+p36L6Twg==
-
 "@eslint/js@9.15.0":
   version "9.15.0"
   resolved "https://registry.yarnpkg.com/@eslint/js/-/js-9.15.0.tgz#df0e24fe869143b59731942128c19938fdbadfb5"
@@ -8284,10 +8279,10 @@ vite-plugin-electron@^0.28.7:
   resolved "https://registry.npmjs.org/vite-plugin-electron/-/vite-plugin-electron-0.28.8.tgz"
   integrity sha512-ir+B21oSGK9j23OEvt4EXyco9xDCaF6OGFe0V/8Zc0yL2+HMyQ6mmNQEIhXsEsZCSfIowBpwQBeHH4wVsfraeg==
 
-vite-plugin-static-copy@2.1.0:
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/vite-plugin-static-copy/-/vite-plugin-static-copy-2.1.0.tgz#d1bce4958363bd81cf21fc6acb98fa42a7dec40b"
-  integrity sha512-n8lEOIVM00Y/zronm0RG8RdPyFd0SAAFR0sii3NWmgG3PSCyYMsvUNRQTlb3onp1XeMrKIDwCrPGxthKvqX9OQ==
+vite-plugin-static-copy@2.2.0:
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/vite-plugin-static-copy/-/vite-plugin-static-copy-2.2.0.tgz#8eec750f016e508b09234da880e9310cd1367b9b"
+  integrity sha512-ytMrKdR9iWEYHbUxs6x53m+MRl4SJsOSoMu1U1+Pfg0DjPeMlsRVx3RR5jvoonineDquIue83Oq69JvNsFSU5w==
   dependencies:
     chokidar "^3.5.3"
     fast-glob "^3.2.11"
