@@ -282,10 +282,10 @@
   resolved "https://registry.npmjs.org/@capacitor/local-notifications/-/local-notifications-6.1.0.tgz"
   integrity sha512-EjEnbApdFiZYeJgxKIDtgFRNSmeHySnyAeyoTn6HUTYMkTOaHFGAd7NU964k7gbX4al/CBp0cMA8iMG0c7kh1w==
 
-"@capacitor/network@6.0.2":
-  version "6.0.2"
-  resolved "https://registry.npmjs.org/@capacitor/network/-/network-6.0.2.tgz"
-  integrity sha512-c0aZb0vRodvUO7ugZdQfMXr7LHUgZSKaJcOfu53gwuxGuvrIUvqPvaog+GlNLp7SB4Iw74Js7cemnIqsR5yxzw==
+"@capacitor/network@6.0.3":
+  version "6.0.3"
+  resolved "https://registry.yarnpkg.com/@capacitor/network/-/network-6.0.3.tgz#d7a045a9d42f6a17fe4c2374ef9eb1d2b30e273e"
+  integrity sha512-ODRgVY8AMIDXPoND6OvaaeMwRhtnq+K/IK7IEKV1pSg8CqJgqoD6je0omZnDqM+S1BKI2JOm8pe3gVvtcoehdw==
 
 "@capacitor/status-bar@6.0.1":
   version "6.0.1"
