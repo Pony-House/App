@@ -276,10 +276,10 @@
   resolved "https://registry.yarnpkg.com/@capacitor/keyboard/-/keyboard-6.0.3.tgz#0ea0e2f832722c02e32c5bb8a1e776d8bddc9b9e"
   integrity sha512-V/mURxBI68HvClYjrGBlOriWkwYN7r+cWid/igJz/3scNc/V81DgQ9fpoLr4W0I5NY7YxOesjIJLuLO+LT18mQ==
 
-"@capacitor/local-notifications@6.1.0":
-  version "6.1.0"
-  resolved "https://registry.npmjs.org/@capacitor/local-notifications/-/local-notifications-6.1.0.tgz"
-  integrity sha512-EjEnbApdFiZYeJgxKIDtgFRNSmeHySnyAeyoTn6HUTYMkTOaHFGAd7NU964k7gbX4al/CBp0cMA8iMG0c7kh1w==
+"@capacitor/local-notifications@6.1.1":
+  version "6.1.1"
+  resolved "https://registry.yarnpkg.com/@capacitor/local-notifications/-/local-notifications-6.1.1.tgz#d4d58103ea344f6bc78e7e60d9ed34e6a79faaec"
+  integrity sha512-9fd0KCcKVflwqpYHZduL4iT3t/VZSgIFBdswKL12FzkuaD9zaveG3nqNdEiklKsHkhI9Z+NRvb4NQgtdXfIWbw==
 
 "@capacitor/network@6.0.3":
   version "6.0.3"
