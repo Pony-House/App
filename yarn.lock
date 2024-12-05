@@ -1733,42 +1733,32 @@
   resolved "https://registry.yarnpkg.com/@xmldom/xmldom/-/xmldom-0.9.5.tgz#a2c08c3a0c5931daae67dd0385edf2f464d1fee4"
   integrity sha512-6g1EwSs8cr8JhP1iBxzyVAWM6BIDvx9Y3FZRIQiMDzgG43Pxi8YkWOZ0nQj2NHgNzgXDZbJewFx/n+YAvMZrfg==
 
-"@xmtp/consent-proof-signature@^0.1.3":
-  version "0.1.3"
-  resolved "https://registry.npmjs.org/@xmtp/consent-proof-signature/-/consent-proof-signature-0.1.3.tgz"
-  integrity sha512-2uTKOd7ov6QnDgCFNnL+4Hx9osxRLSpdBNrbpKauWp8/qrrMEe6yBwFRNq40ieElo1mo1usB8DbhSH0jalcIdw==
+"@xmtp/consent-proof-signature@^0.1.4":
+  version "0.1.4"
+  resolved "https://registry.yarnpkg.com/@xmtp/consent-proof-signature/-/consent-proof-signature-0.1.4.tgz#869bee1d3c74f05748b1c3992d8782899a175050"
+  integrity sha512-XyLOVcHUsdD+7IpS4D6J5mgRRjZfHr8TaC8G4KNIqYojOWZ7hPUlZZnbfQYKxghafjxaASdAbp4E4UFPqVSF7A==
   dependencies:
-    "@xmtp/proto" "3.56.0"
+    "@xmtp/proto" "^3.72.0"
     long "^5.2.3"
 
-"@xmtp/content-type-primitives@^1.0.1":
+"@xmtp/content-type-primitives@^1.0.3":
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/@xmtp/content-type-primitives/-/content-type-primitives-1.0.3.tgz#e137cfc34bbd991ec0986356997f338df8a02e3d"
+  integrity sha512-NJUsar5fXkPnlgXZY7oZkctPjmGBpRsp1iFtWuiVMcpQ8P7uh1MYLdc3IhAMCqRSFw5n6UBrqUL6d7fjaoLBEA==
+  dependencies:
+    "@xmtp/proto" "^3.72.0"
+
+"@xmtp/content-type-text@^1.0.1":
   version "1.0.1"
-  resolved "https://registry.npmjs.org/@xmtp/content-type-primitives/-/content-type-primitives-1.0.1.tgz"
-  integrity sha512-F/2/yh0UQZb49tuxszTIbH+TDNJhTgSlj3UX8YOevMaMpIAvY26qjIA35M8Bw0nng3aU/iYqFA1p3ZO/7rM9Qw==
+  resolved "https://registry.yarnpkg.com/@xmtp/content-type-text/-/content-type-text-1.0.1.tgz#6baf4166193c57c39879a3b5e3b5124dd4dd3293"
+  integrity sha512-NzPWtccKc4CPHZi+edlZhTZAuFU91iB5rHR3UboqFxaGJ6UTTCsMmFRdvkoVpZ+HB18cAgPoVOLClfykI1O4pQ==
   dependencies:
-    "@xmtp/proto" "^3.61.1"
+    "@xmtp/content-type-primitives" "^1.0.3"
 
-"@xmtp/content-type-text@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.npmjs.org/@xmtp/content-type-text/-/content-type-text-1.0.0.tgz"
-  integrity sha512-mXkgDHw327SjFoGqV57w/xgZADq2doKZg3eF26Di7NQ9IGvi1LKPVMhwif4xLdA5duR+GZuhsSszkTllim6vug==
-  dependencies:
-    "@xmtp/content-type-primitives" "^1.0.1"
-
-"@xmtp/proto@3.56.0":
-  version "3.56.0"
-  resolved "https://registry.npmjs.org/@xmtp/proto/-/proto-3.56.0.tgz"
-  integrity sha512-zW8/s7x9je0keYjJpu/c5zmYK5wE14MxcDWLkxzMwRmrajwdy69BNN0NgVJ1uBzMUqGTjnGQJANDev8lpa58qQ==
-  dependencies:
-    long "^5.2.0"
-    protobufjs "^7.0.0"
-    rxjs "^7.8.0"
-    undici "^5.8.1"
-
-"@xmtp/proto@^3.61.1", "@xmtp/proto@^3.68.0":
-  version "3.70.2"
-  resolved "https://registry.npmjs.org/@xmtp/proto/-/proto-3.70.2.tgz"
-  integrity sha512-5tCvuQc0sq3YJO568moUFDRGXS34bpq+poUmNgdyT8tYRfT9WQ5044IJxS0z35k9JrH7Na31vhYE9d3Ygrztww==
+"@xmtp/proto@^3.72.0":
+  version "3.72.3"
+  resolved "https://registry.yarnpkg.com/@xmtp/proto/-/proto-3.72.3.tgz#90489903dded8fff2fc9aa58535cefa75ac7655a"
+  integrity sha512-ZwWNFt5VEpS3jPDEashP3tQO9r+ViAR+hWc+Lo1hqOwrST1MpOj3F2mim7z3PPoCkcGVVy1G6UyZ4AIIQqXAEw==
   dependencies:
     long "^5.2.0"
     protobufjs "^7.0.0"
@@ -1780,16 +1770,16 @@
   resolved "https://registry.npmjs.org/@xmtp/user-preferences-bindings-wasm/-/user-preferences-bindings-wasm-0.3.6.tgz"
   integrity sha512-ANi6ikrO6YBaK978sMuEEnpREvFQQnMVaNdlviaLzmc07u4Of4s/VLNnavl4qTb4F4cvwSiBWou0wSYIE5SWYg==
 
-"@xmtp/xmtp-js@13.0.3":
-  version "13.0.3"
-  resolved "https://registry.yarnpkg.com/@xmtp/xmtp-js/-/xmtp-js-13.0.3.tgz#b954305367a3fcf16626613da92ac4c289fbacab"
-  integrity sha512-p8yCTW31y1lb6g+ZMHqRLnko6NolPX0+2rrFc6zJUB9XMH/D0qSzS3eIUnCt+9S1tIOXUyI7Shs5OxqCT7KhjA==
+"@xmtp/xmtp-js@13.0.4":
+  version "13.0.4"
+  resolved "https://registry.yarnpkg.com/@xmtp/xmtp-js/-/xmtp-js-13.0.4.tgz#f700fc775e5f07642a948d52695f2a484e5b078b"
+  integrity sha512-T0huvHMGprjcmsvDE/SG58uZQ2iPoogMpmeN6+WfvjaBioPlK90PAEPnu4cYOjTZE7rUsBPUU+bJk3HXNWLv4A==
   dependencies:
     "@noble/secp256k1" "1.7.1"
-    "@xmtp/consent-proof-signature" "^0.1.3"
-    "@xmtp/content-type-primitives" "^1.0.1"
-    "@xmtp/content-type-text" "^1.0.0"
-    "@xmtp/proto" "^3.68.0"
+    "@xmtp/consent-proof-signature" "^0.1.4"
+    "@xmtp/content-type-primitives" "^1.0.3"
+    "@xmtp/content-type-text" "^1.0.1"
+    "@xmtp/proto" "^3.72.0"
     "@xmtp/user-preferences-bindings-wasm" "^0.3.6"
     async-mutex "^0.5.0"
     elliptic "^6.5.7"
