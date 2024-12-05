@@ -50,7 +50,7 @@
     "@capacitor/app": "6.0.1",
     "@capacitor/browser": "6.0.3",
     "@capacitor/clipboard": "6.0.2",
-    "@capacitor/core": "6.1.2",
+    "@capacitor/core": "6.2.0",
     "@capacitor/filesystem": "6.0.2",
     "@capacitor/haptics": "6.0.2",
     "@capacitor/keyboard": "6.0.2",
