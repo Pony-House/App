@@ -129,19 +129,13 @@ function DeviceManage() {
       const updateList = () => setDevicesChecked(false);
       const crypto = mx.getCrypto();
       crypto.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
-      crypto.on(CryptoEvent.DeviceVerificationChanged, updateList);
-      crypto.on(CryptoEvent.UserCrossSigningUpdated, updateList);
       crypto.on(CryptoEvent.UserTrustStatusChanged, updateList);
       crypto.on(CryptoEvent.DevicesUpdated, updateList);
       crypto.on(CryptoEvent.VerificationRequestReceived, updateList);
-      crypto.on(CryptoEvent.WillUpdateDevices, updateList);
       return () => {
-        crypto.off(CryptoEvent.DeviceVerificationChanged, updateList);
-        crypto.off(CryptoEvent.UserCrossSigningUpdated, updateList);
         crypto.off(CryptoEvent.UserTrustStatusChanged, updateList);
         crypto.off(CryptoEvent.DevicesUpdated, updateList);
         crypto.off(CryptoEvent.VerificationRequestReceived, updateList);
-        crypto.off(CryptoEvent.WillUpdateDevices, updateList);
       };
     } catch (err) {
       console.error(err);

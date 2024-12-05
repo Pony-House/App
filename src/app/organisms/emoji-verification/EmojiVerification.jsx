@@ -28,6 +28,7 @@ function EmojiVerificationContent({ data, requestClose }) {
   const beginStore = useStore();
 
   const beginVerification = async () => {
+    console.log('[crypto] [emoji-verification] BEING VERIFICATION!');
     const crypto = mx.getCrypto();
     try {
       const keyId = (crypto && (await crypto.getCrossSigningKeyId())) || null;
@@ -166,10 +167,11 @@ EmojiVerificationContent.propTypes = {
 
 function useVisibilityToggle() {
   const [data, setData] = useState(null);
+  const mx = initMatrix.matrixClient;
 
   useEffect(() => {
-    const mx = initMatrix.matrixClient;
     const handleOpen = (request, targetDevice) => {
+      console.log(request, targetDevice);
       setData({ request, targetDevice });
     };
     navigation.on(cons.events.navigation.EMOJI_VERIFICATION_OPENED, handleOpen);

@@ -79,8 +79,6 @@ const finishWhereDbPrepare = (memberType, threadId, data, existMemberType = fals
         }
       }
     }
-
-    console.log(data.where);
   }
 };
 

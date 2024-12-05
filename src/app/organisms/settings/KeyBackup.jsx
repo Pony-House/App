@@ -99,8 +99,8 @@ function RestoreKeyBackupDialog({ keyData }) {
     };
 
     try {
-      const backupInfo = await mx.getKeyBackupVersion();
-      const info = await mx.restoreKeyBackupWithSecretStorage(backupInfo, undefined, undefined, {
+      const crypto = mx.getCrypto();
+      const info = await crypto?.restoreKeyBackup({
         progressCallback,
       });
       if (!mountStore.getItem()) return;
@@ -157,8 +157,9 @@ function DeleteKeyBackupDialog({ requestClose }) {
     mountStore.setItem(true);
     setIsDeleting(true);
     try {
-      const backupInfo = await mx.getKeyBackupVersion();
-      if (backupInfo) await mx.deleteKeyBackupVersion(backupInfo.version);
+      const crypto = mx.getCrypto();
+      const backupInfo = await crypto.getKeyBackupVersion();
+      if (backupInfo) await crypto.deleteKeyBackupVersion(backupInfo.version);
       if (!mountStore.getItem()) return;
       requestClose(true);
     } catch {
@@ -193,7 +194,7 @@ function KeyBackup() {
   const mountStore = useStore();
 
   const fetchKeyBackupVersion = async () => {
-    const info = await mx.getKeyBackupVersion();
+    const info = await mx.getCrypto().getKeyBackupVersion();
     if (!mountStore.getItem()) return;
     setKeyBackup(info);
   };
