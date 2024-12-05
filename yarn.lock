@@ -292,10 +292,10 @@
   resolved "https://registry.npmjs.org/@capacitor/status-bar/-/status-bar-6.0.1.tgz"
   integrity sha512-Usd9hZZQVAqy+jJfL7jRcYI7dcsxN09Na1yttwdl+F1bk3Ztoukk7CGPDm5VgKUSs53ihQBOy1+sczCACxhNiw==
 
-"@capacitor/toast@6.0.2":
-  version "6.0.2"
-  resolved "https://registry.npmjs.org/@capacitor/toast/-/toast-6.0.2.tgz"
-  integrity sha512-kw9a4jSbP278xSB7cfXzafkRG0wIjsQ+rv+alzmrQa9IQsVwA5c3BvY3g+O/iE0uDGr7s11ZJNszUm1GkzJKyQ==
+"@capacitor/toast@6.0.3":
+  version "6.0.3"
+  resolved "https://registry.yarnpkg.com/@capacitor/toast/-/toast-6.0.3.tgz#e11624b79409160199e22671f70d9c3810fdf085"
+  integrity sha512-zJFmLbU73qg0nJobk4XV9ao6DajWM22qYYZjWmRqxZJuvrBM5OHNQWw1aAVleStLsfM0zI7Bdv1QftBvrXq7qA==
 
 "@capawesome/capacitor-file-picker@6.2.0":
   version "6.2.0"
