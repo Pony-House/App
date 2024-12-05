@@ -55,7 +55,7 @@
     "@capacitor/haptics": "6.0.1",
     "@capacitor/keyboard": "6.0.2",
     "@capacitor/local-notifications": "6.1.0",
-    "@capacitor/network": "6.0.2",
+    "@capacitor/network": "6.0.3",
     "@capacitor/status-bar": "6.0.1",
     "@capacitor/toast": "6.0.3",
     "@capawesome/capacitor-file-picker": "6.2.0",
