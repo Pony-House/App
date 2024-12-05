@@ -297,10 +297,10 @@
   resolved "https://registry.npmjs.org/@capacitor/toast/-/toast-6.0.2.tgz"
   integrity sha512-kw9a4jSbP278xSB7cfXzafkRG0wIjsQ+rv+alzmrQa9IQsVwA5c3BvY3g+O/iE0uDGr7s11ZJNszUm1GkzJKyQ==
 
-"@capawesome/capacitor-file-picker@6.1.0":
-  version "6.1.0"
-  resolved "https://registry.yarnpkg.com/@capawesome/capacitor-file-picker/-/capacitor-file-picker-6.1.0.tgz#2ab77815778f2c2fdcec44f88c1f1393ca4fc047"
-  integrity sha512-5KhOwRY7a4YKPhRLtypjKxNVhegxYPzKfRTwLr5ejtPF2U3D/70fuCPt+b2zOT68W3ctOp+o2iCCef7/4oGcZw==
+"@capawesome/capacitor-file-picker@6.2.0":
+  version "6.2.0"
+  resolved "https://registry.yarnpkg.com/@capawesome/capacitor-file-picker/-/capacitor-file-picker-6.2.0.tgz#18e39148ba53c830580256aa86902d8e345f9c1b"
+  integrity sha512-ZgXbC3qOyKJrQh2bQIOLcjAYOdS8+ii1V0zaV56pMAw2i/pitdayvdBs7Da3tTw/eMdUNZ0lBYZcLN6NPQMIvA==
 
 "@cryptofonts/cryptofont@1.3.5":
   version "1.3.5"
