@@ -267,10 +267,10 @@
   resolved "https://registry.yarnpkg.com/@capacitor/filesystem/-/filesystem-6.0.2.tgz#70bef48fbd89304c498c7d2b94f062e7787f9636"
   integrity sha512-OUDjGPljC3/q6wFnCCBUgElfZgAaSaoKeh0ij2eoDygn5KVXta+5CiJ7H7o2/ziTW6WOyvP0++EC3DT0TzR23A==
 
-"@capacitor/haptics@6.0.1":
-  version "6.0.1"
-  resolved "https://registry.npmjs.org/@capacitor/haptics/-/haptics-6.0.1.tgz"
-  integrity sha512-Q8hedLwfwTSWEYc3eoATzkdKHBaIceYe5bd7FjxQCENNH0is5Ft0EjSRPz/xpTn39ebK0ooZBDBCwsyl6tjiTA==
+"@capacitor/haptics@6.0.2":
+  version "6.0.2"
+  resolved "https://registry.yarnpkg.com/@capacitor/haptics/-/haptics-6.0.2.tgz#3971a606ff3f436d71c90b5c524993fb684d53ee"
+  integrity sha512-xcFdIH4iIIeW2+1lzmlYMVicqB9ytaiuZ9NE3a9laKFPvMGC7hdj6i6tHFezwPJ/96xkHOwXT2b0F8Mh9xtTWg==
 
 "@capacitor/keyboard@6.0.2":
   version "6.0.2"
