@@ -250,10 +250,10 @@
     tslib "^2.4.0"
     xml2js "^0.5.0"
 
-"@capacitor/clipboard@6.0.1":
-  version "6.0.1"
-  resolved "https://registry.npmjs.org/@capacitor/clipboard/-/clipboard-6.0.1.tgz"
-  integrity sha512-aN6QsZD79Z605sK9YA8JtJLuD5vI/WrPzT/RCWUWBWPdFzhnRdT45dbsnQVvL2kzzm5aTsCAPepkdRqpvWwCGA==
+"@capacitor/clipboard@6.0.2":
+  version "6.0.2"
+  resolved "https://registry.yarnpkg.com/@capacitor/clipboard/-/clipboard-6.0.2.tgz#4d2a797e8f5c3494c61d50a2355075d92687b7b2"
+  integrity sha512-jQ6UeFra5NP58THNZNb7HtzOZU7cHsjgrbQGVuMTgsK1uTILZpNeh+pfqHbKggba6KaNh5DAsJvEVQGpIR1VBA==
 
 "@capacitor/core@6.1.2":
   version "6.1.2"
