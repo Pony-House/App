@@ -5438,10 +5438,10 @@ lib0@^0.2.98:
   dependencies:
     isomorphic.js "^0.2.4"
 
-libphonenumber-js@1.11.14:
-  version "1.11.14"
-  resolved "https://registry.yarnpkg.com/libphonenumber-js/-/libphonenumber-js-1.11.14.tgz#d753524fd30e6433834a1464baf7efed4a06b593"
-  integrity sha512-sexvAfwcW1Lqws4zFp8heAtAEXbEDnvkYCEGzvOoMgZR7JhXo/IkE9MkkGACgBed5fWqh3ShBGnJBdDnU9N8EQ==
+libphonenumber-js@1.11.16:
+  version "1.11.16"
+  resolved "https://registry.yarnpkg.com/libphonenumber-js/-/libphonenumber-js-1.11.16.tgz#3aa64a8a95ffc59253a5df3009940a9604a02102"
+  integrity sha512-Noyazmt0yOvnG0OeRY45Cd1ur8G7Z0HWVkuCuKe+yysGNxPQwBAODBQQ40j0AIagi9ZWurfmmZWNlpg4h4W+XQ==
 
 lie@~3.3.0:
   version "3.3.0"
