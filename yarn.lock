@@ -549,11 +549,6 @@
     minimatch "^3.1.2"
     strip-json-comments "^3.1.1"
 
-"@eslint/js@9.14.0":
-  version "9.14.0"
-  resolved "https://registry.yarnpkg.com/@eslint/js/-/js-9.14.0.tgz#2347a871042ebd11a00fd8c2d3d56a265ee6857e"
-  integrity sha512-pFoEtFWCPyDOl+C6Ift+wC7Ro89otjigCf5vcuWqWgqNSQbRrpjSvdeE6ofLz4dHmyxD5f7gIdGT4+p36L6Twg==
-
 "@eslint/js@9.15.0":
   version "9.15.0"
   resolved "https://registry.yarnpkg.com/@eslint/js/-/js-9.15.0.tgz#df0e24fe869143b59731942128c19938fdbadfb5"
@@ -797,10 +792,10 @@
   resolved "https://registry.yarnpkg.com/@khanacademy/perseus-core/-/perseus-core-1.5.3.tgz#5aa5ae30b10bbb580d618cf53bddbb3239237f00"
   integrity sha512-TH3h4h1JE+CANcBM5l2vqj3fXEKeD4TVJ0Hw/pLZ4eDNi5UF7e1vTTqs0fXaV22kfNPRWxEpvKdFfRI6O6pAhQ==
 
-"@khanacademy/simple-markdown@0.13.4":
-  version "0.13.4"
-  resolved "https://registry.yarnpkg.com/@khanacademy/simple-markdown/-/simple-markdown-0.13.4.tgz#528adb59926abf52af545f3cbafb967a06130f77"
-  integrity sha512-zyqctbDvwL1L59mkilv/R1+n0YU2RSlrLgW7WbT1BjUSg+KnuJtRDyvMEIDSZrgWtOyO5+22nrBuO2AzAjBVdQ==
+"@khanacademy/simple-markdown@0.13.6":
+  version "0.13.6"
+  resolved "https://registry.yarnpkg.com/@khanacademy/simple-markdown/-/simple-markdown-0.13.6.tgz#7de854dd2a867c0bbf6c801bb4b46a9809e9d3e2"
+  integrity sha512-rTejZIaaa9q+VDtD9EmJZZfC19Y7STq9retMARKXyWYfUqbDNo/83NJ2I9yL7zye9j3n+B7gEKj12n3ihB3fsg==
   dependencies:
     "@khanacademy/perseus-core" "1.5.3"
 
