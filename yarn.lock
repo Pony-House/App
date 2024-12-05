@@ -221,10 +221,10 @@
   resolved "https://registry.npmjs.org/@capacitor/app/-/app-6.0.1.tgz"
   integrity sha512-0kXbOl7LPPMFVcAii3u/7Ps0DvXlr7dtHT97r9J1faDlgdQLQUvtGp48tjvFm48gqHI0aOPRJnTBr5JXW4ETYg==
 
-"@capacitor/browser@6.0.3":
-  version "6.0.3"
-  resolved "https://registry.yarnpkg.com/@capacitor/browser/-/browser-6.0.3.tgz#c145c95d94ee0b939c170cd2650f242f552c1273"
-  integrity sha512-V5/ViE+fy3rW+6w0L2du4747/hivBcI/5OGOKi01U9YdFvOWbiiGL+qetq1QdkANEqvYd4yoCeXZL2GyGySn5g==
+"@capacitor/browser@6.0.4":
+  version "6.0.4"
+  resolved "https://registry.yarnpkg.com/@capacitor/browser/-/browser-6.0.4.tgz#e19cdabc3fa042f3616d4cef179493e31aa14810"
+  integrity sha512-uiKnDuI4BXaEgMreP6vk8Li9Reg2uOZYf/aUsoorZcaXcdlFBaMQ9nteA+aITWtm92vi59Hj9aBlSf/WGAHcuA==
 
 "@capacitor/cli@6.1.2":
   version "6.1.2"
