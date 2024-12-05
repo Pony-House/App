@@ -5467,10 +5467,10 @@ linkify-react@4.1.4:
   resolved "https://registry.yarnpkg.com/linkify-react/-/linkify-react-4.1.4.tgz#6c709f3f96543914874982f4b0b00f9c9270ce93"
   integrity sha512-UI9nqHtFzHYRUvVRrYeua5GIXkc0Jy3RpLsJBWEht7HwqjAa2qSaIksGmNSLqclNpO/5AkwaxUJv71I/pQsk9Q==
 
-linkifyjs@4.1.3:
-  version "4.1.3"
-  resolved "https://registry.npmjs.org/linkifyjs/-/linkifyjs-4.1.3.tgz"
-  integrity sha512-auMesunaJ8yfkHvK4gfg1K0SaKX/6Wn9g2Aac/NwX+l5VdmFZzo/hdPGxEOETj+ryRa4/fiOPjeeKURSAJx1sg==
+linkifyjs@4.2.0:
+  version "4.2.0"
+  resolved "https://registry.yarnpkg.com/linkifyjs/-/linkifyjs-4.2.0.tgz#9dd30222b9cbabec9c950e725ec00031c7fa3f08"
+  integrity sha512-pCj3PrQyATaoTYKHrgWRF3SJwsm61udVh+vuls/Rl6SptiDhgE7ziUIudAedRY9QEfynmM7/RmLEfPUyw1HPCw==
 
 locate-path@^5.0.0:
   version "5.0.0"
