@@ -158,7 +158,7 @@ function DeleteKeyBackupDialog({ requestClose }) {
     setIsDeleting(true);
     try {
       const crypto = mx.getCrypto();
-      const backupInfo = await crypto.getKeyBackupVersion();
+      const backupInfo = await mx.getKeyBackupVersion();
       if (backupInfo) await crypto.deleteKeyBackupVersion(backupInfo.version);
       if (!mountStore.getItem()) return;
       requestClose(true);
@@ -194,7 +194,7 @@ function KeyBackup() {
   const mountStore = useStore();
 
   const fetchKeyBackupVersion = async () => {
-    const info = await mx.getCrypto().getKeyBackupVersion();
+    const info = await mx.getKeyBackupVersion();
     if (!mountStore.getItem()) return;
     setKeyBackup(info);
   };

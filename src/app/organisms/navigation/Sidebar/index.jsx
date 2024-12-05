@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CryptoEvent } from 'matrix-js-sdk';
+import { Crypto } from 'matrix-js-sdk';
 
 import settings from '@src/client/state/settings';
 import initMatrix from '@src/client/initMatrix';
@@ -51,13 +51,13 @@ function CrossSigninAlert({ isIconsColored }) {
       const updateList = () => setDevicesChecked(false);
       const crypto = mx.getCrypto();
       crypto.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
-      crypto.on(CryptoEvent.UserTrustStatusChanged, updateList);
-      crypto.on(CryptoEvent.DevicesUpdated, updateList);
-      crypto.on(CryptoEvent.VerificationRequestReceived, updateList);
+      crypto.on(Crypto.CryptoEvent.UserTrustStatusChanged, updateList);
+      crypto.on(Crypto.CryptoEvent.DevicesUpdated, updateList);
+      crypto.on(Crypto.CryptoEvent.VerificationRequestReceived, updateList);
       return () => {
-        crypto.off(CryptoEvent.UserTrustStatusChanged, updateList);
-        crypto.off(CryptoEvent.DevicesUpdated, updateList);
-        crypto.off(CryptoEvent.VerificationRequestReceived, updateList);
+        crypto.off(Crypto.CryptoEvent.UserTrustStatusChanged, updateList);
+        crypto.off(Crypto.CryptoEvent.DevicesUpdated, updateList);
+        crypto.off(Crypto.CryptoEvent.VerificationRequestReceived, updateList);
       };
     } catch (err) {
       console.error(err);
