@@ -66,7 +66,6 @@ function EmojiVerificationContent({ data, requestClose }) {
   const mountStore = useStore();
   const beginStore = useStore();
 
-  console.log(request, targetDevice, request.phase);
   // Being Verification Script
   const startVerification = async (verifier) => {
     // Show the SAS now
@@ -82,7 +81,6 @@ function EmojiVerificationContent({ data, requestClose }) {
 
   const beginVerification = async () => {
     if (request.phase === phases.Cancelled || request.phase === phases.Done) return;
-    console.log(`[beginVerification]`, request.phase, request, targetDevice);
     // Get crypto and start now
     const crypto = mx.getCrypto();
     try {
@@ -105,18 +103,15 @@ function EmojiVerificationContent({ data, requestClose }) {
       setProcess(true);
 
       // Accept new request
-      if (request.phase === phases.Requested)
-        await request.accept();
+      if (request.phase === phases.Requested) await request.accept();
 
       // Ready? Let's go!
       if (request.phase === phases.Ready) {
         const verifier = await request.startVerification('m.sas.v1');
         await startVerification(verifier);
       }
-    }
-
-    // Oh no
-    catch (err) {
+    } catch (err) {
+      // Oh no
       console.error(err);
       setSas({ sas: null, verifier: null });
       setProcess(false);
@@ -124,7 +119,7 @@ function EmojiVerificationContent({ data, requestClose }) {
     }
   };
 
-  // Sas confirmation 
+  // Sas confirmation
   const sasMismatch = () => {
     tData.sas.mismatch();
     setProcess(true);
@@ -148,19 +143,20 @@ function EmojiVerificationContent({ data, requestClose }) {
     }
 
     mountStore.setItem(true);
+    const handleChange2 = () => {
+      if (request.phase === phases.Cancelled || request.phase === phases.Done) requestClose();
+    };
+
     const handleChange = () => {
-      console.log(`[Emoji Verification] Phase ${request.phase}...`);
       if (targetDevice && !beginStore.getItem()) {
-        console.log(`[Emoji Verification] Phase ${request.phase} starting...`);
         beginStore.setItem(true);
         beginVerification();
       }
+      handleChange2();
     };
 
-    console.log(`[Emoji Verification] Preparing...`);
     // Nope
     if (request === null) return undefined;
-    console.log(`[Emoji Verification] OK`, request.pending, request.phase);
 
     // The Request Function
     const req = request;
@@ -180,29 +176,28 @@ function EmojiVerificationContent({ data, requestClose }) {
     }
 
     // Nope
-    else {
-      if (targetDevice && request.otherUserId && request.otherDeviceId) {
-        if (request.phase === phases.Requested)
-          request.accept().then(async () => {
-            console.log('NEW REQUEST!', request.otherUserId, request.otherDeviceId);
-            const verifier = await request.startVerification('m.sas.v1');
-            await startVerification(verifier);
-          }).catch(err => {
-            console.error(err);
-            alert(err.message, 'Request device verification error');
-            reqCancel();
-          });
-        /* mx.getCrypto().requestDeviceVerification(request.otherUserId, request.otherDeviceId)
-          .then(async (newRequest) => {
-            console.log(newRequest)
-            // const verifier = await newRequest.startVerification('m.sas.v1');
-            // await startVerification(verifier);
-          }).catch(err => {
-            console.error(err);
-            alert(err.message, 'Request device verification error');
-            reqCancel();
-          }); */
-      }
+    else if (
+      targetDevice &&
+      request.otherUserId &&
+      request.otherDeviceId &&
+      request.phase === phases.Requested
+    ) {
+      request
+        .accept()
+        .then(async () => {
+          const verifier = await request.startVerification('m.sas.v1');
+          await startVerification(verifier);
+        })
+        .catch((err) => {
+          console.error(err);
+          alert(err.message, 'Request device verification error');
+          reqCancel();
+        });
+
+      request.on('change', handleChange2);
+      return () => {
+        request.off('change', handleChange2);
+      };
     }
   }, [request]);
 
