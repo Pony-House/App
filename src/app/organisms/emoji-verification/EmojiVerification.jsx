@@ -29,6 +29,35 @@ const phases = {
   Done: 6,
 };
 
+// Render message status
+const renderWait = (request) => {
+  let body;
+  switch (request.phase) {
+    case phases.Nothing:
+      body = 'Preparing the verification...';
+      break;
+    case phases.Unsent:
+      body = 'Starting the verification...';
+      break;
+    case phases.Requested:
+      body = 'An request has been sent or received from other device...';
+      break;
+    case phases.Ready:
+      body = 'Validating devices...';
+      break;
+    case phases.Started:
+      body = 'The verification is in flight. Waiting for the verification...';
+      break;
+  }
+
+  return (
+    <>
+      <Spinner className="small" />
+      <Text>{body}</Text>
+    </>
+  );
+};
+
 function EmojiVerificationContent({ data, requestClose }) {
   const [tData, setSas] = useState({ sas: null, verifier: null });
   const [process, setProcess] = useState(false);
@@ -37,9 +66,27 @@ function EmojiVerificationContent({ data, requestClose }) {
   const mountStore = useStore();
   const beginStore = useStore();
 
+  console.log(request, targetDevice, request.phase);
+  // Being Verification Script
+  const startVerification = async (verifier) => {
+    // Show the SAS now
+    const handleVerifier = async (sasData) => {
+      verifier.off('show_sas', handleVerifier);
+      if (!mountStore.getItem()) return;
+      setSas({ sas: sasData, verifier });
+      setProcess(false);
+    };
+    verifier.on('show_sas', handleVerifier);
+    await verifier.verify();
+  };
+
   const beginVerification = async () => {
+    if (request.phase === phases.Cancelled || request.phase === phases.Done) return;
+    console.log(`[beginVerification]`, request.phase, request, targetDevice);
+    // Get crypto and start now
     const crypto = mx.getCrypto();
     try {
+      // Get key id and check it
       const keyId = (crypto && (await crypto.getCrossSigningKeyId())) || null;
       if (
         (await isCrossVerified(mx.deviceId)) &&
@@ -51,24 +98,25 @@ function EmojiVerificationContent({ data, requestClose }) {
             request.cancel();
             return;
           }
+          if (request.phase === phases.Cancelled || request.phase === phases.Done) return;
         }
         await mx.checkOwnCrossSigningTrust();
       }
       setProcess(true);
-      if (request.phase === phases.Requested) await request.accept();
+
+      // Accept new request
+      if (request.phase === phases.Requested)
+        await request.accept();
+
+      // Ready? Let's go!
       if (request.phase === phases.Ready) {
         const verifier = await request.startVerification('m.sas.v1');
-
-        const handleVerifier = async (sasData) => {
-          verifier.off('show_sas', handleVerifier);
-          if (!mountStore.getItem()) return;
-          setSas({ sas: sasData, verifier });
-          setProcess(false);
-        };
-        verifier.on('show_sas', handleVerifier);
-        await verifier.verify();
+        await startVerification(verifier);
       }
-    } catch (err) {
+    }
+
+    // Oh no
+    catch (err) {
       console.error(err);
       setSas({ sas: null, verifier: null });
       setProcess(false);
@@ -76,6 +124,7 @@ function EmojiVerificationContent({ data, requestClose }) {
     }
   };
 
+  // Sas confirmation 
   const sasMismatch = () => {
     tData.sas.mismatch();
     setProcess(true);
@@ -90,62 +139,74 @@ function EmojiVerificationContent({ data, requestClose }) {
     setProcess(true);
   };
 
+  // Checking phases here
   useEffect(() => {
+    // Close request. This is tiny okay now
+    if (request.phase === phases.Done || request.phase === phases.Cancelled) {
+      requestClose();
+      return;
+    }
+
     mountStore.setItem(true);
     const handleChange = () => {
-      if (request.phase === phases.Done || request.cancelled) {
-        requestClose();
-        return;
-      }
+      console.log(`[Emoji Verification] Phase ${request.phase}...`);
       if (targetDevice && !beginStore.getItem()) {
+        console.log(`[Emoji Verification] Phase ${request.phase} starting...`);
         beginStore.setItem(true);
         beginVerification();
       }
     };
 
+    console.log(`[Emoji Verification] Preparing...`);
+    // Nope
     if (request === null) return undefined;
+    console.log(`[Emoji Verification] OK`, request.pending, request.phase);
+
+    // The Request Function
     const req = request;
-    req.on('change', handleChange);
-    return () => {
-      req.off('change', handleChange);
+    const reqCancel = () => {
       if (req.phase !== phases.Cancelled && req.phase !== phases.Done) {
         req.cancel();
       }
     };
-  }, [request]);
 
-  const renderWait = () => {
-    let body;
-    switch (request.phase) {
-      case phases.Nothing:
-        body = 'Preparing the verification...';
-        break;
-      case phases.Unsent:
-        body = 'Starting the verification...';
-        break;
-      case phases.Requested:
-        body = 'An request has been sent or received from other device...';
-        break;
-      case phases.Ready:
-        body = 'Validating devices...';
-        break;
-      case phases.Started:
-        body = 'The verification is in flight. Waiting for the verification...';
-        break;
-      case phases.Cancelled:
-        body = 'Request cancelled...';
-      case phases.Done:
-        body = 'Request complete...';
+    // Is me
+    if (request.initiatedByMe) {
+      req.on('change', handleChange);
+      return () => {
+        req.off('change', handleChange);
+        reqCancel();
+      };
     }
 
-    return (
-      <>
-        <Spinner className="small" />
-        <Text>{body}</Text>
-      </>
-    );
-  };
+    // Nope
+    else {
+      if (targetDevice && request.otherUserId && request.otherDeviceId) {
+        if (request.phase === phases.Requested)
+          request.accept().then(async () => {
+            console.log('NEW REQUEST!', request.otherUserId, request.otherDeviceId);
+            const verifier = await request.startVerification('m.sas.v1');
+            await startVerification(verifier);
+          }).catch(err => {
+            console.error(err);
+            alert(err.message, 'Request device verification error');
+            reqCancel();
+          });
+        /* mx.getCrypto().requestDeviceVerification(request.otherUserId, request.otherDeviceId)
+          .then(async (newRequest) => {
+            console.log(newRequest)
+            // const verifier = await newRequest.startVerification('m.sas.v1');
+            // await startVerification(verifier);
+          }).catch(err => {
+            console.error(err);
+            alert(err.message, 'Request device verification error');
+            reqCancel();
+          }); */
+      }
+    }
+  }, [request]);
 
+  // Exist sas data
   if (tData.sas !== null) {
     return (
       <div className="emoji-verification__content">
@@ -161,7 +222,7 @@ function EmojiVerificationContent({ data, requestClose }) {
         </div>
         <div className="emoji-verification__buttons">
           {process ? (
-            renderWait()
+            renderWait(request)
           ) : (
             <>
               <Button variant="primary" onClick={sasConfirm}>
@@ -175,21 +236,23 @@ function EmojiVerificationContent({ data, requestClose }) {
     );
   }
 
+  // Send wait message
   if (targetDevice) {
     return (
       <div className="emoji-verification__content">
         <Text>Please accept the request from other device.</Text>
-        <div className="emoji-verification__buttons">{renderWait()}</div>
+        <div className="emoji-verification__buttons">{renderWait(request)}</div>
       </div>
     );
   }
 
+  // Button to start verification progress
   return (
     <div className="emoji-verification__content">
       <Text>Click accept to start the verification process.</Text>
       <div className="emoji-verification__buttons">
         {process ? (
-          renderWait()
+          renderWait(request)
         ) : (
           <Button variant="primary" onClick={beginVerification}>
             Accept
@@ -210,7 +273,6 @@ function useVisibilityToggle() {
 
   useEffect(() => {
     const handleOpen = (request, targetDevice) => {
-      console.log(request, targetDevice);
       setData({ request, targetDevice });
     };
     navigation.on(cons.events.navigation.EMOJI_VERIFICATION_OPENED, handleOpen);
