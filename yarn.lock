@@ -185,10 +185,10 @@
   resolved "https://registry.yarnpkg.com/@capacitor/android/-/android-6.1.2.tgz#7c767af5d8f708f19a1abcd9db38b458a76adb14"
   integrity sha512-Yh0gQDY1bgRrL25J6ecIlvvs2kF8iNSwIPXjyw6Yz9mnwYxBazF5KZbjpKtGPnJgicJhFkYGsqOkEtxrve0EoQ==
 
-"@capacitor/app@6.0.1":
-  version "6.0.1"
-  resolved "https://registry.yarnpkg.com/@capacitor/app/-/app-6.0.1.tgz#601878ea1b4488a9a89b61b437644bbe134a0532"
-  integrity sha512-0kXbOl7LPPMFVcAii3u/7Ps0DvXlr7dtHT97r9J1faDlgdQLQUvtGp48tjvFm48gqHI0aOPRJnTBr5JXW4ETYg==
+"@capacitor/app@6.0.2":
+  version "6.0.2"
+  resolved "https://registry.yarnpkg.com/@capacitor/app/-/app-6.0.2.tgz#bf33d4e0882962f1f8a82481faad344053b0cd3f"
+  integrity sha512-SiGTGgslK4TbWJVImCUL1odul7/YFkVfkYtAYS9AAEzQpxBECBeRnuN3FFBcfZ9eiN1XxFBFchhiwpxtx/c7yQ==
 
 "@capacitor/browser@6.0.4":
   version "6.0.4"
@@ -245,10 +245,10 @@
   resolved "https://registry.yarnpkg.com/@capacitor/keyboard/-/keyboard-6.0.3.tgz#0ea0e2f832722c02e32c5bb8a1e776d8bddc9b9e"
   integrity sha512-V/mURxBI68HvClYjrGBlOriWkwYN7r+cWid/igJz/3scNc/V81DgQ9fpoLr4W0I5NY7YxOesjIJLuLO+LT18mQ==
 
-"@capacitor/local-notifications@6.1.0":
-  version "6.1.0"
-  resolved "https://registry.yarnpkg.com/@capacitor/local-notifications/-/local-notifications-6.1.0.tgz#990ab614a171dd5b1300047848340c423e438553"
-  integrity sha512-EjEnbApdFiZYeJgxKIDtgFRNSmeHySnyAeyoTn6HUTYMkTOaHFGAd7NU964k7gbX4al/CBp0cMA8iMG0c7kh1w==
+"@capacitor/local-notifications@6.1.1":
+  version "6.1.1"
+  resolved "https://registry.yarnpkg.com/@capacitor/local-notifications/-/local-notifications-6.1.1.tgz#d4d58103ea344f6bc78e7e60d9ed34e6a79faaec"
+  integrity sha512-9fd0KCcKVflwqpYHZduL4iT3t/VZSgIFBdswKL12FzkuaD9zaveG3nqNdEiklKsHkhI9Z+NRvb4NQgtdXfIWbw==
 
 "@capacitor/network@6.0.3":
   version "6.0.3"
