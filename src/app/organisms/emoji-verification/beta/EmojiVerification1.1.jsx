@@ -20,9 +20,9 @@ import { useStore } from '../../hooks/useStore';
 import { accessSecretStorage } from '../settings/SecretStorageAccess';
 
 // Render message status
-const renderWait = (request) => {
+const renderWait = (phase) => {
   let body;
-  switch (request.phase) {
+  switch (phase) {
     case VerificationPhase.Unsent:
       body = 'Starting the verification...';
       break;
@@ -45,30 +45,60 @@ const renderWait = (request) => {
   );
 };
 
-function EmojiVerificationContent({ data, requestClose }) {
-  const [tData, setSas] = useState({ sas: null, verifier: null });
+// Content
+function SessionVerificationContent({ data, requestClose, type, title }) {
+  const [sas, setSas] = useState(null);
   const [process, setProcess] = useState(false);
-  const { request, targetDevice } = data;
+
   const mx = initMatrix.matrixClient;
   const mountStore = useStore();
   const beginStore = useStore();
 
+  const { request, targetDevice } = data;
+  const [phase, setPhase] = useState(request.phase);
+  const [lastPhase, setLastPhase] = useState(null);
+
+  // Set phase progress
+  console.log(
+    `[session-verification] Phase ${phase} made by ${request.initiatedByMe ? 'you' : 'other device'} using "${type}" mode.`,
+  );
+  console.log(`[session-verification] Request`, request);
+
+  if (targetDevice) console.log(`[session-verification] Target Device`, targetDevice);
+  if (sas) console.log(`[session-verification] sas data`, sas);
+
+  // Close request. This is tiny okay now
+  const canCancelRequest =
+    phase === VerificationPhase.Cancelled || phase === VerificationPhase.Done;
+  if (canCancelRequest) requestClose();
+  // Wait request changes
+  else if (request) request.once('change', () => setPhase(request.phase));
+
   // Being Verification Script
   const startVerification = async (verifier) => {
-    // Show the SAS now
-    const handleVerifier = async (sasData) => {
-      verifier.off('show_sas', handleVerifier);
-      if (!mountStore.getItem()) return;
-      setSas({ sas: sasData, verifier });
-      setProcess(false);
-    };
-    verifier.on('show_sas', handleVerifier);
+    if (canCancelRequest) return;
     await verifier.verify();
   };
 
+  const insertVerification = (verifier) => {
+    // Show the SAS now
+    if (type === 'sas') {
+      console.log(`[session-verification] Preparing "show_sas" event to receive the next step...`);
+      const handleVerifier = async (sasData) => {
+        verifier.off('show_sas', handleVerifier);
+        if (!mountStore.getItem()) return;
+        setSas(sasData);
+      };
+      setProcess(false);
+      verifier.on('show_sas', handleVerifier);
+      console.log(`[session-verification] The "show_sas" event is ready!`);
+    }
+  };
+
   const beginVerification = async () => {
-    if (request.phase === VerificationPhase.Cancelled || request.phase === VerificationPhase.Done)
-      return;
+    console.log(`[session-verification] Starting the "beingVerification" progress...`);
+    if (canCancelRequest) return;
+    console.log(`[session-verification] "beingVerification" started!`);
     // Get crypto and start now
     const crypto = mx.getCrypto();
     try {
@@ -78,47 +108,62 @@ function EmojiVerificationContent({ data, requestClose }) {
         (await isCrossVerified(mx.deviceId)) &&
         (keyId === null || keyId !== CrossSigningKey.SelfSigning)
       ) {
+        console.log(`[session-verification] Accessing your secret storage...`);
+        if (canCancelRequest) return;
         if (!hasPrivateKey(getDefaultSSKey())) {
-          const keyData = await accessSecretStorage('Emoji verification');
+          const keyData = await accessSecretStorage(title);
+          if (canCancelRequest) return;
           if (!keyData) {
             request.cancel();
             return;
           }
-          if (
-            request.phase === VerificationPhase.Cancelled ||
-            request.phase === VerificationPhase.Done
-          )
-            return;
+          console.log(`[session-verification] Secret storage is ok!`);
+          if (canCancelRequest) return;
         }
         await mx.checkOwnCrossSigningTrust();
+        if (canCancelRequest) return;
       }
+      // Start loading page
+      console.log(`[session-verification] Beging verification...`);
       setProcess(true);
 
       // Accept new request
-      if (request.phase === VerificationPhase.Requested) await request.accept();
+      if (phase === VerificationPhase.Ready) {
+        console.log(`[session-verification] Your device is ready to the verification...`);
+        // Accept request
+        await request.accept();
 
-      // Ready? Let's go!
-      if (request.phase === VerificationPhase.Ready) {
+        // Start verification
         const verifier = await request.startVerification('m.sas.v1');
+        console.log(`[session-verification] Preparing to send the verification...`);
+        if (canCancelRequest) return;
+
+        // Send verification data
+        insertVerification(verifier);
+        console.log(`[session-verification] Verification sent!`);
         await startVerification(verifier);
       }
     } catch (err) {
       // Oh no
       console.error(err);
-      setSas({ sas: null, verifier: null });
+      alert(err.message, `${title} - error`);
+
+      // Cancel progress
+      setSas(null);
       setProcess(false);
-      alert(err.message, 'Emoji Verification Error');
     }
   };
 
   // Sas confirmation
   const sasMismatch = () => {
-    tData.sas.mismatch();
+    if (canCancelRequest) return;
+    sas.mismatch();
     setProcess(true);
   };
 
   const sasConfirm = () => {
-    tData.sas.confirm().catch((err) => {
+    if (canCancelRequest) return;
+    sas.confirm().catch((err) => {
       alert(err.message, 'SAS Confirm error!');
       console.error(err);
       setProcess(false);
@@ -128,27 +173,9 @@ function EmojiVerificationContent({ data, requestClose }) {
 
   // Checking phases here
   useEffect(() => {
-    // Close request. This is tiny okay now
-    if (request.phase === VerificationPhase.Done || request.phase === VerificationPhase.Cancelled) {
-      requestClose();
-      return;
-    }
-
+    console.log(`[session-verification] canCancelRequest ${String(canCancelRequest)}.`);
+    if (canCancelRequest) return;
     mountStore.setItem(true);
-    const handleChange2 = () => {
-      if (request.phase === VerificationPhase.Cancelled || request.phase === VerificationPhase.Done)
-        requestClose();
-    };
-
-    const handleChange = () => {
-      if (targetDevice && !beginStore.getItem()) {
-        beginStore.setItem(true);
-        beginVerification();
-      }
-      handleChange2();
-    };
-
-    // Nope
     if (request === null) return undefined;
 
     // The Request Function
@@ -161,9 +188,15 @@ function EmojiVerificationContent({ data, requestClose }) {
 
     // Is me
     if (request.initiatedByMe) {
-      req.on('change', handleChange);
+      if (
+        (req.phase === VerificationPhase.Ready || req.phase === VerificationPhase.Requested) &&
+        targetDevice &&
+        !beginStore.getItem()
+      ) {
+        beginStore.setItem(true);
+        beginVerification();
+      }
       return () => {
-        req.off('change', handleChange);
         reqCancel();
       };
     }
@@ -173,12 +206,17 @@ function EmojiVerificationContent({ data, requestClose }) {
       targetDevice &&
       request.otherUserId &&
       request.otherDeviceId &&
-      request.phase === VerificationPhase.Requested
+      phase === VerificationPhase.Requested
     ) {
+      console.log(`[session-verification] Preparing to receive the verification...`);
       request
         .accept()
         .then(async () => {
+          console.log(`[session-verification] Your device is ready to sync the verification...`);
           const verifier = await request.startVerification('m.sas.v1');
+          console.log(`[session-verification] Preparing to sync the verification...`);
+          insertVerification(verifier);
+          console.log(`[session-verification] Verification synced!`);
           await startVerification(verifier);
         })
         .catch((err) => {
@@ -186,21 +224,16 @@ function EmojiVerificationContent({ data, requestClose }) {
           alert(err.message, 'Request device verification error');
           reqCancel();
         });
-
-      request.on('change', handleChange2);
-      return () => {
-        request.off('change', handleChange2);
-      };
     }
   }, [request]);
 
   // Exist sas data
-  if (tData.sas !== null) {
+  if (sas !== null) {
     return (
       <div className="emoji-verification__content">
         <Text>Confirm the emoji below are displayed on both devices, in the same order:</Text>
         <div className="emoji-verification__emojis">
-          {tData.sas.sas.emoji.map((emoji, i) => (
+          {sas.emoji.map((emoji, i) => (
             // eslint-disable-next-line react/no-array-index-key
             <div className="emoji-verification__emoji-block" key={`${emoji[1]}-${i}`}>
               <Text variant="h1">{twemojifyReact(emoji[0])}</Text>
@@ -210,7 +243,7 @@ function EmojiVerificationContent({ data, requestClose }) {
         </div>
         <div className="emoji-verification__buttons">
           {process ? (
-            renderWait(request)
+            renderWait(phase)
           ) : (
             <>
               <Button variant="primary" onClick={sasConfirm}>
@@ -229,7 +262,7 @@ function EmojiVerificationContent({ data, requestClose }) {
     return (
       <div className="emoji-verification__content">
         <Text>Please accept the request from other device.</Text>
-        <div className="emoji-verification__buttons">{renderWait(request)}</div>
+        <div className="emoji-verification__buttons">{renderWait(phase)}</div>
       </div>
     );
   }
@@ -240,7 +273,7 @@ function EmojiVerificationContent({ data, requestClose }) {
       <Text>Click accept to start the verification process.</Text>
       <div className="emoji-verification__buttons">
         {process ? (
-          renderWait(request)
+          renderWait(phase)
         ) : (
           <Button variant="primary" onClick={beginVerification}>
             Accept
@@ -250,18 +283,26 @@ function EmojiVerificationContent({ data, requestClose }) {
     </div>
   );
 }
-EmojiVerificationContent.propTypes = {
+SessionVerificationContent.propTypes = {
   data: PropTypes.shape({}).isRequired,
   requestClose: PropTypes.func.isRequired,
+  type: PropTypes.string.isRequired,
+  title: PropTypes.string.isRequired,
 };
 
+// Request data manager
 function useVisibilityToggle() {
   const [data, setData] = useState(null);
   const mx = initMatrix.matrixClient;
 
   useEffect(() => {
     const handleOpen = (request, targetDevice) => {
-      setData({ request, targetDevice });
+      if (
+        !data ||
+        data.request.phase === VerificationPhase.Cancelled ||
+        data.request.phase === VerificationPhase.Done
+      )
+        setData({ request, targetDevice });
     };
     navigation.on(cons.events.navigation.EMOJI_VERIFICATION_OPENED, handleOpen);
     mx.on(Crypto.CryptoEvent.VerificationRequestReceived, handleOpen);
@@ -276,22 +317,30 @@ function useVisibilityToggle() {
   return [data, requestClose];
 }
 
-function EmojiVerification() {
+function SessionVerification() {
+  // Get Verification request data
   const [data, requestClose] = useVisibilityToggle();
+  const title = 'Emoji verification';
 
+  // Send verification request into the modal
   return (
     <Dialog
       isOpen={data !== null}
       className="modal-dialog-centered modal-lg noselect"
       title={
         <Text variant="s1" weight="medium" primary>
-          Emoji verification
+          {title}
         </Text>
       }
       onRequestClose={requestClose}
     >
       {data !== null ? (
-        <EmojiVerificationContent data={data} requestClose={requestClose} />
+        <SessionVerificationContent
+          data={data}
+          requestClose={requestClose}
+          type="sas"
+          title={title}
+        />
       ) : (
         <div />
       )}
@@ -299,4 +348,4 @@ function EmojiVerification() {
   );
 }
 
-export default EmojiVerification;
+export default SessionVerification;
