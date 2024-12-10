@@ -46,7 +46,7 @@
   },
   "license": "AGPL-3.0-only",
   "dependencies": {
-    "@capacitor/android": "6.1.2",
+    "@capacitor/android": "6.2.0",
     "@capacitor/app": "6.0.2",
     "@capacitor/browser": "6.0.4",
     "@capacitor/clipboard": "6.0.2",
