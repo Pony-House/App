@@ -115,7 +115,7 @@
     "react-dom": "18.3.1",
     "react-google-recaptcha": "3.1.0",
     "sanitize-html": "2.13.1",
-    "slate": "0.110.2",
+    "slate": "0.112.0",
     "slate-react": "0.110.3",
     "tippy.js": "6.3.7",
     "twemoji": "14.0.2",
