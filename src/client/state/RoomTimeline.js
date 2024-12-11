@@ -650,7 +650,7 @@ class RoomTimeline extends EventEmitter {
   }
 
   findEventByIdInTimelineSet(eventId) {
-    return this.timelineCache.timeline[this.getEventIndex(eventId)] ?? null;
+    return this.findEventById(eventId);
   }
 
   findEventById(eventId) {

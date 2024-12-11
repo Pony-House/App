@@ -382,6 +382,7 @@ function RoomViewContent({
   const cancelEdit = () => setEditEventId(null);
 
   const [setHideMembership] = useState(settings.hideMembershipEvents);
+  const [setHideAvatarEvents] = useState(settings.hideNickAvatarEvents);
 
   const readUptoEvtStore = useStore(roomTimeline);
   const [onLimitUpdate, forceUpdateLimit] = useForceUpdate();
@@ -494,10 +495,15 @@ function RoomViewContent({
     const toggleMembership = (hideMembershipEvents) => {
       setHideMembership(hideMembershipEvents);
     };
+    const toggleAvatarEvents = (hideNickAvatarEvents) => {
+      setHideAvatarEvents(hideNickAvatarEvents);
+    };
 
     settings.on(cons.events.settings.MEMBERSHIP_EVENTS_TOGGLED, toggleMembership);
+    settings.on(cons.events.settings.NICKAVATAR_EVENTS_TOGGLED, toggleAvatarEvents);
     return () => {
       settings.removeListener(cons.events.settings.MEMBERSHIP_EVENTS_TOGGLED, toggleMembership);
+      settings.removeListener(cons.events.settings.NICKAVATAR_EVENTS_TOGGLED, toggleAvatarEvents);
     };
   });
 
