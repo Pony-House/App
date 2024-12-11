@@ -839,11 +839,6 @@ class StorageManager extends EventEmitter {
   }
 
   isRoomSyncing(roomId, threadId) {
-    console.log(
-      this._syncTimelineCache.using,
-      this._syncTimelineCache.roomsUsed.indexOf(roomId),
-      this._syncTimelineCache.roomId === roomId,
-    );
     if (this._syncTimelineCache.using) {
       if (!threadId)
         return (

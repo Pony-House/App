@@ -1,3 +1,5 @@
+import moment from '@src/util/libs/momentjs';
+
 import initMatrix from '../client/initMatrix';
 import { twemojifyToUrl } from './twemojify';
 import { getUserWeb3Account } from './web3';
@@ -124,13 +126,6 @@ export function parsePresenceStatus(presence, userId) {
         if (typeof tinyParse.timezone === 'string' && tinyParse.timezone.length > 0) {
           tinyResult.timezone = tinyParse.timezone.substring(0, 100);
         }
-
-        // User AFK
-        if (Array.isArray(tinyParse.active_devices) && tinyParse.active_devices.length < 1) {
-          tinyResult.afk = true;
-        } else {
-          tinyResult.afk = false;
-        }
       }
     } catch {
       tinyResult.msg = presence.substring(0, 100);
@@ -150,7 +145,6 @@ export function getPresence(user, canStatus = true, canPresence = true) {
     if (canStatus) {
       content.presence = 'offline';
       content.lastActiveAgo = null;
-      content.currentlyActive = false;
     }
 
     if (canStatus && typeof user.presence === 'string') {
@@ -159,7 +153,18 @@ export function getPresence(user, canStatus = true, canPresence = true) {
 
     if (canStatus && typeof user.lastActiveAgo === 'number') {
       content.lastActiveAgo = user.lastActiveAgo;
-      content.currentlyActive = true;
+    }
+
+    if (canStatus && typeof user.lastPresenceTs === 'number') {
+      content.lastPresenceTs = moment(user.lastPresenceTs);
+      content.inactiveTime = moment().diff(content.lastPresenceTs, 'minutes');
+      if (
+        typeof content.inactiveTime === 'number' &&
+        !Number.isNaN(content.inactiveTime) &&
+        content.inactiveTime > __ENV_APP__.AFK_TIMEOUT
+      )
+        content.isAfk = true;
+      else content.isAfk = false;
     }
 
     if (canPresence && typeof user.presenceStatusMsg === 'string') {
@@ -175,24 +180,8 @@ export function getPresence(user, canStatus = true, canPresence = true) {
       ) {
         content.presence = content.presenceStatusMsg.status;
         delete content.presenceStatusMsg.status;
-
-        if (content.presenceStatusMsg.afk) {
-          content.presence = 'idle';
-        }
-      }
-
-      if (typeof content.presenceStatusMsg.afk !== 'undefined')
-        delete content.presenceStatusMsg.afk;
-    }
-
-    if (content.presence !== 'offline' && content.presence !== 'unavailable') {
-      if (
-        !content.currentlyActive /* || (typeof content.lastActiveAgo === 'number' && !Number.isNaN(content.lastActiveAgo) && Number.isFinite(content.lastActiveAgo) && content.lastActiveAgo > 600000) */
-      ) {
-        content.presence = 'idle';
       }
     }
-
     return content;
   }
 
@@ -211,7 +200,9 @@ export function getUserStatus(user, tinyData) {
     }
 
     if (data) {
-      let presence = data.presence;
+      let presence = data.presence || 'null';
+      if (data.isAfk) presence = 'idle';
+
       if (statusList[presence]) {
         presence += ` ${statusList[presence]}`;
       }

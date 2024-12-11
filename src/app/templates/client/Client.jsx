@@ -47,7 +47,6 @@ import {
   scrollFixer,
   tinyAppZoomValidator,
 } from '../../../util/tools';
-import { startUserAfk, stopUserAfk } from '../../../util/userStatusEffects';
 import Mods from './Mods';
 import LoadingPage from './Loading';
 import urlParams from '../../../util/libs/urlParams';
@@ -145,7 +144,6 @@ function Client({ isDevToolsOpen = false }) {
   const playFatalBeep = () => soundFiles.playNow('fatal_beep');
 
   useEffect(() => {
-    startUserAfk();
     navigation.on(cons.events.navigation.SELECTED_ROOM_MODE, onRoomModeSelected);
     const keypressDetector = (event) => {
       const e = event.originalEvent;
@@ -171,7 +169,6 @@ function Client({ isDevToolsOpen = false }) {
       .on('keypress keyup keydown', keypressDetector);
 
     return () => {
-      stopUserAfk();
       $(window)
         .off('resize', resizeWindowChecker)
         .on('mousewheel', scrollFixer)

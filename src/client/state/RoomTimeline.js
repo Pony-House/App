@@ -332,6 +332,12 @@ class RoomTimeline extends EventEmitter {
       }
     }
 
+    this.syncTimeline();
+    updateRoomInfo();
+    return true;
+  }
+
+  syncTimeline() {
     if (this.timeline.length > 0)
       storageManager.warnTimeline(
         this.roomId,
@@ -346,9 +352,6 @@ class RoomTimeline extends EventEmitter {
         },
       );
     else storageManager.syncTimeline(this.roomId, this.threadId);
-
-    updateRoomInfo();
-    return true;
   }
 
   // Load Event timeline

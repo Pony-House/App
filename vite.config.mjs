@@ -174,6 +174,8 @@ export default defineConfig(({ command, mode }) => {
     MXC_AUTHENTICATED_MEDIA: addBooleanToEnv('MXC_AUTHENTICATED_MEDIA'),
     MXC_SERVICE_WORKER: addBooleanToEnv('MXC_SERVICE_WORKER'),
 
+    AFK_TIMEOUT: Number(env.AFK_TIMEOUT),
+
     MXC_FETCH_TIMEOUT: {
       DEFAULT: Number(env.MXC_FETCH_TIMEOUT),
       EMOJI: Number(env.MXC_FETCH_TIMEOUT_EMOJI),

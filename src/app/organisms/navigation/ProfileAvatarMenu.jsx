@@ -22,7 +22,6 @@ import { canUsePresence, getPresence } from '../../../util/onlineStatus';
 
 import { openSettings } from '../../../client/action/navigation';
 import tinyAPI from '../../../util/mods';
-import { enableAfkSystem } from '../../../util/userStatusEffects';
 import { getUserWeb3Account } from '../../../util/web3';
 
 import matrixAppearance from '../../../util/libs/appearance';
@@ -83,8 +82,6 @@ function ProfileAvatarMenu() {
         const tinyClone = clone(event);
 
         // Afk Fix
-        if (Array.isArray(tinyClone.active_devices) && tinyClone.active_devices.length < 1)
-          tinyClone.status = '🟠';
         tinyClone.ethereum = getUserWeb3Account();
         if (typeof tinyClone.ethereum.valid !== 'undefined') delete tinyClone.ethereum.valid;
 
@@ -141,7 +138,6 @@ function ProfileAvatarMenu() {
 
       // Status update
       tinyAPI.emit('userStatusUpdate', accountStatus);
-      if (canUsePresence()) enableAfkSystem();
     };
 
     setFirstLoad(false);
