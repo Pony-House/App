@@ -1,5 +1,6 @@
 import { EventTimeline } from 'matrix-js-sdk';
 import attemptDecryption from '@src/util/libs/attemptDecryption';
+import cons from '../cons';
 
 import settings from '../settings';
 
@@ -131,4 +132,47 @@ export const enableyJsItem = {
     ytext: (data) => data.toString(),
     yarray: (data) => data.toArray(),
   },
+};
+
+// Get User renders
+export const getEventReaders = (room, liveTimeline, mEvent) => {
+  const lTime = liveTimeline || room.getLiveTimeline();
+  const liveEvents = lTime.getEvents();
+
+  const readers = [];
+  if (!mEvent) return [];
+
+  for (let i = liveEvents.length - 1; i >= 0; i -= 1) {
+    readers.splice(readers.length, 0, ...room.getUsersReadUpTo(liveEvents[i]));
+    if (mEvent === liveEvents[i]) break;
+  }
+
+  return [...new Set(readers)];
+};
+
+export const getLiveReaders = (room, liveTimeline) => {
+  const lTime = liveTimeline || room.getLiveTimeline();
+
+  const liveEvents = lTime.getEvents();
+  const getLatestVisibleEvent = () => {
+    for (let i = liveEvents.length - 1; i >= 0; i -= 1) {
+      const mEvent = liveEvents[i];
+      if (mEvent.getType() === 'm.room.member' && hideMemberEvents(mEvent)) {
+        continue;
+      }
+
+      if (
+        !mEvent.isRedacted() &&
+        !isReaction(mEvent) &&
+        !isEdited(mEvent) &&
+        cons.supportEventTypes.includes(mEvent.getType())
+      ) {
+        return mEvent;
+      }
+    }
+
+    return liveEvents[liveEvents.length - 1];
+  };
+
+  return getEventReaders(room, lTime, getLatestVisibleEvent());
 };

@@ -8,13 +8,7 @@ import cons from './cons';
 
 import { updateRoomInfo } from '../action/navigation';
 import urlParams from '../../util/libs/urlParams';
-import tinyFixScrollChat from '../../app/molecules/media/mediaFix';
-import {
-  isEdited,
-  isReaction,
-  hideMemberEvents,
-  getLastLinkedTimeline,
-} from './Timeline/functions';
+import { getLastLinkedTimeline, getLiveReaders, getEventReaders } from './Timeline/functions';
 import installYjs from './Timeline/yjs';
 import { memberEventAllowed } from '@src/app/organisms/room/MemberEvents';
 
@@ -206,8 +200,6 @@ class RoomTimeline extends EventEmitter {
         if (!tinyThis.ended) {
           // Check event
           if (!mEvent.isSending() || mEvent.getSender() === initMatrix.matrixClient.getUserId()) {
-            // Check isEdited
-
             // Send into the timeline
             tinyThis._insertIntoTimeline(mEvent, tmc);
           }
@@ -577,43 +569,11 @@ class RoomTimeline extends EventEmitter {
 
   // Get User renders
   getEventReaders(mEvent) {
-    const liveEvents = this.liveTimeline.getEvents();
-    const readers = [];
-    if (!mEvent) return [];
-
-    for (let i = liveEvents.length - 1; i >= 0; i -= 1) {
-      readers.splice(readers.length, 0, ...this.room.getUsersReadUpTo(liveEvents[i]));
-      if (mEvent === liveEvents[i]) break;
-    }
-
-    return [...new Set(readers)];
+    return getEventReaders(this.room, this.liveTimeline, mEvent);
   }
 
   getLiveReaders() {
-    const liveEvents = this.liveTimeline.getEvents();
-    const getLatestVisibleEvent = () => {
-      for (let i = liveEvents.length - 1; i >= 0; i -= 1) {
-        const mEvent = liveEvents[i];
-        if (mEvent.getType() === 'm.room.member' && hideMemberEvents(mEvent)) {
-          continue;
-        }
-
-        if (
-          !mEvent.isRedacted() &&
-          !isReaction(mEvent) &&
-          !isEdited(mEvent) &&
-          cons.supportEventTypes.includes(mEvent.getType())
-        ) {
-          tinyFixScrollChat();
-          return mEvent;
-        }
-      }
-
-      tinyFixScrollChat();
-      return liveEvents[liveEvents.length - 1];
-    };
-
-    return this.getEventReaders(getLatestVisibleEvent());
+    return getLiveReaders(this.room, this.liveTimeline);
   }
 
   getEvents() {
