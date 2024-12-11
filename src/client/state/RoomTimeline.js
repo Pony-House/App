@@ -332,7 +332,21 @@ class RoomTimeline extends EventEmitter {
       }
     }
 
-    storageManager.syncTimeline(this.roomId, this.threadId);
+    if (this.timeline.length > 0)
+      storageManager.warnTimeline(
+        this.roomId,
+        this.threadId,
+        null,
+        this.timeline[0].getId(),
+        null,
+        {
+          firstTime: true,
+          checkPoint: this.timeline[0].getId(),
+          isNext: false,
+        },
+      );
+    else storageManager.syncTimeline(this.roomId, this.threadId);
+
     updateRoomInfo();
     return true;
   }

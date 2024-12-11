@@ -586,29 +586,14 @@ class StorageManager extends EventEmitter {
     const tinyThis = this;
     if (!singleTime) this._syncTimelineCache.roomId = null;
     const loadComplete = (roomId, threadId, checkPoint, lastEventId, isNext, err) => {
-      const valueId = `${roomId}${threadId ? `:${threadId}` : ''}`;
-      const tinyData = {
-        roomId,
-        threadId,
+      tinyThis.warnTimeline(roomId, threadId, eventId, lastEventId, err, {
         firstTime,
         checkPoint,
-        lastEventId,
         isNext,
-        err,
-      };
+      });
 
-      tinyThis.emit('dbTimelineLoaded', tinyData, eventId);
-      if (typeof eventId === 'string')
-        tinyThis.emit(
-          `dbTimelineLoaded-${roomId}${threadId ? `-${threadId}` : ''}-${eventId}`,
-          tinyData,
-        );
-      tinyThis.emit(
-        `dbTimelineLoaded-${roomId}${threadId ? `-${threadId}` : ''}`,
-        tinyData,
-        eventId,
-      );
-      if (this._syncTimelineCache.roomsUsed.indexOf(valueId) < 0)
+      const valueId = `${roomId}${threadId ? `:${threadId}` : ''}`;
+      if (!singleTime && this._syncTimelineCache.roomsUsed.indexOf(valueId) < 0)
         this._syncTimelineCache.roomsUsed.push(valueId);
 
       // if (!isNext) room.refreshLiveTimeline().catch(console.error);
@@ -621,20 +606,25 @@ class StorageManager extends EventEmitter {
     try {
       // Prepare data
       if (room && typeof room.roomId === 'string') {
+        // Get timeline data
         const mx = initMatrix.matrixClient;
         const tm = timeline || !thread ? room.getLiveTimeline() : thread?.liveTimeline;
         await waitTimelineTimeout();
+
+        // Decrypt time
         if (room.hasEncryptionStateEvent())
           await executeDecryptAllEventsOfTimeline(tm, room.roomId);
+
+        // Get room data
         const roomId = room.roomId;
         const threadId = thread ? thread?.id : null;
         const valueId = `${roomId}${threadId ? `:${threadId}` : ''}`;
 
+        // Insert sync data
         if (!singleTime) {
           this._syncTimelineCache.roomId = roomId;
           this._syncTimelineCache.threadId = threadId;
         }
-
         this._sendSyncStatus();
 
         // Get checkpoint
@@ -656,6 +646,7 @@ class StorageManager extends EventEmitter {
             ? this._timelineSyncCache[valueId].isComplete
             : false;
 
+        // Needs add data
         if (!isComplete) {
           const events = tm.getEvents();
           if (Array.isArray(events) && events.length > 0) {
@@ -665,7 +656,7 @@ class StorageManager extends EventEmitter {
             for (const item in events) {
               const eventIdp = events[item].getId();
               if (this._syncTimelineCache.usedIds.indexOf(eventIdp) < 0) {
-                this._syncTimelineCache.usedIds.push(eventIdp);
+                if (!singleTime) this._syncTimelineCache.usedIds.push(eventIdp);
                 this.addToTimeline(events[item], 'sync');
                 lastTimelineEventId = eventIdp;
               }
@@ -674,7 +665,7 @@ class StorageManager extends EventEmitter {
             await this.waitAddTimeline('sync');
             console.log(`[room-db-sync] [${valueId}] New events added!`);
 
-            if (lastTimelineEventId) {
+            if (!singleTime && lastTimelineEventId) {
               this._timelineSyncCache[valueId] = {
                 lastEvent: lastTimelineEventId,
                 isComplete: false,
@@ -814,18 +805,24 @@ class StorageManager extends EventEmitter {
   _syncTimeline(room, thread, eventId, checkpoint = null, timeline = null) {
     if (room && typeof room.roomId === 'string') {
       if (this._syncTimelineCache.using) {
-        this._syncTimelineCache.data.unshift({
-          thread,
-          roomId: room.roomId,
-          threadId: thread ? thread.id : null,
-          eventId,
-          room,
-          checkpoint,
-          timeline,
-          firstTime: true,
-        });
+        const isSingleTime = this._syncTimelineCache.data.find((item) =>
+          item.roomId === room.roomId && (!thread || item.threadId === thread.id) ? true : false,
+        );
+
+        if (!isSingleTime)
+          this._syncTimelineCache.data.unshift({
+            thread,
+            roomId: room.roomId,
+            threadId: thread ? thread.id : null,
+            eventId,
+            room,
+            checkpoint,
+            timeline,
+            firstTime: true,
+          });
+
         this._sendSyncStatus();
-        this._syncTimelineRun(room, thread, eventId, checkpoint, timeline, true, true);
+        this._syncTimelineRun(room, thread, eventId, checkpoint, timeline, true, isSingleTime);
       } else {
         this._syncTimelineCache.using = true;
         this._syncTimelineRun(room, thread, eventId, checkpoint, timeline, true);
@@ -842,20 +839,57 @@ class StorageManager extends EventEmitter {
   }
 
   isRoomSyncing(roomId, threadId) {
-    return (
-      this._syncTimelineCache.using &&
-      (this._syncTimelineCache.roomsUsed.indexOf(roomId) > -1 ||
-        this._syncTimelineCache.roomId === roomId) &&
-      (!threadId ||
-        this._syncTimelineCache.roomsUsed.indexOf(`${roomId}:${threadId}`) > -1 ||
-        this._syncTimelineCache.threadId === threadId)
+    console.log(
+      this._syncTimelineCache.using,
+      this._syncTimelineCache.roomsUsed.indexOf(roomId),
+      this._syncTimelineCache.roomId === roomId,
     );
+    if (this._syncTimelineCache.using) {
+      if (!threadId)
+        return (
+          this._syncTimelineCache.roomsUsed.indexOf(roomId) > -1 ||
+          this._syncTimelineCache.roomId === roomId
+        );
+      else
+        return (
+          this._syncTimelineCache.roomsUsed.indexOf(`${roomId}:${threadId}`) > -1 ||
+          (this._syncTimelineCache.roomId === roomId &&
+            this._syncTimelineCache.threadId === threadId)
+        );
+    }
+
+    return false;
   }
 
   syncTimeline(roomId, threadId, eventId, checkpoint = null) {
     const room = initMatrix.matrixClient.getRoom(roomId);
     const thread = threadId && room ? room.getThread(threadId) : null;
     this._syncTimeline(room, thread, eventId, checkpoint);
+  }
+
+  warnTimeline(
+    roomId,
+    threadId,
+    eventId,
+    lastEventId = null,
+    err = null,
+    data = {
+      firstTime: false,
+      checkPoint: null,
+      isNext: false,
+    },
+  ) {
+    const tinyData = clone(data);
+
+    tinyData.roomId = roomId;
+    tinyData.threadId = threadId;
+    tinyData.lastEventId = lastEventId;
+    tinyData.err = err;
+
+    this.emit('dbTimelineLoaded', tinyData, eventId);
+    if (typeof eventId === 'string')
+      this.emit(`dbTimelineLoaded-${roomId}${threadId ? `-${threadId}` : ''}-${eventId}`, tinyData);
+    this.emit(`dbTimelineLoaded-${roomId}${threadId ? `-${threadId}` : ''}`, tinyData, eventId);
   }
 
   async deleteRoomDb(roomId) {
