@@ -381,8 +381,8 @@ function RoomViewContent({
   const [editEventId, setEditEventId] = useState(null);
   const cancelEdit = () => setEditEventId(null);
 
-  const [setHideMembership] = useState(settings.hideMembershipEvents);
-  const [setHideAvatarEvents] = useState(settings.hideNickAvatarEvents);
+  const [, setHideMembership] = useState(settings.hideMembershipEvents);
+  const [, setHideAvatarEvents] = useState(settings.hideNickAvatarEvents);
 
   const readUptoEvtStore = useStore(roomTimeline);
   const [onLimitUpdate, forceUpdateLimit] = useForceUpdate();

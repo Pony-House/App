@@ -422,6 +422,27 @@ function RoomAliases({ roomId }) {
           {`${isLocalVisible ? 'Hide' : 'Add / View'} local address`}
         </Button>
       </li>
+
+      <li className="list-group-item very-small text-gray noselect">Room data</li>
+
+      <SettingTile title="Room id" content={<div className="very-small text-gray">{roomId}</div>} />
+
+      <SettingTile
+        title="Name"
+        content={
+          <>
+            <div className="very-small text-gray">{room.name}</div>
+            {room.nameCinny ? (
+              <div className="very-small text-gray">{room.nameCinny.original}</div>
+            ) : null}
+          </>
+        }
+      />
+
+      <SettingTile
+        title="Normalized name"
+        content={<div className="very-small text-gray">{room.normalizedName}</div>}
+      />
     </>
   );
 }

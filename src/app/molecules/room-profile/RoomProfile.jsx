@@ -336,19 +336,21 @@ function RoomProfile({ roomId, isSpace }) {
         </div>
 
         <div className="very-small text-gray">
-          {roomId}
           {isAlias ? (
-            <a
-              className="ms-1 badge bg-primary text-bg-force noselect"
-              href="#"
-              onClick={(event) => {
-                event.preventDefault();
-                tinyClipboard.copyText(getShareUrl(roomId));
-                alert('The share link was successfully copied!', 'Room Viewer');
-              }}
-            >
-              Share
-            </a>
+            <>
+              {roomId}
+              <a
+                className="ms-1 badge bg-primary text-bg-force noselect"
+                href="#"
+                onClick={(event) => {
+                  event.preventDefault();
+                  tinyClipboard.copyText(getShareUrl(roomId));
+                  alert('The share link was successfully copied!', 'Room Viewer');
+                }}
+              >
+                Share
+              </a>
+            </>
           ) : null}
         </div>
         {roomTopic && (
