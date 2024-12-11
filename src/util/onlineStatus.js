@@ -139,38 +139,38 @@ export function parsePresenceStatus(presence, userId) {
 // Get Presence Data
 export function getPresence(user, canStatus = true, canPresence = true) {
   if (user) {
+    // Base
     const content = {};
     if (!canPresence) content.presenceStatusMsg = null;
 
+    // Preparing main data
     if (canStatus) {
       content.presence = 'offline';
       content.lastActiveAgo = null;
     }
 
+    // Insert presence
     if (canStatus && typeof user.presence === 'string') {
       content.presence = user.presence;
     }
 
+    // Insert lastActiveAgo
     if (canStatus && typeof user.lastActiveAgo === 'number') {
       content.lastActiveAgo = user.lastActiveAgo;
     }
 
+    // Insert lastPresenceTs
     if (canStatus && typeof user.lastPresenceTs === 'number') {
       content.lastPresenceTs = moment(user.lastPresenceTs);
       content.inactiveTime = moment().diff(content.lastPresenceTs, 'minutes');
-      if (
-        typeof content.inactiveTime === 'number' &&
-        !Number.isNaN(content.inactiveTime) &&
-        content.inactiveTime > __ENV_APP__.AFK_TIMEOUT
-      )
-        content.isAfk = true;
-      else content.isAfk = false;
     }
 
+    // Presence status message
     if (canPresence && typeof user.presenceStatusMsg === 'string') {
       content.presenceStatusMsg = user.presenceStatusMsg;
     }
 
+    // Convert presence
     if (typeof content.presenceStatusMsg === 'string') {
       content.presenceStatusMsg = parsePresenceStatus(content.presenceStatusMsg, user.userId);
       if (
@@ -182,6 +182,23 @@ export function getPresence(user, canStatus = true, canPresence = true) {
         delete content.presenceStatusMsg.status;
       }
     }
+
+    // Is afk?
+    if (
+      // Offline?
+      typeof content.presence === 'string' &&
+      content.presence !== 'offline' &&
+      content.presence !== 'unavailable' &&
+      // Checking...
+      typeof content.inactiveTime === 'number' &&
+      !Number.isNaN(content.inactiveTime) &&
+      content.inactiveTime > __ENV_APP__.AFK_TIMEOUT
+    )
+      content.isAfk = true;
+    // No Afk
+    else content.isAfk = false;
+
+    // Complete
     return content;
   }
 
