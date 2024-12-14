@@ -559,18 +559,80 @@ class StorageManager extends EventEmitter {
     return new LocalStorageEvent(clone(event));
   }
 
+  setTmTemplate(event, where, isNewer = false) {
+    const roomId = event.getRoomId();
+    const thread = event.getThread();
+    const threadId = thread ? thread.id : null || null;
+    const eventId = event.getId();
+    const ts = event.getTs();
+
+    if (typeof roomId === 'string') {
+      const valueId = `${roomId}${typeof threadId === 'string' ? `:${threadId}` : ''}`;
+      if (!this._timelineSyncCache[valueId]) this._timelineSyncCache[valueId] = {};
+      if (typeof this._timelineSyncCache[valueId].isComplete !== 'boolean')
+        this._timelineSyncCache[valueId].isComplete = false;
+
+      if (
+        typeof ts === 'number' &&
+        (!objType(this._timelineSyncCache[valueId][where], 'object') ||
+          typeof this._timelineSyncCache[valueId][where].ts !== 'number' ||
+          (isNewer && ts > this._timelineSyncCache[valueId][where].ts) ||
+          (!isNewer && ts < this._timelineSyncCache[valueId][where].ts))
+      ) {
+        this._timelineSyncCache[valueId][where] = { id: eventId, ts };
+        return this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
+      }
+
+      return null;
+    }
+    throw new Error('Invalid room id');
+  }
+
+  setTmLastEvent(event) {
+    return this.setTmTemplate(event, 'tmLastEvent');
+  }
+
   resetTimelineSyncData(roomId, threadId) {
-    const valueId = `${roomId}${threadId ? `:${threadId}` : ''}`;
-    if (roomId && this._timelineSyncCache[valueId]) {
-      delete this._timelineSyncCache[valueId];
-      this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
-      return true;
-    } else return false;
+    if (roomId) {
+      let deleteUsed = false;
+      const deleteTinyData = (valueId) => {
+        if (this._timelineSyncCache[valueId]) {
+          delete this._timelineSyncCache[valueId];
+          deleteUsed = true;
+        }
+
+        if (this._eventsLoadWaiting[valueId]) {
+          delete this._eventsLoadWaiting[valueId];
+          deleteUsed = true;
+        }
+      };
+
+      if (typeof threadId !== 'boolean' || !threadId)
+        deleteTinyData(`${roomId}${typeof threadId === 'string' ? `:${threadId}` : ''}`);
+      else {
+        deleteTinyData(roomId);
+        for (const item in this._timelineSyncCache) {
+          if (item.startsWith(`${roomId}:`)) deleteTinyData(item);
+        }
+
+        for (const item in this._eventsLoadWaiting) {
+          if (item.startsWith(`${roomId}:`)) deleteTinyData(item);
+        }
+      }
+
+      if (deleteUsed) {
+        this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
+        return true;
+      }
+    }
+    return false;
   }
 
   resetAllTimelineSyncData() {
     this.removeItem('ponyHouse-timeline-sync');
     this._timelineSyncCache = {};
+    this.removeItem('ponyHouse-storage-loading');
+    this._eventsLoadWaiting = {};
   }
 
   // Sync Timeline
@@ -604,7 +666,6 @@ class StorageManager extends EventEmitter {
       // Prepare data
       if (room && typeof room.roomId === 'string') {
         // Get timeline data
-        const mx = initMatrix.matrixClient;
         const tm = timeline || !thread ? room.getLiveTimeline() : thread?.liveTimeline;
         await waitTimelineTimeout();
 
@@ -624,130 +685,33 @@ class StorageManager extends EventEmitter {
         }
         this._sendSyncStatus();
 
-        // Get checkpoint
-        const lastEventId =
-          objType(this._timelineSyncCache[valueId], 'object') &&
-          typeof this._timelineSyncCache[valueId].lastEvent === 'string' &&
-          this._timelineSyncCache[valueId].lastEvent.length > 0
-            ? this._timelineSyncCache[valueId].lastEvent
-            : null;
-
-        const checkPoint =
-          !timeline && typeof checkpoint === 'string' && checkpoint.length > 0
-            ? checkpoint
-            : lastEventId;
-
+        // Is complete?
         const isComplete =
           this._timelineSyncCache[valueId] &&
           typeof this._timelineSyncCache[valueId].isComplete === 'boolean'
             ? this._timelineSyncCache[valueId].isComplete
             : false;
 
-        // Needs add data
-        if (!isComplete) {
-          const events = tm.getEvents();
-          if (Array.isArray(events) && events.length > 0) {
-            let lastTimelineEventId = null;
-
-            console.log(`[room-db-sync] [${valueId}] Adding new events...`);
-            for (const item in events) {
-              const eventIdp = events[item].getId();
-              if (this._syncTimelineCache.usedIds.indexOf(eventIdp) < 0) {
-                if (!singleTime) this._syncTimelineCache.usedIds.push(eventIdp);
-                this.addToTimeline(events[item], 'sync');
-                lastTimelineEventId = eventIdp;
-              }
-            }
-
-            await this.waitAddTimeline('sync');
-            console.log(`[room-db-sync] [${valueId}] New events added!`);
-
-            if (!singleTime && lastTimelineEventId) {
-              this._timelineSyncCache[valueId] = {
-                lastEvent: lastTimelineEventId,
-                isComplete: false,
-              };
-              this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
-            }
-          } else console.log(`[room-db-sync] [${valueId}] No data found to save.`);
-        } else
-          console.log(`[room-db-sync] [${valueId}] Data load complete! Skipping data saving...`);
-
-        // Next Timeline
-        if (!singleTime) {
-          const nextTimelineToken = tm.getPaginationToken(Direction.Backward);
-          if (!isComplete && nextTimelineToken) {
-            console.log(`[room-db-sync] [${valueId}] Preparing next step...`);
-            this._syncTimelineCache.used = true;
-            // Next checkpoint
-            if (!checkPoint || !firstTime) {
-              // Validator
-              if (lastEventId !== this._timelineSyncCache[valueId].lastEvent) {
-                // Next page
-                await waitTimelineTimeout();
-                await mx.paginateEventTimeline(tm, {
-                  backwards: Direction.Forward,
-                  limit: SYNC_TIMELINE_DOWNLOAD_LIMIT,
-                });
-
-                console.log(
-                  `[room-db-sync] [${valueId}] Next data!`,
-                  this._timelineSyncCache[valueId].lastEvent,
-                );
-
-                this._syncTimelineCache.data.push({
-                  eventId,
-                  roomId,
-                  threadId,
-                  thread,
-                  room,
-                  checkpoint: null,
-                  timeline: tm,
-                });
-                loadComplete(roomId, threadId, checkPoint, lastEventId, true);
-              }
-
-              // Complete
-              else {
-                console.log(`[room-db-sync] [${roomId}] Complete!`);
-                loadComplete(roomId, threadId, checkPoint, lastEventId, false);
-              }
-            }
-
-            // Next event id
-            else if (lastEventId !== this._timelineSyncCache[valueId].lastEvent) {
-              await waitTimelineTimeout();
-              const eTimeline = await mx.getEventTimeline(
-                !thread ? room.getUnfilteredTimelineSet() : thread.getUnfilteredTimelineSet(),
-                checkPoint,
-              );
-              console.log(`[room-db-sync] [${valueId}] Next data by event id!`, checkPoint);
-
-              this._syncTimelineCache.data.push({
-                roomId,
-                thread,
-                threadId,
-                room,
-                checkpoint: null,
-                timeline: eTimeline,
-                eventId,
-              });
-              loadComplete(roomId, threadId, checkPoint, lastEventId, true);
-            }
-
-            // Complete
-            else {
-              console.log(`[room-db-sync] [${valueId}] Complete!`);
-              loadComplete(roomId, threadId, checkPoint, lastEventId, false);
-            }
-          } else {
-            console.log(`[room-db-sync] [${valueId}] Complete!`);
-            loadComplete(roomId, threadId, checkPoint, lastEventId, false);
-          }
-        } else {
-          console.log(`[room-db-sync] [${valueId}] Single Complete!`);
-          loadComplete(roomId, threadId, checkPoint, lastEventId, false);
-        }
+        // Run normal script
+        // if (Array.isArray(this._eventsLoadWaiting[roomId]))
+        await this._syncTimelineRunning(
+          room,
+          thread,
+          eventId,
+          checkpoint,
+          timeline,
+          firstTime,
+          singleTime,
+          roomId,
+          threadId,
+          valueId,
+          tm,
+          isComplete,
+          loadComplete,
+        );
+        // Recover event cache
+        // else {
+        // }
       }
 
       // Error
@@ -755,6 +719,142 @@ class StorageManager extends EventEmitter {
     } catch (err) {
       console.error(err);
       loadComplete(null, null, null, null, false, err);
+    }
+  }
+
+  async _syncTimelineRunning(
+    room,
+    thread,
+    eventId,
+    checkpoint,
+    timeline,
+    firstTime,
+    singleTime,
+    roomId,
+    threadId,
+    valueId,
+    tm,
+    isComplete,
+    loadComplete,
+  ) {
+    // Matrix Client
+    const mx = initMatrix.matrixClient;
+
+    // Get checkpoint
+    const lastEventId =
+      objType(this._timelineSyncCache[valueId], 'object') &&
+      typeof this._timelineSyncCache[valueId].lastEvent === 'string' &&
+      this._timelineSyncCache[valueId].lastEvent.length > 0
+        ? this._timelineSyncCache[valueId].lastEvent
+        : null;
+
+    const checkPoint =
+      !timeline && typeof checkpoint === 'string' && checkpoint.length > 0
+        ? checkpoint
+        : lastEventId;
+
+    // Needs add data
+    if (!isComplete) {
+      const events = tm.getEvents();
+      if (Array.isArray(events) && events.length > 0) {
+        let lastTimelineEventId = null;
+
+        console.log(`[room-db-sync] [${valueId}] Adding new events...`);
+        for (const item in events) {
+          const eventIdp = events[item].getId();
+          if (this._syncTimelineCache.usedIds.indexOf(eventIdp) < 0) {
+            if (!singleTime) this._syncTimelineCache.usedIds.push(eventIdp);
+            this.addToTimeline(events[item], 'sync');
+            lastTimelineEventId = eventIdp;
+          }
+        }
+
+        await this.waitAddTimeline('sync');
+        console.log(`[room-db-sync] [${valueId}] New events added!`);
+
+        if (!singleTime && lastTimelineEventId) {
+          if (!this._timelineSyncCache[valueId]) this._timelineSyncCache[valueId] = {};
+          this._timelineSyncCache[valueId].lastEvent = lastTimelineEventId;
+          this._timelineSyncCache[valueId].isComplete = false;
+          this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
+        }
+      } else console.log(`[room-db-sync] [${valueId}] No data found to save.`);
+    } else console.log(`[room-db-sync] [${valueId}] Data load complete! Skipping data saving...`);
+
+    // Next Timeline
+    if (!singleTime) {
+      const nextTimelineToken = tm.getPaginationToken(Direction.Backward);
+      if (!isComplete && nextTimelineToken) {
+        console.log(`[room-db-sync] [${valueId}] Preparing next step...`);
+        this._syncTimelineCache.used = true;
+        // Next checkpoint
+        if (!checkPoint || !firstTime) {
+          // Validator
+          if (lastEventId !== this._timelineSyncCache[valueId].lastEvent) {
+            // Next page
+            await waitTimelineTimeout();
+            await mx.paginateEventTimeline(tm, {
+              backwards: Direction.Forward,
+              limit: SYNC_TIMELINE_DOWNLOAD_LIMIT,
+            });
+
+            console.log(
+              `[room-db-sync] [${valueId}] Next data!`,
+              this._timelineSyncCache[valueId].lastEvent,
+            );
+
+            this._syncTimelineCache.data.push({
+              eventId,
+              roomId,
+              threadId,
+              thread,
+              room,
+              checkpoint: null,
+              timeline: tm,
+            });
+            loadComplete(roomId, threadId, checkPoint, lastEventId, true);
+          }
+
+          // Complete
+          else {
+            console.log(`[room-db-sync] [${roomId}] Complete!`);
+            loadComplete(roomId, threadId, checkPoint, lastEventId, false);
+          }
+        }
+
+        // Next event id
+        else if (lastEventId !== this._timelineSyncCache[valueId].lastEvent) {
+          await waitTimelineTimeout();
+          const eTimeline = await mx.getEventTimeline(
+            !thread ? room.getUnfilteredTimelineSet() : thread.getUnfilteredTimelineSet(),
+            checkPoint,
+          );
+          console.log(`[room-db-sync] [${valueId}] Next data by event id!`, checkPoint);
+
+          this._syncTimelineCache.data.push({
+            roomId,
+            thread,
+            threadId,
+            room,
+            checkpoint: null,
+            timeline: eTimeline,
+            eventId,
+          });
+          loadComplete(roomId, threadId, checkPoint, lastEventId, true);
+        }
+
+        // Complete
+        else {
+          console.log(`[room-db-sync] [${valueId}] Complete!`);
+          loadComplete(roomId, threadId, checkPoint, lastEventId, false);
+        }
+      } else {
+        console.log(`[room-db-sync] [${valueId}] Complete!`);
+        loadComplete(roomId, threadId, checkPoint, lastEventId, false);
+      }
+    } else {
+      console.log(`[room-db-sync] [${valueId}] Single Complete!`);
+      loadComplete(roomId, threadId, checkPoint, lastEventId, false);
     }
   }
 
@@ -904,6 +1004,8 @@ class StorageManager extends EventEmitter {
       this._syncTimelineCache.data.splice(index, 1);
       index = this._syncTimelineCache.data.findIndex((item) => item.roomId === roomId);
     }
+
+    this.resetTimelineSyncData(roomId, true);
 
     const timeline = await this.storeConnection.remove({ from: 'timeline', where });
     await waitTimelineTimeout();
@@ -2052,8 +2154,10 @@ class StorageManager extends EventEmitter {
   }
 
   setJson(name, data) {
-    if (objType(data, 'object') || objType(data, 'map') || Array.isArray(data))
+    if (objType(data, 'object') || objType(data, 'map') || Array.isArray(data)) {
+      this.emit('setJson', name, data);
       return global.localStorage.setItem(name, JSON.stringify(data));
+    }
     throw new Error('The storage value is not json!');
   }
 
@@ -2086,6 +2190,7 @@ class StorageManager extends EventEmitter {
   }
 
   setItem(name, data) {
+    this.emit('setItem', name, data);
     return global.localStorage.setItem(name, data);
   }
 
@@ -2094,7 +2199,10 @@ class StorageManager extends EventEmitter {
   }
 
   setString(name, data) {
-    if (typeof data === 'string') return global.localStorage.setItem(name, data);
+    if (typeof data === 'string') {
+      this.emit('setString', name, data);
+      return global.localStorage.setItem(name, data);
+    }
     throw new Error('The storage value is not string!');
   }
 
@@ -2106,7 +2214,10 @@ class StorageManager extends EventEmitter {
   }
 
   setNumber(name, data) {
-    if (typeof data === 'number') return global.localStorage.setItem(name, data);
+    if (typeof data === 'number') {
+      this.emit('setNumber', name, data);
+      return global.localStorage.setItem(name, data);
+    }
     throw new Error('The storage value is not number!');
   }
 
@@ -2122,7 +2233,10 @@ class StorageManager extends EventEmitter {
   }
 
   setBool(name, data) {
-    if (typeof data === 'boolean') return global.localStorage.setItem(name, data);
+    if (typeof data === 'boolean') {
+      this.emit('setBool', name, data);
+      return global.localStorage.setItem(name, data);
+    }
     throw new Error('The storage value is not boolean!');
   }
 
@@ -2138,6 +2252,7 @@ class StorageManager extends EventEmitter {
   }
 
   removeItem(name) {
+    this.emit('removeItem', name);
     return global.localStorage.removeItem(name);
   }
 

@@ -457,6 +457,9 @@ class Notifications extends EventEmitter {
     ) => {
       if (mEvent.isRedaction()) this._deletePopupNoti(mEvent.event.redacts);
 
+      // Insert timeline events into cache
+      storageManager.setTmLastEvent(mEvent);
+
       // Total Data
       let total = 0;
       let highlight = 0;
