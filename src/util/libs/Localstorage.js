@@ -596,9 +596,6 @@ class StorageManager extends EventEmitter {
       if (!singleTime && this._syncTimelineCache.roomsUsed.indexOf(valueId) < 0)
         this._syncTimelineCache.roomsUsed.push(valueId);
 
-      // if (!isNext) room.refreshLiveTimeline().catch(console.error);
-      // if (room) clearTimeline(room.getLiveTimeline(), true);
-
       tinyThis._sendSyncStatus();
       if (!singleTime) tinyThis._syncTimelineNext();
     };
@@ -761,10 +758,24 @@ class StorageManager extends EventEmitter {
     }
   }
 
+  // Reset timeline cache
+  _resetTimelineCache() {
+    this._syncTimelineCache.usedIds = [];
+    this._syncTimelineCache.roomsUsed = [];
+    this._syncTimelineCache.using = false;
+    this._syncTimelineCache.used = false;
+    this._syncTimelineCache.roomId = null;
+    this._syncTimelineCache.threadId = null;
+    this._sendSyncStatus();
+  }
+
+  // Next timeline
   _syncTimelineNext() {
+    // Get next timeline data
     if (this._syncTimelineCache.data.length > 0) {
       const data = this._syncTimelineCache.data.shift();
       const tinyThis = this;
+      // Let's go
       waitTimelineTimeout().then(() =>
         tinyThis._syncTimelineRun(
           data.room,
@@ -775,8 +786,11 @@ class StorageManager extends EventEmitter {
           data.firstTime,
         ),
       );
-    } else {
+    }
+    // Progress complete
+    else {
       console.log(`[room-db-sync] All complete!`);
+      // Used timeline progress
       if (this._syncTimelineCache.used) {
         const tinyRoomsUsed = clone(this._syncTimelineCache.roomsUsed);
 
@@ -792,13 +806,8 @@ class StorageManager extends EventEmitter {
         }
       }
 
-      this._syncTimelineCache.usedIds = [];
-      this._syncTimelineCache.roomsUsed = [];
-      this._syncTimelineCache.using = false;
-      this._syncTimelineCache.used = false;
-      this._syncTimelineCache.roomId = null;
-      this._syncTimelineCache.threadId = null;
-      this._sendSyncStatus();
+      // Reset
+      this._resetTimelineCache();
     }
   }
 
@@ -1729,6 +1738,7 @@ class StorageManager extends EventEmitter {
     }
   }
 
+  // Timeout waiter script
   waitAddTimeline(where) {
     const tinyThis = this;
     return new Promise((resolve) => {
@@ -1740,18 +1750,64 @@ class StorageManager extends EventEmitter {
     });
   }
 
+  // Add to timeline
   async addToTimeline(event, where = 'default') {
     const tinyThis = this;
+
+    // Get data
+    const eventId = event.getId();
+    const roomId = event.getRoomId();
     const eventSnap = event.toSnapshot();
+
+    // Prepare sync cache
+    if (!Array.isArray(tinyThis._eventsLoadWaiting[roomId]))
+      tinyThis._eventsLoadWaiting[roomId] = [];
+
+    if (tinyThis._eventsLoadWaiting[roomId].indexOf(eventId) < 0)
+      tinyThis._eventsLoadWaiting[roomId].push(eventId);
+
+    tinyThis.setJson('ponyHouse-storage-loading', tinyThis._eventsLoadWaiting);
+
+    // Return sync function
     return new Promise((resolve, reject) => {
+      // Remove cache
+      const tinyComplete = () => {
+        if (Array.isArray(tinyThis._eventsLoadWaiting[roomId])) {
+          const index = tinyThis._eventsLoadWaiting[roomId].indexOf(eventId);
+          if (index > -1) tinyThis._eventsLoadWaiting[roomId].splice(index, 1);
+
+          if (tinyThis._eventsLoadWaiting[roomId].length < 1)
+            delete tinyThis._eventsLoadWaiting[roomId];
+        }
+
+        tinyThis.setJson('ponyHouse-storage-loading', tinyThis._eventsLoadWaiting);
+      };
+
+      // Resolve and reject functions
+      const tinyReject = (err) => {
+        tinyComplete();
+        reject(err);
+      };
+
+      const tinyResolve = (data) => {
+        tinyComplete();
+        resolve(data);
+      };
+
+      // Performance correction
       if (
         !tinyThis._addToTimelineCache[where].using ||
         tinyThis._addToTimelineCache[where].data.length < __ENV_APP__.TIMELINE_EVENTS_PER_TIME
       ) {
         tinyThis._addToTimelineCache[where].using = true;
-        tinyThis._addToTimelineRun(eventSnap, resolve, reject, where);
+        tinyThis._addToTimelineRun(eventSnap, tinyResolve, tinyReject, where);
       } else {
-        tinyThis._addToTimelineCache[where].data.push({ event: eventSnap, resolve, reject, where });
+        tinyThis._addToTimelineCache[where].data.push({
+          event: eventSnap,
+          resolve: tinyResolve,
+          reject: tinyReject,
+          where,
+        });
       }
     });
   }

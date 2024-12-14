@@ -409,6 +409,15 @@ function AppearanceSection() {
                 </div>
               }
             />
+
+            <SettingTile
+              title="Warning"
+              content={
+                <div className="very-small text-gray">
+                  Maybe you'll have to reboot the client for the options to make effect.
+                </div>
+              }
+            />
           </ul>
         </div>
       ) : null}
