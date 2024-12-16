@@ -1,5 +1,17 @@
 import forPromise from 'for-promise';
+import { EventEmitter } from 'events';
 import $ from 'jquery';
+
+export const postMessage = (data) => {
+  if (
+    ('serviceWorker' in navigator || 'ServiceWorker' in navigator) &&
+    navigator.serviceWorker.controller &&
+    navigator.serviceWorker.controller.postMessage
+  ) {
+    return navigator.serviceWorker.controller.postMessage(data);
+  }
+  return null;
+};
 
 let usingPWA = false;
 let deferredPrompt;
@@ -69,16 +81,26 @@ export function isUsingPWA() {
 }
 
 export function clearFetchPwaCache() {
-  if (
-    ('serviceWorker' in navigator || 'ServiceWorker' in navigator) &&
-    navigator.serviceWorker.controller &&
-    navigator.serviceWorker.controller.postMessage
-  ) {
-    navigator.serviceWorker.controller.postMessage({
-      type: 'CLEAR_FETCH_CACHE',
-    });
-  }
+  postMessage({
+    type: 'CLEAR_FETCH_CACHE',
+  });
 }
+
+const startPWA = () => {
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data.type === 'ACTIVE_TABS') {
+      // event.data.tabs
+      // tinyPwa._addTab
+      // tinyPwa._removeTab
+      // tinyPwa._setTabId
+    }
+  });
+
+  postMessage({
+    type: 'GUIDE_OPENED',
+    id: Date.now(),
+  });
+};
 
 export function installPWA() {
   if ('serviceWorker' in navigator || 'ServiceWorker' in navigator) {
@@ -95,6 +117,7 @@ export function installPWA() {
             .then(() => {
               console.log('[PWA] Service Worker Registered.');
               usingPWA = true;
+              startPWA();
             })
             // Error
             .catch((err) => {
@@ -148,6 +171,7 @@ export function installPWA() {
                     console.log('[PWA] Service Worker Updated.');
                     cacheChecker.keep = true;
                     usingPWA = true;
+                    startPWA();
                   }
                   fn();
                 })
@@ -178,4 +202,61 @@ export function installPWA() {
         console.error(err);
       });
   }
+}
+
+class TinyPwa extends EventEmitter {
+  constructor() {
+    super();
+    this.tabs = [];
+    this.tabId = null;
+  }
+
+  _addTab(item) {
+    this.tabs.push(item);
+    this.emit('tabAdded', item);
+  }
+
+  _removeTab(id) {
+    const index = this.tabs.indexOf(id);
+    if (index > -1) {
+      const item = this.tabs.splice(index, 1);
+      this.emit('tabRemoved', item);
+    }
+  }
+
+  _setTabId(id) {
+    this.tabId = id;
+  }
+
+  getTabs() {
+    return this.tabs;
+  }
+
+  getTab(id) {
+    return this.tabs.find((item) => item.id === id);
+  }
+
+  getTabId() {
+    this.tabId;
+  }
+
+  getDisplayMode() {
+    return getPWADisplayMode();
+  }
+
+  clearFetchCache() {
+    return clearFetchPwaCache();
+  }
+
+  isEnabled() {
+    return isUsingPWA();
+  }
+}
+
+const tinyPwa = new TinyPwa();
+tinyPwa.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
+export default tinyPwa;
+
+if (__ENV_APP__.MODE === 'development') {
+  global.tinyPwa = tinyPwa;
 }
