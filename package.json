@@ -70,7 +70,7 @@
     "bootstrap": "5.3.3",
     "bootstrap-icons": "1.11.3",
     "buffer": "6.0.3",
-    "chokidar": "4.0.1",
+    "chokidar": "4.0.2",
     "cid-tool": "3.0.0",
     "clone": "2.1.2",
     "compare-versions": "6.1.1",
