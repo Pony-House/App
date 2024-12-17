@@ -329,6 +329,10 @@ class RoomTimeline extends EventEmitter {
     return true;
   }
 
+  refreshLiveTimeline() {
+    return storageManager.refreshLiveTimeline(this.room, this.threadId);
+  }
+
   syncTimeline() {
     if (this.timeline.length > 0)
       storageManager.warnTimeline(

@@ -683,8 +683,17 @@ class StorageManager extends EventEmitter {
       if (!singleTime && this._syncTimelineCache.roomsUsed.indexOf(valueId) < 0)
         this._syncTimelineCache.roomsUsed.push(valueId);
 
-      if (!singleTime && this._syncTimelineCache.roomsIdsUsed.indexOf(roomId) < 0)
-        this._syncTimelineCache.roomsIdsUsed.push(roomId);
+      if (
+        !singleTime &&
+        !this._syncTimelineCache.roomsIdsUsed.find(
+          (tItem) =>
+            tItem.roomId === roomId && (!threadId ? !tItem.threadId : threadId === tItem.threadId),
+        )
+      ) {
+        const newTinyData = { roomId };
+        if (threadId) newTinyData.threadId = threadId;
+        this._syncTimelineCache.roomsIdsUsed.push(newTinyData);
+      }
 
       tinyThis._sendSyncStatus();
       if (!singleTime) tinyThis._syncTimelineNext();
@@ -985,6 +994,18 @@ class StorageManager extends EventEmitter {
     this._sendSyncStatus();
   }
 
+  // Refresh timeline
+  refreshLiveTimeline(room, threadId) {
+    const tinyThis = this;
+    const roomId = room.roomId;
+    const valueId = `${roomId}${threadId ? `:${threadId}` : ''}`;
+    return new Promise((resolve, reject) => {
+      if (!tinyThis._lastEventsLoadWaiting[valueId]) {
+        room.refreshLiveTimeline().then(resolve).catch(reject);
+      } else setTimeout(() => tinyThis.refreshLiveTimeline().then(resolve).catch(reject), 100);
+    });
+  }
+
   // Next timeline
   _syncTimelineNext() {
     // Get next timeline data
@@ -1022,8 +1043,11 @@ class StorageManager extends EventEmitter {
         }
 
         for (const item in tinyRoomsIdsUsed) {
-          const tinyRoom = mx.getRoom(tinyRoomsIdsUsed[item]);
-          if (tinyRoom) tinyRoom.refreshLiveTimeline().catch((err) => console.error(err));
+          const tinyRoom = mx.getRoom(tinyRoomsIdsUsed[item].roomId);
+          if (tinyRoom)
+            this.refreshLiveTimeline(tinyRoom, tinyRoomsIdsUsed[item].threadId).catch((err) =>
+              console.error(err),
+            );
         }
 
         console.log(`[room-db-sync] Database checker complete!`);
