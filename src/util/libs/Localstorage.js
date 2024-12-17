@@ -319,12 +319,15 @@ class StorageManager extends EventEmitter {
       using: false,
       used: false,
       roomsUsed: [],
+      roomsIdsUsed: [],
       data: [],
     };
 
     this._sendingEventCache = {};
     this._eventsLoadWaiting = this.getJson('ponyHouse-storage-loading', 'obj');
     this._lastEventsLoadWaiting = clone(this._eventsLoadWaiting) || {};
+    this._eventsLoadWaitingUsing = {};
+    console.log(`[room-db-sync] [re-add] Data loaded!`, this._lastEventsLoadWaiting);
 
     this._addToTimelineCache = {};
     this._addToTimelineCache.default = { using: false, data: [] };
@@ -680,6 +683,9 @@ class StorageManager extends EventEmitter {
       if (!singleTime && this._syncTimelineCache.roomsUsed.indexOf(valueId) < 0)
         this._syncTimelineCache.roomsUsed.push(valueId);
 
+      if (!singleTime && this._syncTimelineCache.roomsIdsUsed.indexOf(roomId) < 0)
+        this._syncTimelineCache.roomsIdsUsed.push(roomId);
+
       tinyThis._sendSyncStatus();
       if (!singleTime) tinyThis._syncTimelineNext();
     };
@@ -733,20 +739,18 @@ class StorageManager extends EventEmitter {
             loadComplete,
           );
 
-        /* if (
-          !Array.isArray(this._lastEventsLoadWaiting[valueId]) ||
-          this._lastEventsLoadWaiting[valueId].length < 1
-        ) */
+        console.log(
+          `[room-db-sync] [${valueId}] [re-add] Reading data...`,
+          this._lastEventsLoadWaiting[valueId],
+        );
+        if (
+          Array.isArray(this._lastEventsLoadWaiting[valueId]) &&
+          this._lastEventsLoadWaiting[valueId].length > 0
+        ) {
+          console.log(`[room-db-sync] [${valueId}] [re-add] Re-add progress detected!`);
+          this.syncTimelineRecoverEvent(room, threadId, tm);
+        }
         await _syncTimelineRunning();
-        // Recover event cache
-        /* else {
-          await this.syncTimelineRecoverEvent(
-            room,
-            threadId,
-            tm,
-          );
-          await _syncTimelineRunning()
-        } */
       }
 
       // Error
@@ -761,65 +765,81 @@ class StorageManager extends EventEmitter {
     // Matrix Client
     const roomId = room.roomId;
     const valueId = `${roomId}${threadId ? `:${threadId}` : ''}`;
-
     const mx = initMatrix.matrixClient;
-    const tinyThis = this;
-    const eTimeline = tm.fork(EventTimeline.FORWARDS);
-
-    const newEvents = [];
-    const oldEvents = tm.getEvents();
-    for (const item in oldEvents) newEvents.push(oldEvents[item]);
-
-    eTimeline.initialiseState(newEvents);
-
     const checkTinyArray = () =>
+      this._eventsLoadWaitingUsing[valueId] &&
       Array.isArray(this._lastEventsLoadWaiting[valueId]) &&
       this._lastEventsLoadWaiting[valueId].length > 0;
 
-    // Start data insert
-    await this.waitAddTimeline('sync');
-    if (checkTinyArray()) {
+    if (!this._eventsLoadWaitingUsing[valueId]) {
       console.log(`[room-db-sync] [${valueId}] [re-add] Preparing to re-add events...`);
-      await tinyThis.waitAddTimeline('sync');
+      this._eventsLoadWaitingUsing[valueId] = true;
       if (checkTinyArray()) {
-        console.log(`[room-db-sync] [${valueId}] [re-add] Preparing readding id...`);
-        console.log(`[room-db-sync] [${valueId}] [re-add]`, eTimeline);
-        // Insert new events
-        if (checkTinyArray()) {
-          for (const item in tinyThis._lastEventsLoadWaiting[valueId]) {
-            if (
-              !newEvents.find(
-                (event) =>
-                  event.getId() === tinyThis._lastEventsLoadWaiting[valueId][item].event_id,
-              )
-            ) {
-              const iEvent = await mx.fetchRoomEvent(
-                roomId,
-                tinyThis._lastEventsLoadWaiting[valueId][item],
-              );
+        try {
+          // Start events
+          const eTimeline = tm.fork(EventTimeline.FORWARDS);
 
-              if (iEvent) eTimeline.addEvent(new MatrixEvent(iEvent));
-            }
-          }
+          const newEvents = [];
+          const oldEvents = tm.getEvents();
+          for (const item in oldEvents) newEvents.push(oldEvents[item]);
+          eTimeline.initialiseState(newEvents);
 
-          if (room.hasEncryptionStateEvent())
-            await executeDecryptAllEventsOfTimeline(eTimeline, room.roomId);
-
-          const events = eTimeline.getEvents();
-          console.log(`[room-db-sync] [${valueId}] [re-add] Readding new events...`, events);
+          // Start data insert
+          await this.waitAddTimeline('sync');
           if (checkTinyArray()) {
-            for (const item in events) {
-              const eventIdp = events[item].getId();
-              if (tinyThis._lastEventsLoadWaiting[valueId].indexOf(eventIdp) > -1) {
-                tinyThis.addToTimeline(events[item], 'sync');
+            console.log(`[room-db-sync] [${valueId}] [re-add] Preparing a little more...`);
+            await this.waitAddTimeline('sync');
+            if (checkTinyArray()) {
+              console.log(`[room-db-sync] [${valueId}] [re-add] Preparing readding id...`);
+              console.log(`[room-db-sync] [${valueId}] [re-add]`, eTimeline);
+              // Insert new events
+              if (checkTinyArray()) {
+                for (const item in this._lastEventsLoadWaiting[valueId]) {
+                  if (
+                    !newEvents.find(
+                      (event) =>
+                        event.getId() === this._lastEventsLoadWaiting[valueId][item].event_id,
+                    )
+                  ) {
+                    const iEvent = await mx.fetchRoomEvent(
+                      roomId,
+                      this._lastEventsLoadWaiting[valueId][item],
+                    );
+
+                    if (iEvent) eTimeline.addEvent(new MatrixEvent(iEvent));
+                  }
+                }
+
+                if (room.hasEncryptionStateEvent())
+                  await executeDecryptAllEventsOfTimeline(eTimeline, room.roomId);
+
+                const events = eTimeline.getEvents();
+                console.log(`[room-db-sync] [${valueId}] [re-add] Readding new events...`, events);
+                if (checkTinyArray()) {
+                  for (const item in events) {
+                    const eventIdp = events[item].getId();
+                    if (this._lastEventsLoadWaiting[valueId].indexOf(eventIdp) > -1) {
+                      this.addToTimeline(events[item], 'sync');
+                    }
+                  }
+
+                  delete this._eventsLoadWaiting[valueId];
+                  delete this._lastEventsLoadWaiting[valueId];
+                  this.setJson('ponyHouse-storage-loading', this._eventsLoadWaiting);
+
+                  await this.waitAddTimeline('sync');
+                  console.log(`[room-db-sync] [${valueId}] [re-add] New events readded!`);
+                }
               }
             }
-
-            await tinyThis.waitAddTimeline('sync');
-            console.log(`[room-db-sync] [${valueId}] [re-add] New events readded!`);
           }
+        } catch (err) {
+          console.error(err);
+          alert(err.message, 'Timeline Recover event failed');
         }
       }
+      if (typeof this._eventsLoadWaitingUsing[valueId] !== 'undefined')
+        delete this._eventsLoadWaitingUsing[valueId];
     }
   }
 
@@ -859,7 +879,7 @@ class StorageManager extends EventEmitter {
           const eventIdp = events[item].getId();
           if (this._syncTimelineCache.usedIds.indexOf(eventIdp) < 0) {
             if (!singleTime) this._syncTimelineCache.usedIds.push(eventIdp);
-            this.addToTimeline(events[item], 'sync');
+            this.addToTimeline(events[item], 'sync', true);
             lastTimelineEventId = eventIdp;
           }
         }
@@ -957,6 +977,7 @@ class StorageManager extends EventEmitter {
   _resetTimelineCache() {
     this._syncTimelineCache.usedIds = [];
     this._syncTimelineCache.roomsUsed = [];
+    this._syncTimelineCache.roomsIdsUsed = [];
     this._syncTimelineCache.using = false;
     this._syncTimelineCache.used = false;
     this._syncTimelineCache.roomId = null;
@@ -988,6 +1009,8 @@ class StorageManager extends EventEmitter {
       // Used timeline progress
       if (this._syncTimelineCache.used) {
         const tinyRoomsUsed = clone(this._syncTimelineCache.roomsUsed);
+        const tinyRoomsIdsUsed = clone(this._syncTimelineCache.roomsIdsUsed);
+        const mx = initMatrix.matrixClient;
 
         // Complete!
         for (const item in tinyRoomsUsed) {
@@ -996,9 +1019,14 @@ class StorageManager extends EventEmitter {
             this._timelineSyncCache[usedRoom].isComplete = true;
             this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
           }
-
-          console.log(`[room-db-sync] Database checker complete!`);
         }
+
+        for (const item in tinyRoomsIdsUsed) {
+          const tinyRoom = mx.getRoom(tinyRoomsIdsUsed[item]);
+          if (tinyRoom) tinyRoom.refreshLiveTimeline().catch((err) => console.error(err));
+        }
+
+        console.log(`[room-db-sync] Database checker complete!`);
       }
 
       // Reset
@@ -1948,7 +1976,7 @@ class StorageManager extends EventEmitter {
   }
 
   // Add to timeline
-  async addToTimeline(event, where = 'default') {
+  async addToTimeline(event, where = 'default', avoidCache = false) {
     const tinyThis = this;
 
     // Get data
@@ -1962,20 +1990,22 @@ class StorageManager extends EventEmitter {
     const eventSnap = event.toSnapshot();
 
     // Prepare sync cache
-    if (!Array.isArray(tinyThis._eventsLoadWaiting[valueId]))
-      tinyThis._eventsLoadWaiting[valueId] = [];
+    if (!avoidCache) {
+      if (!Array.isArray(tinyThis._eventsLoadWaiting[valueId]))
+        tinyThis._eventsLoadWaiting[valueId] = [];
 
-    if (tinyThis._eventsLoadWaiting[valueId].indexOf(eventId) < 0)
-      tinyThis._eventsLoadWaiting[valueId].push(eventId);
+      if (tinyThis._eventsLoadWaiting[valueId].indexOf(eventId) < 0)
+        tinyThis._eventsLoadWaiting[valueId].push(eventId);
 
-    tinyThis.setJson('ponyHouse-storage-loading', tinyThis._eventsLoadWaiting);
+      tinyThis.setJson('ponyHouse-storage-loading', tinyThis._eventsLoadWaiting);
+    }
 
     // Return sync function
     return new Promise((resolve, reject) => {
       // Remove cache
       const tinyComplete = () => {
         // Exist array
-        if (Array.isArray(tinyThis._eventsLoadWaiting[valueId])) {
+        if (!avoidCache && Array.isArray(tinyThis._eventsLoadWaiting[valueId])) {
           // Remove index 1
           const index = tinyThis._eventsLoadWaiting[valueId].indexOf(eventId);
           if (index > -1) tinyThis._eventsLoadWaiting[valueId].splice(index, 1);

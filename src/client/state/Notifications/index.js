@@ -483,7 +483,7 @@ class Notifications extends EventEmitter {
 
         // Last Id
         const lastTimelineEvent = liveEvents[liveEvents.length - 1];
-        if (lastTimelineEvent.getId() !== mEvent.getId()) {
+        if (lastTimelineEvent && lastTimelineEvent.getId() !== mEvent.getId()) {
           stopNotification = true;
           // console.log(`[matrix-noti] Event blocked by last id validator: ${mEvent.getId()}`);
         }
