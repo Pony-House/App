@@ -262,15 +262,11 @@ const MessageReplyWrapper = React.memo(({ roomTimeline, eventId }) => {
     const loadReply = async () => {
       try {
         let mEvent = roomTimeline.findEventById(eventId);
-        if (!mEvent) {
-          const searchData = {
+        if (!mEvent)
+          mEvent = await storageManager.getMessagesById({
             roomId: roomTimeline.roomId,
             eventId,
-          };
-
-          if (roomTimeline.threadId) searchData.threadId;
-          mEvent = await storageManager.getMessagesById(searchData);
-        }
+          });
 
         const rawBody = mEvent.getContent().body;
         const username = getUsernameOfRoomMember(mEvent.sender);
