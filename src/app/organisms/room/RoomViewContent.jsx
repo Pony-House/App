@@ -107,6 +107,9 @@ function useTimeline(roomTimeline, eventId, readUptoEvtStore, eventLimitRef) {
     const limit = eventLimitRef.current;
     if (limit) {
       const initTimeline = (eId) => {
+        console.log(
+          `[timeline] [${roomTimeline.roomId}] Ready${eId ? ` in event id "${eId}"` : ''}!`,
+        );
         // NOTICE: eId can be id of readUpto, reply or specific event.
         // readUpTo: when user click jump to unread message button.
         // reply: when user click reply from timeline.
@@ -131,7 +134,8 @@ function useTimeline(roomTimeline, eventId, readUptoEvtStore, eventLimitRef) {
         } else {
           limit.setFrom(roomTimeline.timeline.length - limit.maxEvents);
         }
-        setTimelineInfo({ focusEventId: isSpecificEvent ? eId : null });
+
+        setTimelineInfo({ focusEventId: isSpecificEvent, eId: eId || null });
       };
 
       roomTimeline.on(cons.events.roomTimeline.READY, initTimeline);
@@ -687,8 +691,9 @@ function RoomViewContent({
       if (timelineInfo === null) {
         return [];
       }
-      const focusId = timelineInfo?.focusEventId;
-      const isFocus = focusId === mEvent.getId();
+      const focusEventId = timelineInfo?.focusEventId || false;
+      const focusId = timelineInfo?.eId || null;
+      const isFocus = focusEventId && focusId === mEvent.getId();
       if (isFocus) jumpToItemIndex = itemCountIndex;
 
       tl.push(

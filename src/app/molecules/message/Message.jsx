@@ -1607,7 +1607,6 @@ function Message({
   const [seeHiddenData, setSeeHiddenData] = useState(false);
   const [existThread, updateExistThread] = useState(typeof threadId === 'string');
   const [embeds, setEmbeds] = useState([]);
-  const [isFocus, setIsFocus] = useState(null);
   const [translateText, setTranslateText] = useState(null);
   const messageElement = useRef(null);
 
@@ -1848,8 +1847,7 @@ function Message({
   useEffect(() => {
     let removeFocusTimeout = null;
     const msgElement = $(messageElement.current);
-    if (isFocus === null) setIsFocus(focus);
-    if (isFocus || isMentioned) {
+    if (focus || isMentioned) {
       msgElement.addClass('message-focus');
       if (isMentioned) msgElement.addClass('message-mention');
       if (typeof focusTime === 'number') {
