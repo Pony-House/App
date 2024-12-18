@@ -112,14 +112,20 @@
     color: var(--tc-surface-normal);
   }
 
-  .message-focus {
-    border-left: 2px solid var(--bg-positive);
-    background-color: var(--bg-positive-hover);
-  }
+  tr.message {
+    border-right: 2px solid transparent;
+    &:not(.message-focus):not(.message-mention) {
+      border-left: 2px solid transparent;
+    }
+    &.message-focus {
+      border-left: 2px solid var(--bg-positive);
+      background-color: var(--bg-positive-hover);
+    }
 
-  .message-mention {
-    border-left: 2px solid var(--bg-caution) !important;
-    background-color: var(--bg-caution-hover) !important;
+    &.message-mention {
+      border-left: 2px solid var(--bg-caution) !important;
+      background-color: var(--bg-caution-hover) !important;
+    }
   }
 
   .message__reactions {
