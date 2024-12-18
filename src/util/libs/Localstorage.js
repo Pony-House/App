@@ -318,8 +318,11 @@ class StorageManager extends EventEmitter {
       threadId: null,
       using: false,
       used: false,
+      usedLastTm: false,
       roomsUsed: [],
       roomsIdsUsed: [],
+      usedTmLastEvent: [],
+      usingTmLastEvent: [],
       data: [],
     };
 
@@ -853,6 +856,7 @@ class StorageManager extends EventEmitter {
   ) {
     // Matrix Client
     const mx = initMatrix.matrixClient;
+    const tinyThis = this;
 
     // Start timeline sync cache
     let canStartSync = false;
@@ -889,6 +893,29 @@ class StorageManager extends EventEmitter {
       events[events.length - 1] &&
       this._lastTimelineSyncCache[valueId].tmLastEvent.ts < events[events.length - 1].getTs();
 
+    const updateTmLastEventDetector = () => {
+      if (canLastCheckPoint) {
+        if (tinyThis._syncTimelineCache.usedTmLastEvent.indexOf(valueId) < 0)
+          tinyThis._syncTimelineCache.usedTmLastEvent.push(valueId);
+      } else {
+        const index = tinyThis._syncTimelineCache.usedTmLastEvent.indexOf(valueId);
+        if (index > -1) tinyThis._syncTimelineCache.usedTmLastEvent.splice(index, 1);
+      }
+
+      if (canLastCheckPoint && !isComplete) {
+        if (tinyThis._syncTimelineCache.usingTmLastEvent.indexOf(valueId) < 0)
+          tinyThis._syncTimelineCache.usingTmLastEvent.push(valueId);
+      } else {
+        const index = tinyThis._syncTimelineCache.usingTmLastEvent.indexOf(valueId);
+        if (index > -1) tinyThis._syncTimelineCache.usingTmLastEvent.splice(index, 1);
+      }
+
+      tinyThis._sendSyncStatus(true);
+      tinyThis._syncTimelineCache.usedLastTm = true;
+    };
+
+    updateTmLastEventDetector();
+
     // Needs add data
     if (!isComplete || canLastCheckPoint) {
       if (events.length > 0) {
@@ -919,6 +946,7 @@ class StorageManager extends EventEmitter {
           ) {
             delete this._lastTimelineSyncCache[valueId].tmLastEvent;
             canLastCheckPoint = false;
+            updateTmLastEventDetector();
           }
 
           this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
@@ -1008,8 +1036,11 @@ class StorageManager extends EventEmitter {
     this._syncTimelineCache.usedIds = [];
     this._syncTimelineCache.roomsUsed = [];
     this._syncTimelineCache.roomsIdsUsed = [];
+    this._syncTimelineCache.usedTmLastEvent = [];
+    this._syncTimelineCache.usingTmLastEvent = [];
     this._syncTimelineCache.using = false;
     this._syncTimelineCache.used = false;
+    this._syncTimelineCache.usedLastTm = false;
     this._syncTimelineCache.roomId = null;
     this._syncTimelineCache.threadId = null;
     this._sendSyncStatus();
@@ -1052,6 +1083,7 @@ class StorageManager extends EventEmitter {
       if (this._syncTimelineCache.used) {
         const tinyRoomsUsed = clone(this._syncTimelineCache.roomsUsed);
         const tinyRoomsIdsUsed = clone(this._syncTimelineCache.roomsIdsUsed);
+        const usingTmLastEvent = clone(this._syncTimelineCache.usingTmLastEvent);
         const mx = initMatrix.matrixClient;
 
         // Complete!
@@ -1065,7 +1097,9 @@ class StorageManager extends EventEmitter {
 
         for (const item in tinyRoomsIdsUsed) {
           const tinyRoom = mx.getRoom(tinyRoomsIdsUsed[item].roomId);
-          if (tinyRoom)
+          const tmLastEventUsed = usingTmLastEvent.indexOf(item) > -1 ? true : false;
+
+          if (tinyRoom && !tmLastEventUsed)
             this.refreshLiveTimeline(tinyRoom, tinyRoomsIdsUsed[item].threadId).catch((err) =>
               console.error(err),
             );
@@ -1107,8 +1141,9 @@ class StorageManager extends EventEmitter {
     }
   }
 
-  _sendSyncStatus() {
+  _sendSyncStatus(isTmLastEvent = false) {
     this.emit('timelineSyncStatus', this._syncTimelineCache);
+    if (isTmLastEvent) this.emit('timelineTmLastEventStatus', this._syncTimelineCache);
   }
 
   getSyncStatus() {
@@ -1119,17 +1154,27 @@ class StorageManager extends EventEmitter {
     if (this._syncTimelineCache.using) {
       if (!threadId)
         return (
+          this._syncTimelineCache.usedTmLastEvent.indexOf(roomId) > -1 ||
           this._syncTimelineCache.roomsUsed.indexOf(roomId) > -1 ||
           this._syncTimelineCache.roomId === roomId
         );
       else
         return (
+          this._syncTimelineCache.usedTmLastEvent.indexOf(`${roomId}:${threadId}`) > -1 ||
           this._syncTimelineCache.roomsUsed.indexOf(`${roomId}:${threadId}`) > -1 ||
           (this._syncTimelineCache.roomId === roomId &&
             this._syncTimelineCache.threadId === threadId)
         );
     }
 
+    return false;
+  }
+
+  isRoomSyncingTmLast(roomId, threadId) {
+    if (this._syncTimelineCache.using) {
+      if (!threadId) return this._syncTimelineCache.usedTmLastEvent.indexOf(roomId) > -1;
+      else return this._syncTimelineCache.usedTmLastEvent.indexOf(`${roomId}:${threadId}`) > -1;
+    }
     return false;
   }
 

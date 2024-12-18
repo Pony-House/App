@@ -30,7 +30,6 @@ class RoomTimeline extends EventEmitter {
     this.roomId = roomId;
     this.roomAlias = roomAlias;
     this.initialized = false;
-    this.timelineReady = true;
     this.ended = false;
     this.firstStart = false;
 
@@ -391,8 +390,14 @@ class RoomTimeline extends EventEmitter {
     return !this.isRoomSyncing() && !this.isOngoingPagination && this.initialized;
   }
 
+  // Is room syncing
   isRoomSyncing() {
     return storageManager.isRoomSyncing(this.roomId, this.threadId);
+  }
+
+  // Is room syncing last received events
+  isRoomSyncingTmLast() {
+    return storageManager.isRoomSyncingTmLast(this.roomId, this.threadId);
   }
 
   // Build pagination

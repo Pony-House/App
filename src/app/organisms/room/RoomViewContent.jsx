@@ -746,12 +746,19 @@ function RoomViewContent({
 
   useEffect(() => {
     const updatePageLimit = (value) => setPageLimit(value);
-    const timelineReady = () => forceUpdateLimit();
+    const handleRoomSyncUpdate = (syncTimelineCache) => {
+      if (
+        roomTimeline.roomId !== syncTimelineCache.roomId &&
+        (!roomTimeline.threadId || roomTimeline.threadId !== syncTimelineCache.threadId)
+      )
+        return;
+      forceUpdateLimit();
+    };
     matrixAppearance.on('pageLimit', updatePageLimit);
-    storageManager.on(cons.events.roomTimeline.TIMELINE_READY, timelineReady);
+    storageManager.on('timelineTmLastEventStatus', handleRoomSyncUpdate);
     return () => {
       matrixAppearance.off('pageLimit', updatePageLimit);
-      storageManager.off(cons.events.roomTimeline.TIMELINE_READY, timelineReady);
+      storageManager.off('timelineTmLastEventStatus', handleRoomSyncUpdate);
     };
   });
 
@@ -761,7 +768,7 @@ function RoomViewContent({
         <div className="timeline__wrapper">
           <table className="table table-borderless table-hover align-middle m-0" id="chatbox">
             <tbody>
-              {!isLoading && roomTimeline.initialized && roomTimeline.timelineReady ? (
+              {!isLoading && roomTimeline.initialized && !roomTimeline.isRoomSyncingTmLast() ? (
                 renderTimeline(isUserList)
               ) : (
                 <LoadingMsgPlaceholders
