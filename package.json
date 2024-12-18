@@ -1,6 +1,6 @@
 {
   "name": "pony-house-matrix",
-  "version": "1.6.0-beta-2",
+  "version": "1.6.0-beta-3",
   "short_name": "Pony House",
   "description": "The open source house, your house, the house for all matrix ponies",
   "main": "dist-electron/main/index.js",
