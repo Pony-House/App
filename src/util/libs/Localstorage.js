@@ -311,7 +311,7 @@ class StorageManager extends EventEmitter {
     this._dbVersion = 29;
     this._oldDbVersion = this.getNumber('ponyHouse-db-version') || 0;
     this.dbName = 'pony-house-database';
-    this._timelineSyncCache = this.getJson('ponyHouse-timeline-sync', 'obj');
+
     this._syncTimelineCache = {
       usedIds: [],
       roomId: null,
@@ -323,10 +323,15 @@ class StorageManager extends EventEmitter {
       data: [],
     };
 
+    this._timelineSyncCache = this.getJson('ponyHouse-timeline-sync', 'obj');
+    this._lastTimelineSyncCache = clone(this._timelineSyncCache) || {};
+    console.log(`[room-db-sync] [sync] Data loaded!`, this._lastTimelineSyncCache);
+
     this._sendingEventCache = {};
     this._eventsLoadWaiting = this.getJson('ponyHouse-storage-loading', 'obj');
     this._lastEventsLoadWaiting = clone(this._eventsLoadWaiting) || {};
     this._eventsLoadWaitingUsing = {};
+
     console.log(`[room-db-sync] [re-add] Data loaded!`, this._lastEventsLoadWaiting);
 
     this._addToTimelineCache = {};
@@ -644,22 +649,6 @@ class StorageManager extends EventEmitter {
     this._lastEventsLoadWaiting = {};
   }
 
-  _newTimelineLastCheckPoint(timeline, checkpoint, valueId, lastIdData = null) {
-    const lastEventId =
-      objType(this._timelineSyncCache[valueId], 'object') &&
-      typeof this._timelineSyncCache[valueId].lastEvent === 'string' &&
-      this._timelineSyncCache[valueId].lastEvent.length > 0
-        ? this._timelineSyncCache[valueId].lastEvent
-        : lastIdData || null;
-
-    const checkPoint =
-      !timeline && typeof checkpoint === 'string' && checkpoint.length > 0
-        ? checkpoint
-        : lastEventId;
-
-    return { lastEventId, checkPoint };
-  }
-
   // Sync Timeline
   async _syncTimelineRun(
     room,
@@ -870,18 +859,48 @@ class StorageManager extends EventEmitter {
     // Matrix Client
     const mx = initMatrix.matrixClient;
 
+    // Start timeline sync cache
+    let canStartSync = false;
+    if (!objType(this._timelineSyncCache[valueId], 'object')) {
+      this._timelineSyncCache[valueId] = {};
+      canStartSync = true;
+    }
+
+    if (typeof this._timelineSyncCache[valueId].isComplete !== 'boolean') {
+      this._timelineSyncCache[valueId].isComplete = false;
+      canStartSync = true;
+    }
+
+    if (canStartSync) this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
+
     // Get checkpoint
-    const { lastEventId, checkPoint } = this._newTimelineLastCheckPoint(
-      timeline,
-      checkpoint,
-      valueId,
-    );
+    const lastEventId =
+      typeof this._timelineSyncCache[valueId].lastEvent === 'string' &&
+      this._timelineSyncCache[valueId].lastEvent.length > 0
+        ? this._timelineSyncCache[valueId].lastEvent
+        : null;
+
+    const prepareCheckPoint =
+      !timeline && typeof checkpoint === 'string' && checkpoint.length > 0
+        ? checkpoint
+        : lastEventId;
+
+    const events = tm.getEvents();
+    let canLastCheckPoint =
+      objType(this._lastTimelineSyncCache[valueId], 'object') &&
+      objType(this._lastTimelineSyncCache[valueId].tmLastEvent, 'object') &&
+      typeof this._lastTimelineSyncCache[valueId].tmLastEvent.id === 'string' &&
+      typeof this._lastTimelineSyncCache[valueId].tmLastEvent.ts === 'number' &&
+      events[events.length - 1] &&
+      this._lastTimelineSyncCache[valueId].tmLastEvent.ts < events[events.length - 1].getTs();
+
+    canLastCheckPoint = false;
 
     // Needs add data
-    if (!isComplete) {
-      const events = tm.getEvents();
-      if (Array.isArray(events) && events.length > 0) {
+    if (!isComplete || canLastCheckPoint) {
+      if (events.length > 0) {
         let lastTimelineEventId = null;
+        let lastTimelineEventTs = null;
 
         console.log(`[room-db-sync] [${valueId}] Adding new events...`);
         for (const item in events) {
@@ -890,6 +909,7 @@ class StorageManager extends EventEmitter {
             if (!singleTime) this._syncTimelineCache.usedIds.push(eventIdp);
             this.addToTimeline(events[item], 'sync', true);
             lastTimelineEventId = eventIdp;
+            lastTimelineEventTs = events[item].getTs();
           }
         }
 
@@ -897,13 +917,28 @@ class StorageManager extends EventEmitter {
         console.log(`[room-db-sync] [${valueId}] New events added!`);
 
         if (!singleTime && lastTimelineEventId) {
-          if (!this._timelineSyncCache[valueId]) this._timelineSyncCache[valueId] = {};
-          this._timelineSyncCache[valueId].lastEvent = lastTimelineEventId;
-          this._timelineSyncCache[valueId].isComplete = false;
+          if (!canLastCheckPoint) {
+            this._timelineSyncCache[valueId].lastEvent = lastTimelineEventId;
+            this._timelineSyncCache[valueId].lastTs = lastTimelineEventTs;
+          } else if (this._lastTimelineSyncCache[valueId].tmLastEvent.ts < lastTimelineEventTs) {
+            this._lastTimelineSyncCache[valueId].tmLastEvent.last = {
+              id: lastTimelineEventId,
+              ts: lastTimelineEventTs,
+            };
+          } else if (this._lastTimelineSyncCache[valueId].tmLastEvent) {
+            delete this._lastTimelineSyncCache[valueId].tmLastEvent;
+            canLastCheckPoint = false;
+          }
+
           this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
         }
       } else console.log(`[room-db-sync] [${valueId}] No data found to save.`);
     } else console.log(`[room-db-sync] [${valueId}] Data load complete! Skipping data saving...`);
+
+    // Finish checkpoint prepare
+    const checkPoint = !canLastCheckPoint
+      ? prepareCheckPoint
+      : this._lastTimelineSyncCache[valueId].tmLastEvent.last.id;
 
     // Next Timeline
     if (!singleTime) {
@@ -912,7 +947,7 @@ class StorageManager extends EventEmitter {
         console.log(`[room-db-sync] [${valueId}] Preparing next step...`);
         this._syncTimelineCache.used = true;
         // Next checkpoint
-        if (!checkPoint || !firstTime) {
+        if (!canLastCheckPoint && (!checkPoint || !firstTime)) {
           // Validator
           if (lastEventId !== this._timelineSyncCache[valueId].lastEvent) {
             // Next page
@@ -947,7 +982,7 @@ class StorageManager extends EventEmitter {
         }
 
         // Next event id
-        else if (lastEventId !== this._timelineSyncCache[valueId].lastEvent) {
+        else if (lastEventId !== this._timelineSyncCache[valueId].lastEvent || canLastCheckPoint) {
           await waitTimelineTimeout();
           const eTimeline = await mx.getEventTimeline(
             !thread ? room.getUnfilteredTimelineSet() : thread.getUnfilteredTimelineSet(),

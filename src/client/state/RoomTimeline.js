@@ -30,6 +30,7 @@ class RoomTimeline extends EventEmitter {
     this.roomId = roomId;
     this.roomAlias = roomAlias;
     this.initialized = false;
+    this.timelineReady = true;
     this.ended = false;
     this.firstStart = false;
 

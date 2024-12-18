@@ -36,6 +36,7 @@ import matrixAppearance, { getAppearance } from '../../../util/libs/appearance';
 import handleOnClickCapture from './content/handleOnClickCapture';
 import RoomIntroContainer from './content/RoomIntroContainer';
 import LoadingMsgPlaceholders from './content/LoadingMsgPlaceholders';
+import storageManager from '@src/util/libs/Localstorage';
 
 function renderEvent(
   timelineSVRef,
@@ -745,9 +746,12 @@ function RoomViewContent({
 
   useEffect(() => {
     const updatePageLimit = (value) => setPageLimit(value);
+    const timelineReady = () => forceUpdateLimit();
     matrixAppearance.on('pageLimit', updatePageLimit);
+    storageManager.on(cons.events.roomTimeline.TIMELINE_READY, timelineReady);
     return () => {
       matrixAppearance.off('pageLimit', updatePageLimit);
+      storageManager.off(cons.events.roomTimeline.TIMELINE_READY, timelineReady);
     };
   });
 
@@ -757,7 +761,7 @@ function RoomViewContent({
         <div className="timeline__wrapper">
           <table className="table table-borderless table-hover align-middle m-0" id="chatbox">
             <tbody>
-              {!isLoading && roomTimeline.initialized ? (
+              {!isLoading && roomTimeline.initialized && roomTimeline.timelineReady ? (
                 renderTimeline(isUserList)
               ) : (
                 <LoadingMsgPlaceholders
