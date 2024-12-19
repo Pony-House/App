@@ -87,7 +87,6 @@ export function clearFetchPwaCache() {
 }
 
 const startPWA = () => {
-  console.log(navigator.serviceWorker);
   navigator.serviceWorker.addEventListener('message', (event) => {
     if (event.data.type === 'ACTIVE_TABS') {
       if (Array.isArray(event.data.tabs)) {
@@ -104,17 +103,20 @@ const startPWA = () => {
         }
 
         for (const item in newTabs) {
-          const newTab = addTabs.find((tab) => tab.id === newTabs[item].id);
+          const newTab = tabs.find((tab) => tab.id === newTabs[item].id);
           // Update
           if (newTab) {
-            for (const id in newTabs[item]) {
-              newTabs[item][id] = newTab[id];
+            for (const id in tabs[item]) {
+              tabs[item][id] = newTab[id];
             }
+            const index = addTabs.findIndex((tab) => tab.id === newTab.id);
+            if (index > -1) addTabs.splice(index, 1);
           }
           // Add
           else addTabs.push(newTabs[item]);
         }
 
+        // Complete
         for (const item in addTabs) tinyPwa._addTab(addTabs[item]);
         for (const item in removeTabs) tinyPwa._removeTab(removeTabs[item].id);
       }
