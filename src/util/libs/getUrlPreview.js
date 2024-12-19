@@ -23,8 +23,8 @@ const urlPreviewStore = {
 
   refreshFirstTime() {
     if (urlPreviewStore.firstTime) {
-      urlPreviewStore.refresh();
       urlPreviewStore.firstTime = false;
+      urlPreviewStore.refresh();
     }
   },
 
