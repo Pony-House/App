@@ -13,7 +13,6 @@ export const postMessage = (data) => {
   return null;
 };
 
-let usingPWA = false;
 let deferredPrompt;
 window.matchMedia('(display-mode: standalone)').addEventListener('change', (evt) => {
   const body = $('body');
@@ -77,7 +76,7 @@ export function getPWADisplayMode() {
 }
 
 export function isUsingPWA() {
-  return usingPWA;
+  return tinyPwa.enabled;
 }
 
 export function clearFetchPwaCache() {
@@ -122,8 +121,10 @@ const startPWA = () => {
       }
     },
 
-    WINDOW_TAB: (event) =>
-      event.data.tab && event.data.tab.id && tinyPwa._setTabId(event.data.tab.id),
+    WINDOW_TAB: (event) => {
+      event.data.tab && event.data.tab.id && tinyPwa._setTabId(event.data.tab.id);
+      tinyPwa._init();
+    },
   };
 
   navigator.serviceWorker.addEventListener('message', (event) => {
@@ -159,13 +160,14 @@ export function installPWA() {
             // Complete
             .then(() => {
               console.log('[PWA] Service Worker Registered.');
-              usingPWA = true;
+              tinyPwa._setIsEnabled(true);
               startPWA();
             })
             // Error
             .catch((err) => {
               console.log('[PWA] Service Worker Failed to Register.');
               console.error(err);
+              tinyPwa._init();
             });
 
         if (items.length > 0) {
@@ -213,7 +215,7 @@ export function installPWA() {
                   else {
                     console.log('[PWA] Service Worker Updated.');
                     cacheChecker.keep = true;
-                    usingPWA = true;
+                    tinyPwa._setIsEnabled(true);
                     startPWA();
                   }
                   fn();
@@ -230,21 +232,24 @@ export function installPWA() {
                 if (cacheChecker.removed && !cacheChecker.keep) {
                   registerNewService();
                 }
-              }
+              } else tinyPwa._init();
             })
             // Error
             .catch((err) => {
               console.log('[PWA] Service Worker Failed to Unregister.');
               console.error(err);
+              tinyPwa._init();
             });
         } else if (__ENV_APP__.MXC_SERVICE_WORKER) registerNewService();
+        else tinyPwa._init();
       })
       // Error
       .catch((err) => {
         console.log('[PWA] Service Worker Failed to get Register list.');
         console.error(err);
+        tinyPwa._init();
       });
-  }
+  } else tinyPwa._init();
 }
 
 class TinyPwa extends EventEmitter {
@@ -252,6 +257,15 @@ class TinyPwa extends EventEmitter {
     super();
     this.tabs = [];
     this.tabId = null;
+    this.enabled = false;
+    this.initialized = false;
+  }
+
+  _init() {
+    if (!this.initialized) {
+      this.initialized = true;
+      this.emit('ready');
+    }
   }
 
   _addTab(item) {
@@ -274,6 +288,21 @@ class TinyPwa extends EventEmitter {
     } else this.tabId = null;
   }
 
+  _setIsEnabled(enabled) {
+    if (typeof enabled === 'boolean') {
+      this.enabled = enabled;
+      this.emit('isEnabled', enabled);
+    }
+  }
+
+  waitInit() {
+    const tinyThis = this;
+    return new Promise((resolve, reject) => {
+      if (this.initialized) resolve(true);
+      else setTimeout(() => tinyThis.waitInit().then(resolve).catch(reject), 100);
+    });
+  }
+
   getTabs() {
     return this.tabs;
   }
@@ -286,16 +315,16 @@ class TinyPwa extends EventEmitter {
     this.tabId;
   }
 
+  isEnabled() {
+    return this.enabled;
+  }
+
   getDisplayMode() {
     return getPWADisplayMode();
   }
 
   clearFetchCache() {
     return clearFetchPwaCache();
-  }
-
-  isEnabled() {
-    return isUsingPWA();
   }
 }
 
