@@ -165,6 +165,8 @@ self.addEventListener('fetch', function (event) {
     } else return;
   }
 
+  if (request.mode === 'navigate') eventTypes.GET_ACTIVE_TABS(event);
+
   event.respondWith(proxyRequest(caches, request));
 });
 
@@ -179,6 +181,31 @@ const eventTypes = {
         );
       }),
     ),
+
+  UPDATE_TAB_DATA: (event) =>
+    self.clients
+      .matchAll({ type: 'window' })
+      .then((clients) => {
+        const originalUrl = event.source.url;
+
+        const tab = {
+          frameType: event.source.frameType,
+          id: event.source.id,
+          type: event.source.type,
+          url: event.source.url,
+        };
+
+        if (event.data.content)
+          for (const item in event.data.content)
+            if (item !== 'id' && item !== 'frameType' && item !== 'type')
+              tab[item] = event.data.content[item];
+
+        if (!tab.url.startsWith('https://') || !tab.url.startsWith('http://'))
+          tab.url = originalUrl;
+
+        for (const item in clients) clients[item].postMessage({ type: 'ACTIVE_TAB', tab });
+      })
+      .catch(console.error),
 
   GET_ACTIVE_TABS: (event) =>
     self.clients

@@ -23,23 +23,20 @@ function App() {
     if (firstTime) envAPI.startDB().then(() => setFirstTime(false));
   });
 
-  if (!firstTime) {
+  if (!canLoad) {
+    tinyPwa.waitInit().then(() => setCanLoad(true));
+    return null;
+  } else if (!firstTime) {
     libreTranslate.start();
     // startWeb3(() => web3Talk.start());
     startWeb3();
-    if (!canLoad) tinyPwa.waitInit().then(() => setCanLoad(true));
-  } else {
-    return null;
-  }
+  } else return null;
 
-  if (canLoad)
-    return isAuthenticated() ? (
-      <Client isDevToolsOpen={isDevToolsOpen} />
-    ) : (
-      <Auth isDevToolsOpen={isDevToolsOpen} />
-    );
-
-  return null;
+  return isAuthenticated() ? (
+    <Client isDevToolsOpen={isDevToolsOpen} />
+  ) : (
+    <Auth isDevToolsOpen={isDevToolsOpen} />
+  );
 }
 
 export default App;

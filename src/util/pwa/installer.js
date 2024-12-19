@@ -1,6 +1,8 @@
 import forPromise from 'for-promise';
 import { EventEmitter } from 'events';
+import { objType } from 'for-promise/utils/lib.mjs';
 import $ from 'jquery';
+import urlParams from '../libs/urlParams';
 
 export const postMessage = (data) => {
   if (
@@ -13,6 +15,7 @@ export const postMessage = (data) => {
   return null;
 };
 
+let firstTime = true;
 let deferredPrompt;
 window.matchMedia('(display-mode: standalone)').addEventListener('change', (evt) => {
   const body = $('body');
@@ -25,6 +28,7 @@ window.matchMedia('(display-mode: standalone)').addEventListener('change', (evt)
 
   // Log display mode change to analytics
   console.log(`[PWA] DISPLAY_MODE_CHANGED`, displayMode);
+  tinyPwa.emit('displayMode', displayMode);
   body.addClass(`window-${displayMode}`);
 });
 
@@ -39,6 +43,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
   // showInstallPromotion();
 
   // Optionally, send analytics event that PWA install promo was shown.
+  tinyPwa.emit('deferredPrompt', deferredPrompt);
   console.log(`[PWA] 'beforeinstallprompt' event was fired.`, deferredPrompt);
 });
 
@@ -50,16 +55,9 @@ window.addEventListener('appinstalled', () => {
   deferredPrompt = null;
 
   // Optionally, send analytics event to indicate successful install
+  tinyPwa.emit('deferredPrompt', deferredPrompt);
   console.log(`[PWA] PWA was installed`);
 });
-
-if (window.matchMedia('(display-mode: standalone)').matches) {
-  console.log(`[PWA] This is running as standalone.`);
-  $('body').addClass(`window-standalone`);
-} else {
-  console.log(`[PWA] This is running as browser.`);
-  $('body').addClass(`window-browser`);
-}
 
 export function getPWADisplayMode() {
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
@@ -86,6 +84,31 @@ export function clearFetchPwaCache() {
 }
 
 const startPWA = () => {
+  const tinyUrlUpdated = () =>
+    postMessage({
+      type: 'UPDATE_TAB_DATA',
+      tab: { url: window.location.href },
+    });
+
+  urlParams.on('append', tinyUrlUpdated);
+  urlParams.on('set', tinyUrlUpdated);
+  urlParams.on('delete', tinyUrlUpdated);
+
+  postMessage({
+    type: 'GET_ACTIVE_TABS',
+    id: Date.now(),
+  });
+  setInterval(
+    () =>
+      postMessage({
+        type: 'GET_ACTIVE_TABS',
+        id: Date.now(),
+      }),
+    60000,
+  );
+};
+
+if ('serviceWorker' in navigator || 'ServiceWorker' in navigator) {
   const msgEvents = {
     ACTIVE_TABS: (event) => {
       if (Array.isArray(event.data.tabs)) {
@@ -121,6 +144,18 @@ const startPWA = () => {
       }
     },
 
+    ACTIVE_TAB: (event) => {
+      if (objType(event.data.tab, 'object')) {
+        const tabs = tinyPwa.getTabs();
+        const newTab = tabs.find((tab) => tab.id === event.data.tab.id);
+
+        // Update
+        if (newTab) for (const id in newTab) newTab[id] = event.data.tab[id];
+        // Add
+        else tinyPwa._addTab(event.data.tab);
+      }
+    },
+
     WINDOW_TAB: (event) => {
       if (event.data.tab && event.data.tab.id) tinyPwa._setTabId(event.data.tab.id);
       tinyPwa._init();
@@ -131,23 +166,36 @@ const startPWA = () => {
     if (event.data && typeof msgEvents[event.data.type] === 'function')
       msgEvents[event.data.type](event);
   });
-
-  postMessage({
-    type: 'GET_ACTIVE_TABS',
-    id: Date.now(),
-  });
-  setInterval(
-    () =>
-      postMessage({
-        type: 'GET_ACTIVE_TABS',
-        id: Date.now(),
-      }),
-    60000,
-  );
-};
+}
 
 export function installPWA() {
   if ('serviceWorker' in navigator || 'ServiceWorker' in navigator) {
+    // Check registration
+    const tinyCheck = (event) => {
+      if (event) {
+        console.log(`[PWA State] ${event.state}`);
+        if (event.state === 'installed') {
+          tinyPwa._setNeedRefresh(true);
+          location.reload();
+        } else if (event.state === 'activated' && !tinyPwa.needRefresh)
+          if (firstTime) {
+            firstTime = false;
+            startPWA();
+          }
+      }
+    };
+
+    navigator.serviceWorker.ready.then((a) => tinyCheck(a.active));
+    const tinyRegistrationChecker = (registration) => {
+      // updatefound is also fired for the very first install. ¯\_(ツ)_/¯
+      registration.addEventListener('updatefound', (event) => {
+        tinyCheck(event.target.active);
+        registration.installing.addEventListener('statechange', (event2) =>
+          tinyCheck(event2.target),
+        );
+      });
+    };
+
     // Get Items
     const cacheChecker = { count: 0, removed: false, keep: false };
     navigator.serviceWorker
@@ -158,10 +206,10 @@ export function installPWA() {
           navigator.serviceWorker
             .register('./service-worker.js', { scope: './' })
             // Complete
-            .then(() => {
+            .then((registration) => {
               console.log('[PWA] Service Worker Registered.');
               tinyPwa._setIsEnabled(true);
-              startPWA();
+              tinyRegistrationChecker(registration);
             })
             // Error
             .catch((err) => {
@@ -200,27 +248,27 @@ export function installPWA() {
             }
 
             // Update tiny stuff
-            else if (
-              __ENV_APP__.MXC_SERVICE_WORKER &&
-              items[item].active &&
-              (items[item].active.state === 'activated' ||
-                items[item].active.state === 'activating') &&
-              tinyUrl.pathname === '/service-worker.js'
-            ) {
-              items[item]
-                .update()
-                .then((success) => {
-                  if (!success)
-                    console.error(`[PWA] Fail to update the Service Worker ${items[item].scope}`);
-                  else {
-                    console.log('[PWA] Service Worker Updated.');
-                    cacheChecker.keep = true;
-                    tinyPwa._setIsEnabled(true);
-                    startPWA();
-                  }
-                  fn();
-                })
-                .catch(fnErr);
+            else if (__ENV_APP__.MXC_SERVICE_WORKER && tinyUrl.pathname === '/service-worker.js') {
+              tinyRegistrationChecker(items[item]);
+              if (
+                items[item].active &&
+                (items[item].active.state === 'activated' ||
+                  items[item].active.state === 'activating')
+              ) {
+                items[item]
+                  .update()
+                  .then((success) => {
+                    if (!success)
+                      console.error(`[PWA] Fail to update the Service Worker ${items[item].scope}`);
+                    else {
+                      console.log('[PWA] Service Worker Updated.');
+                      cacheChecker.keep = true;
+                      tinyPwa._setIsEnabled(true);
+                    }
+                    fn();
+                  })
+                  .catch(fnErr);
+              }
             }
 
             // Add count
@@ -259,6 +307,7 @@ class TinyPwa extends EventEmitter {
     this.tabId = null;
     this.enabled = false;
     this.initialized = false;
+    this.needRefresh = false;
   }
 
   _init() {
@@ -292,6 +341,13 @@ class TinyPwa extends EventEmitter {
     if (typeof enabled === 'boolean') {
       this.enabled = enabled;
       this.emit('isEnabled', enabled);
+    }
+  }
+
+  _setNeedRefresh(enabled) {
+    if (typeof enabled === 'boolean') {
+      this.needRefresh = enabled;
+      this.emit('needRefresh', enabled);
     }
   }
 
@@ -331,6 +387,16 @@ class TinyPwa extends EventEmitter {
 const tinyPwa = new TinyPwa();
 tinyPwa.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
 export default tinyPwa;
+
+if (window.matchMedia('(display-mode: standalone)').matches) {
+  console.log(`[PWA] This is running as standalone.`);
+  $('body').addClass(`window-standalone`);
+  tinyPwa.emit('displayMode', 'standalone');
+} else {
+  console.log(`[PWA] This is running as browser.`);
+  $('body').addClass(`window-browser`);
+  tinyPwa.emit('displayMode', 'browser');
+}
 
 if (__ENV_APP__.MODE === 'development') {
   global.tinyPwa = tinyPwa;

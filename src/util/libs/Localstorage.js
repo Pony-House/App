@@ -582,20 +582,21 @@ class StorageManager extends EventEmitter {
 
     if (typeof roomId === 'string') {
       const valueId = `${roomId}${typeof threadId === 'string' ? `:${threadId}` : ''}`;
-      if (!this._timelineSyncCache[valueId]) this._timelineSyncCache[valueId] = {};
-      if (typeof this._timelineSyncCache[valueId].isComplete !== 'boolean')
-        this._timelineSyncCache[valueId].isComplete = false;
+      if (!this._lastTimelineSyncCache[valueId]) {
+        if (!this._timelineSyncCache[valueId]) this._timelineSyncCache[valueId] = {};
+        if (typeof this._timelineSyncCache[valueId].isComplete !== 'boolean')
+          this._timelineSyncCache[valueId].isComplete = false;
 
-      if (
-        typeof ts === 'number' &&
-        (!objType(this._timelineSyncCache[valueId].tmLastEvent, 'object') ||
-          typeof this._timelineSyncCache[valueId].tmLastEvent.ts !== 'number' ||
-          ts > this._timelineSyncCache[valueId].tmLastEvent.ts)
-      ) {
-        this._timelineSyncCache[valueId].tmLastEvent = { id: eventId, ts };
-        return this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
+        if (
+          typeof ts === 'number' &&
+          (!objType(this._timelineSyncCache[valueId].tmLastEvent, 'object') ||
+            typeof this._timelineSyncCache[valueId].tmLastEvent.ts !== 'number' ||
+            ts > this._timelineSyncCache[valueId].tmLastEvent.ts)
+        ) {
+          this._timelineSyncCache[valueId].tmLastEvent = { id: eventId, ts };
+          return this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
+        }
       }
-
       return null;
     }
     throw new Error('Invalid room id');
