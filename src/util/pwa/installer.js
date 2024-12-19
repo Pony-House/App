@@ -169,7 +169,10 @@ if ('serviceWorker' in navigator || 'ServiceWorker' in navigator) {
 }
 
 export function installPWA() {
-  if ('serviceWorker' in navigator || 'ServiceWorker' in navigator) {
+  if (
+    __ENV_APP__.MXC_SERVICE_WORKER &&
+    ('serviceWorker' in navigator || 'ServiceWorker' in navigator)
+  ) {
     // Check registration
     const tinyCheck = (event) => {
       if (event) {
@@ -276,11 +279,7 @@ export function installPWA() {
           })
             // Remove progress complete
             .then(() => {
-              if (__ENV_APP__.MXC_SERVICE_WORKER) {
-                if (cacheChecker.removed && !cacheChecker.keep) {
-                  registerNewService();
-                }
-              } else tinyPwa._init();
+              if (cacheChecker.removed && !cacheChecker.keep) registerNewService();
             })
             // Error
             .catch((err) => {
@@ -288,8 +287,7 @@ export function installPWA() {
               console.error(err);
               tinyPwa._init();
             });
-        } else if (__ENV_APP__.MXC_SERVICE_WORKER) registerNewService();
-        else tinyPwa._init();
+        } else registerNewService();
       })
       // Error
       .catch((err) => {
