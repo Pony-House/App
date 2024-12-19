@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 import mobileEvents from '@src/util/libs/mobile';
 
-import { blurOnBubbling } from '../../atoms/button/script';
+import { blurOnBubbling } from '@src/app/atoms/button/script';
 
 import initMatrix from '../../../client/initMatrix';
 import cons from '../../../client/state/cons';
@@ -11,11 +11,14 @@ import navigation from '../../../client/state/navigation';
 import { openInviteUser, toggleRoomSettings } from '../../../client/action/navigation';
 import * as roomActions from '../../../client/action/room';
 
-import RawIcon from '../../atoms/system-icons/RawIcon';
-import { Header } from '../../atoms/header/Header';
-import ScrollView from '../../atoms/scroll/ScrollView';
-import Tabs from '../../atoms/tabs/Tabs';
-import { MenuItem } from '../../atoms/context-menu/ContextMenu';
+import RawIcon from '@src/app/atoms/system-icons/RawIcon';
+import { Header } from '@src/app/atoms/header/Header';
+import ScrollView from '@src/app/atoms/scroll/ScrollView';
+import Tabs from '@src/app/atoms/tabs/Tabs';
+import { MenuItem } from '@src/app/atoms/context-menu/ContextMenu';
+import Tooltip from '@src/app/atoms/tooltip/Tooltip';
+import Spinner from '@src/app/atoms/spinner/Spinner';
+
 import RoomProfile from '../../molecules/room-profile/RoomProfile';
 import RoomSearch from '../../molecules/room-search/RoomSearch';
 import RoomNotification from '../../molecules/room-notification/RoomNotification';
@@ -168,10 +171,10 @@ SecuritySettings.propTypes = {
   roomId: PropTypes.string.isRequired,
 };
 
-function RoomSettings({ roomId }) {
+function RoomSettings({ roomTimeline = {} }) {
   const [, forceUpdate] = useForceUpdate();
   const [selectedTab, setSelectedTab] = useState(tabItems[0]);
-  const room = initMatrix.matrixClient.getRoom(roomId);
+  const { roomId, room } = roomTimeline;
 
   const handleTabChange = (tabItem) => {
     setSelectedTab(tabItem);
@@ -219,6 +222,11 @@ function RoomSettings({ roomId }) {
             <strong className="me-2">
               {`${room.name}`}
               <span className="text-bg-low"> — room settings</span>
+              {roomTimeline.isRoomSyncing() && (
+                <Tooltip placement="bottom" content="Room being synced...">
+                  <Spinner className="ms-1" size="sm" />
+                </Tooltip>
+              )}
             </strong>
             <RawIcon size="small" fa="fa-solid fa-chevron-up" />
           </button>

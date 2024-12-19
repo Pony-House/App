@@ -182,6 +182,30 @@ const eventTypes = {
       }),
     ),
 
+  REMOVE_TAB: (event) =>
+    self.clients
+      .matchAll({ type: 'window' })
+      .then((clients) => {
+        const activeTabs = [];
+        for (const item in clients) {
+          const client = clients[item];
+          if (event.source.id !== client.id)
+            activeTabs.push({
+              frameType: client.frameType,
+              id: client.id,
+              type: client.type,
+              url: client.url,
+            });
+        }
+
+        for (const item in clients) {
+          const client = clients[item];
+          if (event.source.id !== client.id)
+            client.postMessage({ type: 'ACTIVE_TABS', tabs: activeTabs });
+        }
+      })
+      .catch(console.error),
+
   UPDATE_TAB_DATA: (event) =>
     self.clients
       .matchAll({ type: 'window' })

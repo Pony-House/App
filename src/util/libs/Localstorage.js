@@ -178,7 +178,10 @@ class LocalStorageEvent extends EventEmitter {
     this.event = event;
     this.room = initMatrix.matrixClient.getRoom(this.event.room_id);
 
-    if (this.event.is_thread_root) this.event.thread_id = this.event.is_thread_root;
+    if (this.event.is_thread_root) {
+      this.event.thread_id = this.event.is_thread_root;
+      this.isThreadRoot = true;
+    } else this.isThreadRoot = false;
 
     if (this.event.primary_replace_event_id) {
       this.event.replace_to = this.event.primary_replace_to;
@@ -946,7 +949,6 @@ class StorageManager extends EventEmitter {
             this._lastTimelineSyncCache[valueId].tmLastEvent.ts < lastTimelineEventTs
           ) {
             delete this._lastTimelineSyncCache[valueId].tmLastEvent;
-            canLastCheckPoint = false;
             updateTmLastEventDetector();
           }
 

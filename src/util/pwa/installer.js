@@ -98,7 +98,8 @@ const startPWA = () => {
     type: 'GET_ACTIVE_TABS',
     id: Date.now(),
   });
-  setInterval(
+
+  const activeTabsUpdater = setInterval(
     () =>
       postMessage({
         type: 'GET_ACTIVE_TABS',
@@ -106,6 +107,13 @@ const startPWA = () => {
       }),
     60000,
   );
+
+  window.addEventListener('beforeunload', () => {
+    clearInterval(activeTabsUpdater);
+    postMessage({
+      type: 'REMOVE_TAB',
+    });
+  });
 };
 
 if ('serviceWorker' in navigator || 'ServiceWorker' in navigator) {
@@ -251,7 +259,7 @@ export function installPWA() {
             }
 
             // Update tiny stuff
-            else if (__ENV_APP__.MXC_SERVICE_WORKER && tinyUrl.pathname === '/service-worker.js') {
+            else if (tinyUrl.pathname === '/service-worker.js') {
               tinyRegistrationChecker(items[item]);
               if (
                 items[item].active &&

@@ -169,7 +169,7 @@ function Room() {
     return (
       <div className="room">
         <div className="room__content">
-          <RoomSettings roomId={roomTimeline.roomId} />
+          <RoomSettings roomTimeline={roomTimeline} />
           <RoomView
             isUserList={isUserList}
             roomTimeline={roomTimeline}
