@@ -122,7 +122,7 @@ const startPWA = () => {
     },
 
     WINDOW_TAB: (event) => {
-      event.data.tab && event.data.tab.id && tinyPwa._setTabId(event.data.tab.id);
+      if (event.data.tab && event.data.tab.id) tinyPwa._setTabId(event.data.tab.id);
       tinyPwa._init();
     },
   };
