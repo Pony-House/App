@@ -87,8 +87,8 @@ export function clearFetchPwaCache() {
 }
 
 const startPWA = () => {
-  navigator.serviceWorker.addEventListener('message', (event) => {
-    if (event.data.type === 'ACTIVE_TABS') {
+  const msgEvents = {
+    ACTIVE_TABS: (event) => {
       if (Array.isArray(event.data.tabs)) {
         const newTabs = event.data.tabs;
         const tabs = tinyPwa.getTabs();
@@ -120,8 +120,15 @@ const startPWA = () => {
         for (const item in addTabs) tinyPwa._addTab(addTabs[item]);
         for (const item in removeTabs) tinyPwa._removeTab(removeTabs[item].id);
       }
-      // tinyPwa._setTabId
-    }
+    },
+
+    WINDOW_TAB: (event) =>
+      event.data.tab && event.data.tab.id && tinyPwa._setTabId(event.data.tab.id),
+  };
+
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data && typeof msgEvents[event.data.type] === 'function')
+      msgEvents[event.data.type](event);
   });
 
   postMessage({
@@ -261,7 +268,10 @@ class TinyPwa extends EventEmitter {
   }
 
   _setTabId(id) {
-    this.tabId = id;
+    if (typeof id === 'string') {
+      this.tabId = id;
+      this.emit('tabIdUpdated', id);
+    } else this.tabId = null;
   }
 
   getTabs() {

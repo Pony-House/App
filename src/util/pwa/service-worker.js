@@ -180,7 +180,7 @@ const eventTypes = {
       }),
     ),
 
-  GET_ACTIVE_TABS: () =>
+  GET_ACTIVE_TABS: (event) =>
     self.clients
       .matchAll({ type: 'window' })
       .then((clients) => {
@@ -196,9 +196,18 @@ const eventTypes = {
           });
         }
 
+        event.source.postMessage({
+          type: 'WINDOW_TAB',
+          tab: {
+            frameType: event.source.frameType,
+            id: event.source.id,
+            type: event.source.type,
+            url: event.source.url,
+          },
+        });
+
         for (const item in clients)
           clients[item].postMessage({ type: 'ACTIVE_TABS', tabs: activeTabs });
-        // event.source.postMessage();
       })
       .catch(console.error),
 };
