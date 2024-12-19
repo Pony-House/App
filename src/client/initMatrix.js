@@ -20,7 +20,7 @@ import {
 import MatrixVoiceChat from '@src/util/libs/voiceChat';
 import emojiEditor from '@src/util/libs/emoji/EmojiEditor';
 
-import { secret } from './state/auth';
+import { getSecrets } from './state/auth';
 import RoomList from './state/RoomList';
 import UserList from './state/UserList';
 import AccountData from './state/AccountData';
@@ -62,6 +62,7 @@ class InitMatrix extends EventEmitter {
   }
 
   async init(isGuest = false) {
+    const secret = getSecrets();
     const started = await this.startClient(isGuest);
     if (started.ready) {
       this.setupSync();
@@ -91,6 +92,7 @@ class InitMatrix extends EventEmitter {
 
   async startClient(isGuest = false) {
     try {
+      const secret = getSecrets();
       const isPersisted = await storageManager.checkStoragePersisted();
       if (!isPersisted)
         await storageManager.requestStoragePersisted().catch((err) => {

@@ -1,3 +1,6 @@
+// i18 FILES HERE! DON'T REMOVE IT!
+import './locale';
+
 // import startTest from './test';
 
 // import helloWorld from './lib/hello-world';

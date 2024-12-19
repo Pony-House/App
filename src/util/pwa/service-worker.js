@@ -168,8 +168,8 @@ self.addEventListener('fetch', function (event) {
   event.respondWith(proxyRequest(caches, request));
 });
 
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'CLEAR_FETCH_CACHE') {
+const eventTypes = {
+  CLEAR_FETCH_CACHE: (event) =>
     event.waitUntil(
       caches.keys().then(function (cacheNames) {
         return Promise.all(
@@ -178,17 +178,32 @@ self.addEventListener('message', (event) => {
           }),
         );
       }),
-    );
-  }
+    ),
 
-  if (event.data && event.data.type === 'GET_ACTIVE_TABS') {
+  GET_ACTIVE_TABS: () =>
     self.clients
       .matchAll({ type: 'window' })
       .then((clients) => {
-        const activeTabs = clients.map((client) => client.url);
-        console.log('[active-tabs]', activeTabs);
-        event.source.postMessage({ type: 'ACTIVE_TABS', tabs: activeTabs });
+        const activeTabs = [];
+
+        for (const item in clients) {
+          const client = clients[item];
+          activeTabs.push({
+            frameType: client.frameType,
+            id: client.id,
+            type: client.type,
+            url: client.url,
+          });
+        }
+
+        for (const item in clients)
+          clients[item].postMessage({ type: 'ACTIVE_TABS', tabs: activeTabs });
+        // event.source.postMessage();
       })
-      .catch(console.error);
-  }
+      .catch(console.error),
+};
+
+self.addEventListener('message', (event) => {
+  if (event.data && typeof eventTypes[event.data.type] === 'function')
+    eventTypes[event.data.type](event);
 });

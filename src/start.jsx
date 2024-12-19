@@ -13,6 +13,7 @@ import App from './app/pages/App';
 import { getOsSettings } from './util/libs/osSettings';
 import ChatRoom from './app/embed/ChatRoom';
 import urlParams from './util/libs/urlParams';
+import i18 from './util/libs/locale.js';
 
 global.Buffer = Buffer;
 // global.Buffer = global.Buffer || Buffer;
@@ -20,6 +21,7 @@ function StartApp(appProtocol) {
   global.getEnvApp = () => clone(__ENV_APP__);
   console.log(`[app] Starting...`);
 
+  moment.locale(i18.getLocale());
   const pageType = urlParams.get('type');
   const pageId = urlParams.get('id');
 

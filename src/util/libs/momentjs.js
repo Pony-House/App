@@ -2,10 +2,6 @@
 import moment from 'moment-timezone';
 import { objType } from 'for-promise/utils/lib.mjs';
 import { getAppearance } from './appearance';
-import i18 from './locale';
-
-// Module Config
-moment.locale(i18.getDefaultLocale());
 
 export const calendarFormat = [
   { text: 'MM/DD/YYYY' },
@@ -20,7 +16,7 @@ export const localeIs12Hours = (tinyLocale) => {
   try {
     const locale = typeof tinyLocale === 'string' ? tinyLocale : i18.appLocale();
     const value = Intl.DateTimeFormat(
-      typeof locale === 'string' && locale.length > 0 ? locale : i18.getDefaultLocale(),
+      typeof locale === 'string' && locale.length > 0 ? locale : i18.getLocale(),
       { hour: 'numeric' },
     ).resolvedOptions().hour12;
     return typeof value === 'boolean' ? value : true;

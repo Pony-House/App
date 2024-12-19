@@ -15,7 +15,18 @@ const urlConvert = {
 const localStoragePlace = 'pony-house-url-preview';
 const urlPreviewStore = {
   using: false,
-  getRaw: () => storageManager.getJson(localStoragePlace, 'obj'),
+  firstTime: true,
+  getRaw: () => {
+    urlPreviewStore.refreshFirstTime();
+    return storageManager.getJson(localStoragePlace, 'obj');
+  },
+
+  refreshFirstTime() {
+    if (urlPreviewStore.firstTime) {
+      urlPreviewStore.refresh();
+      urlPreviewStore.firstTime = false;
+    }
+  },
 
   validator: (value) =>
     objType(value, 'object') &&
@@ -24,6 +35,7 @@ const urlPreviewStore = {
     value.timeout > 0,
 
   get: (url) => {
+    urlPreviewStore.refreshFirstTime();
     const storage = urlPreviewStore.getRaw();
     if (typeof url === 'string') {
       if (linkify.test(url)) {
@@ -51,6 +63,7 @@ const urlPreviewStore = {
   },
 
   set: (url, value) => {
+    urlPreviewStore.refreshFirstTime();
     try {
       if ((typeof url === 'string' && linkify.test(url)) || value === null) {
         const storage = urlPreviewStore.getRaw();
@@ -76,7 +89,10 @@ const urlPreviewStore = {
     return null;
   },
 
-  delete: (url) => urlPreviewStore.set(url, null),
+  delete: (url) => {
+    urlPreviewStore.refreshFirstTime();
+    return urlPreviewStore.set(url, null);
+  },
 
   refresh: () => {
     const newData = urlPreviewStore.get();
@@ -98,8 +114,6 @@ setInterval(() => {
     }
   }
 }, 60000);
-
-urlPreviewStore.refresh();
 
 export { urlPreviewStore };
 

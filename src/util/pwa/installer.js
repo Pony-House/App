@@ -87,19 +87,53 @@ export function clearFetchPwaCache() {
 }
 
 const startPWA = () => {
+  console.log(navigator.serviceWorker);
   navigator.serviceWorker.addEventListener('message', (event) => {
     if (event.data.type === 'ACTIVE_TABS') {
-      // event.data.tabs
-      // tinyPwa._addTab
-      // tinyPwa._removeTab
+      if (Array.isArray(event.data.tabs)) {
+        const newTabs = event.data.tabs;
+        const tabs = tinyPwa.getTabs();
+
+        const removeTabs = [];
+        const addTabs = [];
+        for (const item in tabs) {
+          // Remove
+          if (newTabs.findIndex((tab) => tab.id === tabs[item].id) < 0) removeTabs.push(tabs[item]);
+          // Add
+          else addTabs.push(tabs[item]);
+        }
+
+        for (const item in newTabs) {
+          const newTab = addTabs.find((tab) => tab.id === newTabs[item].id);
+          // Update
+          if (newTab) {
+            for (const id in newTabs[item]) {
+              newTabs[item][id] = newTab[id];
+            }
+          }
+          // Add
+          else addTabs.push(newTabs[item]);
+        }
+
+        for (const item in addTabs) tinyPwa._addTab(addTabs[item]);
+        for (const item in removeTabs) tinyPwa._removeTab(removeTabs[item].id);
+      }
       // tinyPwa._setTabId
     }
   });
 
   postMessage({
-    type: 'GUIDE_OPENED',
+    type: 'GET_ACTIVE_TABS',
     id: Date.now(),
   });
+  setInterval(
+    () =>
+      postMessage({
+        type: 'GET_ACTIVE_TABS',
+        id: Date.now(),
+      }),
+    60000,
+  );
 };
 
 export function installPWA() {
@@ -217,7 +251,7 @@ class TinyPwa extends EventEmitter {
   }
 
   _removeTab(id) {
-    const index = this.tabs.indexOf(id);
+    const index = this.tabs.findIndex((tab) => tab.id === id);
     if (index > -1) {
       const item = this.tabs.splice(index, 1);
       this.emit('tabRemoved', item);
