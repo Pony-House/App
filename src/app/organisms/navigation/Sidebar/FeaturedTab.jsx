@@ -25,9 +25,9 @@ import Avatar from '../../../atoms/avatar/Avatar';
 import { notificationClasses, useNotificationUpdate } from './Notification';
 import SidebarAvatar from '../../../molecules/sidebar-avatar/SidebarAvatar';
 import NotificationBadge from '../../../atoms/badge/NotificationBadge';
-import { getUserWeb3Account, tinyCrypto } from '../../../../util/web3';
+import { getUserWeb3Account, tinyCrypto } from '@mods/web3/ethers/base';
 import navigation from '../../../../client/state/navigation';
-import { setEthereumStatusButton } from '../../../../util/web3/status';
+import { setEthereumStatusButton } from '@mods/web3/ethers/status';
 import { colorMXID } from '../../../../util/colorMXID';
 import { getAppearance } from '../../../../util/libs/appearance';
 

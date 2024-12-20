@@ -6,13 +6,13 @@ import provider from 'eth-provider';
 import Web3WsProvider from 'web3-providers-ws';
 import { objType } from 'for-promise/utils/lib.mjs';
 
-import storageManager from '../libs/Localstorage';
+import storageManager from '@src/util/libs/Localstorage';
 import moment from '@src/util/libs/momentjs';
-import modWeb3Cfg from '@mods/web3';
+import modWeb3Cfg from '../../web3';
 
 import startStatus from './status';
-import initMatrix from '../../client/initMatrix';
-import envAPI from '../libs/env';
+import initMatrix from '@src/client/initMatrix';
+import envAPI from '@src/util/libs/env';
 
 const tinyCrypto = {};
 let web3;

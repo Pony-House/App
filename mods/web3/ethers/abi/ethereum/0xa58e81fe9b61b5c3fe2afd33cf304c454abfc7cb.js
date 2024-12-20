@@ -1,6 +1,6 @@
 import { Contract } from 'ethers';
 import { objType } from 'for-promise/utils/lib.mjs';
-import { tinyCrypto } from '../..';
+import { tinyCrypto } from '../../base';
 
 const ensAbi = [
   {

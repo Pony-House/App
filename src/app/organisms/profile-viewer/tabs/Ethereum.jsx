@@ -1,7 +1,7 @@
 import React from 'react';
 import $ from 'jquery';
 
-import { tinyCrypto } from '@src/util/web3';
+import { tinyCrypto } from '@mods/web3/ethers/base';
 import initMatrix from '@src/client/initMatrix';
 
 import { btModal, toast } from '@src/util/tools';

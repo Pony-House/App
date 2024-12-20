@@ -15,7 +15,7 @@ import {
   getSelectThread,
   getSelectRoom,
 } from '../../util/selectedRoom';
-import { tinyCrypto } from '../../util/web3';
+import { tinyCrypto } from '@mods/web3/ethers/base';
 
 class Navigation extends EventEmitter {
   constructor() {

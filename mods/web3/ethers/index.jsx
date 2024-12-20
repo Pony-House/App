@@ -1,7 +1,7 @@
 import React from 'react';
 import tinyAPI from '@src/util/mods';
 import envAPI from '@src/util/libs/env';
-import { getUserWeb3Account } from '@src/util/web3';
+import { getUserWeb3Account } from './base';
 
 export default function startEthers() {
   tinyAPI.on('linkifyRegisterCustomProtocols', (data) => {

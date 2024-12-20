@@ -3,8 +3,8 @@ import { ethers } from 'ethers';
 import { objType } from 'for-promise/utils/lib.mjs';
 
 import moment from '@src/util/libs/momentjs';
-import getEnsManager from '@src/util/web3/abi/ethereum/0xa58e81fe9b61b5c3fe2afd33cf304c454abfc7cb';
-import { tinyCrypto } from '@src/util/web3';
+import getEnsManager from './abi/ethereum/0xa58e81fe9b61b5c3fe2afd33cf304c454abfc7cb';
+import { tinyCrypto } from './base';
 
 const chainBalance = {};
 const ens = {

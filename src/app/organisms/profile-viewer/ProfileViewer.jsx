@@ -55,7 +55,7 @@ import Dialog from '../../molecules/dialog/Dialog';
 import { useForceUpdate } from '../../hooks/useForceUpdate';
 import { confirmDialog } from '../../molecules/confirm-dialog/ConfirmDialog';
 import { addToDataFolder, getDataList } from '../../../util/selectedRoom';
-import { getUserWeb3Account, getWeb3Cfg } from '../../../util/web3';
+import { getUserWeb3Account, getWeb3Cfg } from '@mods/web3/ethers/base';
 
 import copyText from './copyText';
 import tinyAPI from '../../../util/mods';

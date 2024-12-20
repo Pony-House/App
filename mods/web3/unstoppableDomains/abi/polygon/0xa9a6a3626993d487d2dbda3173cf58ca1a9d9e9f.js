@@ -1,6 +1,6 @@
 import { Contract } from 'ethers';
 import { objType } from 'for-promise/utils/lib.mjs';
-import { tinyCrypto } from '@src/util/web3';
+import { tinyCrypto } from '@mods/web3/ethers/base';
 
 const udPolygonAbi = [
   {

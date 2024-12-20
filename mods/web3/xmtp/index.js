@@ -1,8 +1,8 @@
 import { Client } from '@xmtp/xmtp-js';
 import EventEmitter from 'events';
-import { tinyCrypto } from '.';
-import envAPI from '../libs/env';
-import storageManager from '../libs/Localstorage';
+import { tinyCrypto } from '../ethers/base';
+import envAPI from '@src/util/libs/env';
+import storageManager from '@src/util/libs/Localstorage';
 
 // Create a client using keys returned from getKeys
 const ENCODING = 'binary';

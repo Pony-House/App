@@ -1,5 +1,5 @@
-import { tinyCrypto } from '.';
-import { toast } from '../tools';
+import { tinyCrypto } from './base';
+import { toast } from '@src/util/tools';
 
 let header;
 export function setEthereumStatusButton(newHeader) {

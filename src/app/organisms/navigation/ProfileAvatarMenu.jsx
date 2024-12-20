@@ -22,7 +22,7 @@ import { canUsePresence, getPresence } from '../../../util/onlineStatus';
 
 import { openSettings } from '../../../client/action/navigation';
 import tinyAPI from '../../../util/mods';
-import { getUserWeb3Account } from '../../../util/web3';
+import { getUserWeb3Account } from '@mods/web3/ethers/base';
 
 import matrixAppearance from '../../../util/libs/appearance';
 import UserCustomStatus from '@src/app/molecules/people-selector/UserCustomStatus';

@@ -14,7 +14,7 @@ import Clock from '@src/app/atoms/time/Clock';
 import Tooltip from '@src/app/atoms/tooltip/Tooltip';
 import copyText from '@src/app/organisms/profile-viewer/copyText';
 
-import { getUserWeb3Account, getWeb3Cfg } from '../../../util/web3';
+import { getUserWeb3Account, getWeb3Cfg } from '@mods/web3/ethers/base';
 
 import { twemojifyReact } from '../../../util/twemojify';
 

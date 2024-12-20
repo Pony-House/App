@@ -23,7 +23,7 @@ import {
   setUserWeb3Account,
   resetUserWeb3Account,
   tinyCrypto,
-} from '../../../../../util/web3';
+} from '@mods/web3/ethers/base';
 import Web3Item from './Web3Item';
 import { tinyConfirm, tinyPrompt } from '../../../../../util/tools';
 import { ethereumUpdate } from '../../../../../client/action/navigation';

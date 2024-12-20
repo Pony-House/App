@@ -6,7 +6,7 @@ import { objType } from 'for-promise/utils/lib.mjs';
 
 import Img from '@src/app/atoms/image/Image';
 
-import { setWeb3Cfg, getWeb3Cfg, getDefaultNetworks } from '../../../../../util/web3';
+import { setWeb3Cfg, getWeb3Cfg, getDefaultNetworks } from '@mods/web3/ethers/base';
 import { tinyConfirm } from '../../../../../util/tools';
 
 let loadData = null;

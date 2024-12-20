@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
-import { getWeb3Cfg } from '@src/util/web3';
+import { getWeb3Cfg } from '@mods/web3/ethers/base';
 import TimeFromNow from '@src/app/atoms/time/TimeFromNow';
-import { getUserBalance } from '@src/util/web3/utils';
+import { getUserBalance } from '@mods/web3/ethers/utils';
 import IconButton from '@src/app/atoms/button/IconButton';
 import moment from '@src/util/libs/momentjs';
 
