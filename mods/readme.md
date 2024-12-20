@@ -115,6 +115,18 @@ The difference is that the methods below will update the url in real time, and w
 
 <hr/>
 
+`src/util/libs/userPresenceEffect.js`
+
+### Custom presence values
+
+     customValues = array of custom values
+     user = matrix user
+     isNotYou = if this user is you
+
+Add custom values to load the presence.
+
+<hr/>
+
 `src/app/organisms/room/RoomViewContent.jsx`
 
 ### emptyTimeline

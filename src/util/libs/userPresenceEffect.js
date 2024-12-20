@@ -4,8 +4,7 @@ import clone from 'clone';
 
 import { getPresence } from '../onlineStatus';
 import initMatrix from '@src/client/initMatrix';
-import { getUserWeb3Account } from '../web3';
-import envAPI from './env';
+import tinyAPI from '../mods';
 
 const userPresenceEffect = (user) => {
   const mx = initMatrix.matrixClient;
@@ -26,16 +25,7 @@ const userPresenceEffect = (user) => {
       // Insert content data
       const isNotYou = user && user.userId !== mx.getUserId();
       const customValues = [];
-
-      // Web3
-      if (envAPI.get('WEB3'))
-        customValues.push({
-          value: 'ethereum',
-          get: (presenceObj, content) => {
-            if (isNotYou) content.ethereum = getUserWeb3Account(presenceObj.ethereum, user.userId);
-            else content.ethereum = getUserWeb3Account();
-          },
-        });
+      tinyAPI.emit('presenceCustomValues', customValues, user, isNotYou);
 
       // Update Status Profile
       const updateProfileStatus = (mEvent, tinyData) => {
