@@ -31,21 +31,9 @@ const userPresenceEffect = (user) => {
       if (envAPI.get('WEB3'))
         customValues.push({
           value: 'ethereum',
-
-          get: (presenceObj, data, content) => {
-            // Complete
-            const tinyComplete = () => {
-              if (content.ethereum.valid) data.ethereumEnabled = true;
-            };
-
-            // Insert web3
-            if (isNotYou) {
-              content.ethereum = getUserWeb3Account(presenceObj.ethereum, user.userId);
-              tinyComplete();
-            } else {
-              content.ethereum = getUserWeb3Account();
-              tinyComplete();
-            }
+          get: (presenceObj, content) => {
+            if (isNotYou) content.ethereum = getUserWeb3Account(presenceObj.ethereum, user.userId);
+            else content.ethereum = getUserWeb3Account();
           },
         });
 

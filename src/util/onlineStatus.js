@@ -130,7 +130,7 @@ export function parsePresenceStatus(presence, customValues, content) {
               typeof customValues[item].get === 'function' &&
               typeof customValues[item].value === 'string'
             )
-              customValues[item].get(tinyParse, tinyResult, content);
+              customValues[item].get(tinyParse, content, tinyResult);
       }
     } catch {
       tinyResult.msg = presence.substring(0, 100);
