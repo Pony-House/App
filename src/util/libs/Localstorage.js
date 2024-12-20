@@ -1003,8 +1003,7 @@ class StorageManager extends EventEmitter {
         };
 
         const nextEventId = async () => {
-          return nextTimeline();
-          /*
+          // GLITCH return nextTimeline();
           await waitTimelineTimeout();
           const eTimeline = await mx.getEventTimeline(
             !thread ? room.getUnfilteredTimelineSet() : thread.getUnfilteredTimelineSet(),
@@ -1019,9 +1018,9 @@ class StorageManager extends EventEmitter {
               limit: SYNC_TIMELINE_DOWNLOAD_LIMIT,
             });
           }
-          */
 
           /*
+          GLITCH
           tm.setPaginationToken(
             this._timelineSyncCache[valueId].paginationToken,
             Direction.Backward,
@@ -1035,6 +1034,7 @@ class StorageManager extends EventEmitter {
             backwards: Direction.Backward,
             limit: SYNC_TIMELINE_DOWNLOAD_LIMIT,
           });
+          */
 
           console.log(`[room-db-sync] [${valueId}] Next data by event id!`, checkPoint);
 
@@ -1044,15 +1044,14 @@ class StorageManager extends EventEmitter {
             threadId,
             room,
             checkpoint: null,
-            timeline: tm,
+            timeline: eTimeline,
             eventId,
           });
           loadComplete(roomId, threadId, checkPoint, lastEventId, true);
-          */
         };
 
         // First time
-        if (!this._timelineSyncCacheFirstTime[valueId] && checkPoint) await nextEventId();
+        // GLITCH if (!this._timelineSyncCacheFirstTime[valueId] && checkPoint) await nextEventId();
 
         // Next checkpoint
         if (!checkPoint || !firstTime || canLastCheckPoint) await nextTimeline();
