@@ -52,7 +52,6 @@ function ProfileAvatarMenu() {
   const [, forceUpdate] = useReducer((count) => count + 1, 0);
 
   const [firstLoad, setFirstLoad] = useState(true);
-  const [accountContent, setAccountContent] = useState(null);
   const [microphoneMuted, setMicrophoneMuted] = useState(voiceChat.getMicrophoneMute());
   const [audioMuted, setAudioMuted] = useState(voiceChat.getAudioMute());
 
@@ -125,9 +124,6 @@ function ProfileAvatarMenu() {
           const tinyUser = mx.getUser(mx.getUserId());
           tinyUser.presenceStatusMsg = JSON.stringify(event);
         }
-
-        // Update Content
-        setAccountContent(content);
       }
 
       // Nope
@@ -141,8 +137,6 @@ function ProfileAvatarMenu() {
     };
 
     setFirstLoad(false);
-    if (firstLoad) onProfileUpdate(mx.getAccountData('pony.house.profile')?.getContent() ?? {});
-
     const onAvatarChange = (event, myUser) => {
       setNewProfile(myUser.avatarUrl, myUser.displayName, myUser.userId);
     };
@@ -178,28 +172,6 @@ function ProfileAvatarMenu() {
   });
 
   useEffect(() => {
-    if (user) {
-      // Update Status Profile
-      const updateProfileStatus = (mEvent, tinyUser, isFirstTime = false) => {
-        setAccountContent(getPresence(tinyUser));
-      };
-      user.on(UserEvent.AvatarUrl, updateProfileStatus);
-      user.on(UserEvent.CurrentlyActive, updateProfileStatus);
-      user.on(UserEvent.LastPresenceTs, updateProfileStatus);
-      user.on(UserEvent.Presence, updateProfileStatus);
-      user.on(UserEvent.DisplayName, updateProfileStatus);
-      if (!accountContent) updateProfileStatus(null, user);
-      return () => {
-        if (user) user.removeListener(UserEvent.CurrentlyActive, updateProfileStatus);
-        if (user) user.removeListener(UserEvent.LastPresenceTs, updateProfileStatus);
-        if (user) user.removeListener(UserEvent.Presence, updateProfileStatus);
-        if (user) user.removeListener(UserEvent.AvatarUrl, updateProfileStatus);
-        if (user) user.removeListener(UserEvent.DisplayName, updateProfileStatus);
-      };
-    }
-  });
-
-  useEffect(() => {
     const tinyUpdate = () => forceUpdate();
     matrixAppearance.off('simplerHashtagSameHomeServer', tinyUpdate);
     return () => {
@@ -228,9 +200,7 @@ function ProfileAvatarMenu() {
                 imageSrc={mxcUrl.toHttp(profile.avatarUrl, dfAvatarSize, dfAvatarSize)}
                 isDefaultImage
               />
-              {canUsePresence() && (
-                <UserStatusIcon presenceData={accountContent} user={user} classBase="" />
-              )}
+              {canUsePresence() && <UserStatusIcon user={user} classBase="" />}
               <div className="very-small ps-2 text-truncate emoji-size-fix-2" id="display-name">
                 {profile.displayName}
               </div>
@@ -238,7 +208,6 @@ function ProfileAvatarMenu() {
                 emojiFix=""
                 className="very-small ps-2 text-truncate emoji-size-fix-2"
                 user={user}
-                presenceData={accountContent}
                 altContent={convertUserId(profile.userId)}
                 forceShow
               />

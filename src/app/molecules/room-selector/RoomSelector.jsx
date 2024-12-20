@@ -21,7 +21,8 @@ import { canUsePresence, getPresence } from '../../../util/onlineStatus';
 import initMatrix from '../../../client/initMatrix';
 import favIconManager from '../../../util/libs/favicon';
 import { selectRoom, selectRoomMode } from '../../../client/action/navigation';
-import UserCustomStatus from '../people-selector/UserCustomStatus';
+import UserCustomStatus, { existsUserStatus } from '../people-selector/UserCustomStatus';
+import userPresenceEffect from '@src/util/libs/userPresenceEffect';
 
 function RoomSelectorWrapper({
   isSelected,
@@ -85,42 +86,7 @@ function RoomSelector({
   user,
   allowCustomUsername = false,
 }) {
-  const [accountContent, setAccountContent] = useState(null);
-  const mx = initMatrix.matrixClient;
-  const mxcUrl = initMatrix.mxcUrl;
-
-  const existStatus =
-    objType(accountContent, 'object') &&
-    objType(accountContent.presenceStatusMsg, 'object') &&
-    accountContent.presence !== 'offline' &&
-    accountContent.presence !== 'unavailable' &&
-    ((accountContent.presenceStatusMsg.msg === 'string' &&
-      accountContent.presenceStatusMsg.msg.length > 0) ||
-      (typeof accountContent.presenceStatusMsg.msgIcon === 'string' &&
-        accountContent.presenceStatusMsg.msgIcon.length > 0));
-
-  useEffect(() => {
-    if (user) {
-      // Update Status Profile
-      const updateProfileStatus = (mEvent, tinyUser, isFirstTime = false) => {
-        setAccountContent(getPresence(tinyUser));
-      };
-      user.on(UserEvent.DisplayName, updateProfileStatus);
-      user.on(UserEvent.AvatarUrl, updateProfileStatus);
-      user.on(UserEvent.CurrentlyActive, updateProfileStatus);
-      user.on(UserEvent.LastPresenceTs, updateProfileStatus);
-      user.on(UserEvent.Presence, updateProfileStatus);
-      if (!accountContent) updateProfileStatus(null, user);
-      return () => {
-        if (user) user.removeListener(UserEvent.CurrentlyActive, updateProfileStatus);
-        if (user) user.removeListener(UserEvent.LastPresenceTs, updateProfileStatus);
-        if (user) user.removeListener(UserEvent.Presence, updateProfileStatus);
-        if (user) user.removeListener(UserEvent.AvatarUrl, updateProfileStatus);
-        if (user) user.removeListener(UserEvent.DisplayName, updateProfileStatus);
-      };
-    }
-  });
-
+  const { accountContent } = userPresenceEffect(user);
   favIconManager.checkerFavIcon();
   const isDefault = !iconSrc || notSpace;
 
@@ -132,7 +98,7 @@ function RoomSelector({
       isUnread={isUnread}
       content={
         <div
-          className={`text-truncate content${user ? ' content-dm' : ''}${existStatus ? ' content-with-custom-status' : ''}`}
+          className={`text-truncate content${user ? ' content-dm' : ''}${existsUserStatus(accountContent) ? ' content-with-custom-status' : ''}`}
         >
           <div
             className={`float-start me-2 h-100 avatar avatar-type--${imageSrc || isDefault ? 'img' : 'icon'}`}
@@ -152,9 +118,7 @@ function RoomSelector({
               isDefaultImage={isDefault}
             />
 
-            {canUsePresence() && user ? (
-              <UserStatusIcon user={user} presenceData={accountContent} />
-            ) : null}
+            {canUsePresence() ? <UserStatusIcon user={user} /> : null}
           </div>
 
           <Text

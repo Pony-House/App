@@ -29,13 +29,11 @@ function PeopleSelector({
   avatarSize = dfAvatarSize,
   contextMenu,
 }) {
-  const [accountContent, setAccountContent] = useState(null);
   const [imageAnimSrc, setImageAnimSrc] = useState(avatarAnimSrc);
   const [imageSrc, setImageSrc] = useState(avatarSrc);
 
   useEffect(() => {
     if (user) {
-      const mx = initMatrix.matrixClient;
       const mxcUrl = initMatrix.mxcUrl;
 
       // Update Status Profile
@@ -50,22 +48,12 @@ function PeopleSelector({
         const newImageAnimSrc =
           tinyData && tinyData.avatarUrl ? mxcUrl.toHttp(tinyData.avatarUrl) : null;
         setImageAnimSrc(newImageAnimSrc);
-
-        // Update Status Icon
-        setAccountContent(getPresence(tinyData));
       };
 
       // Read Events
       user.on(UserEvent.DisplayName, updateProfileStatus);
       user.on(UserEvent.AvatarUrl, updateProfileStatus);
-      user.on(UserEvent.CurrentlyActive, updateProfileStatus);
-      user.on(UserEvent.LastPresenceTs, updateProfileStatus);
-      user.on(UserEvent.Presence, updateProfileStatus);
-      if (!accountContent) updateProfileStatus(null, user);
       return () => {
-        if (user) user.removeListener(UserEvent.CurrentlyActive, updateProfileStatus);
-        if (user) user.removeListener(UserEvent.LastPresenceTs, updateProfileStatus);
-        if (user) user.removeListener(UserEvent.Presence, updateProfileStatus);
         if (user) user.removeListener(UserEvent.AvatarUrl, updateProfileStatus);
         if (user) user.removeListener(UserEvent.DisplayName, updateProfileStatus);
       };
@@ -91,9 +79,7 @@ function PeopleSelector({
         size="small"
         isDefaultImage
       />
-      {canUsePresence() && !disableStatus && user ? (
-        <UserStatusIcon classbase="" user={user} presenceData={accountContent} />
-      ) : null}
+      {canUsePresence() && !disableStatus ? <UserStatusIcon classbase="" user={user} /> : null}
 
       <div className="small people-selector__name text-start">
         <span className="emoji-size-fix">{twemojifyReact(name)}</span>
@@ -102,7 +88,6 @@ function PeopleSelector({
             emojiFix=""
             className={`very-small text-gray text-truncate emoji-size-fix-2`}
             user={user}
-            presenceData={accountContent}
             animParentsCount={3}
             useHoverAnim
           />

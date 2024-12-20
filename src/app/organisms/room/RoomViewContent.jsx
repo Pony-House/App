@@ -416,6 +416,7 @@ function RoomViewContent({
 
   // The timeline
   const { timeline } = roomTimeline;
+  const tmValue = `${roomTimeline.roomId}${roomTimeline.threadId ? `:${roomTimeline.threadId}` : ''}`;
 
   useLayoutEffect(() => {
     if (!isLoading && !roomTimeline.initialized) {
@@ -761,6 +762,10 @@ function RoomViewContent({
       storageManager.off('timelineTmLastEventStatus', handleRoomSyncUpdate);
     };
   });
+
+  console.log(
+    `[room-status] [${tmValue}]  Loading ${String(isLoading)} / Initialized ${String(roomTimeline.initialized)} / isRoomSyncingTmLast ${String(roomTimeline.isRoomSyncingTmLast())}`,
+  );
 
   return (
     <ScrollView id="chatbox-scroll" ref={timelineSVRef} autoHide>

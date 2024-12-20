@@ -32,6 +32,7 @@ import RoomEmojis from '../../molecules/room-emojis/RoomEmojis';
 
 import { useForceUpdate } from '../../hooks/useForceUpdate';
 import { confirmDialog } from '../../molecules/confirm-dialog/ConfirmDialog';
+import storageManager from '@src/util/libs/Localstorage';
 
 const tabText = {
   GENERAL: 'General',
@@ -174,7 +175,7 @@ SecuritySettings.propTypes = {
 function RoomSettings({ roomTimeline = {} }) {
   const [, forceUpdate] = useForceUpdate();
   const [selectedTab, setSelectedTab] = useState(tabItems[0]);
-  const { roomId, room } = roomTimeline;
+  const { roomId, room, threadId } = roomTimeline;
 
   const handleTabChange = (tabItem) => {
     setSelectedTab(tabItem);
@@ -204,6 +205,22 @@ function RoomSettings({ roomTimeline = {} }) {
     mobileEvents.on('backButton', closeByMobile);
     return () => {
       mobileEvents.off('backButton', closeByMobile);
+    };
+  });
+
+  useEffect(() => {
+    const handleRoomSyncUpdate = (syncTimelineCache) => {
+      if (
+        roomId !== syncTimelineCache.roomId &&
+        (!threadId || threadId !== syncTimelineCache.threadId)
+      )
+        return;
+      forceUpdate();
+    };
+
+    storageManager.on('timelineSyncStatus', handleRoomSyncUpdate);
+    return () => {
+      storageManager.off('timelineSyncStatus', handleRoomSyncUpdate);
     };
   });
 

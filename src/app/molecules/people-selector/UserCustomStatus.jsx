@@ -4,12 +4,23 @@ import PropTypes from 'prop-types';
 import { objType } from 'for-promise/utils/lib.mjs';
 import { twemojifyReact } from '@src/util/twemojify';
 import Img from '@src/app/atoms/image/Image';
+import userPresenceEffect from '@src/util/libs/userPresenceEffect';
+
+export const existsUserStatus = (accountContent) =>
+  objType(accountContent, 'object') &&
+  objType(accountContent.presenceStatusMsg, 'object') &&
+  accountContent.presence !== 'offline' &&
+  accountContent.presence !== 'unavailable' &&
+  ((accountContent.presenceStatusMsg.msg === 'string' &&
+    accountContent.presenceStatusMsg.msg.length > 0) ||
+    (typeof accountContent.presenceStatusMsg.msgIcon === 'string' &&
+      accountContent.presenceStatusMsg.msgIcon.length > 0));
 
 const UserCustomStatus = React.forwardRef(
   (
     {
+      user = null,
       animParentsCount = 0,
-      presenceData = null,
       className = null,
       forceShow = false,
       emojiFix = 'emoji-size-fix',
@@ -19,28 +30,31 @@ const UserCustomStatus = React.forwardRef(
     },
     ref,
   ) => {
-    const existPresenceObject = presenceData && objType(presenceData.presenceStatusMsg, 'object');
+    const { accountContent } = userPresenceEffect(user);
+
+    const existPresenceObject =
+      accountContent && objType(accountContent.presenceStatusMsg, 'object');
     const presenceIsPureText =
-      presenceData &&
-      typeof presenceData.presenceStatusMsg === 'string' &&
-      presenceData.presenceStatusMsg.length > 0;
+      accountContent &&
+      typeof accountContent.presenceStatusMsg === 'string' &&
+      accountContent.presenceStatusMsg.length > 0;
 
     const existMsgPresence =
       existPresenceObject &&
-      typeof presenceData.presenceStatusMsg.msg === 'string' &&
-      presenceData.presenceStatusMsg.msg.length > 0;
+      typeof accountContent.presenceStatusMsg.msg === 'string' &&
+      accountContent.presenceStatusMsg.msg.length > 0;
 
     const existIconPresence =
       existPresenceObject &&
-      typeof presenceData.presenceStatusMsg.msgIcon === 'string' &&
-      presenceData.presenceStatusMsg.msgIcon.length > 0;
+      typeof accountContent.presenceStatusMsg.msgIcon === 'string' &&
+      accountContent.presenceStatusMsg.msgIcon.length > 0;
 
     const canShowPresence =
       forceShow ||
       ((existPresenceObject || presenceIsPureText) &&
-        presenceData.presence !== 'offline' &&
-        presenceData.presence !== 'invisible' &&
-        presenceData.presence !== 'unavailable');
+        accountContent.presence !== 'offline' &&
+        accountContent.presence !== 'invisible' &&
+        accountContent.presence !== 'unavailable');
 
     const tinyClass = `${existMsgPresence ? `${emojiFix} ` : ''}user-custom-status${!existMsgPresence && !disableEmojiOnly ? ' custom-status-emoji-only' : ''}${className ? ` ${className}` : ''}`;
 
@@ -55,18 +69,18 @@ const UserCustomStatus = React.forwardRef(
               alt="icon"
               src={
                 useHoverAnim
-                  ? presenceData.presenceStatusMsg.msgIconThumb
-                  : presenceData.presenceStatusMsg.msgIcon
+                  ? accountContent.presenceStatusMsg.msgIconThumb
+                  : accountContent.presenceStatusMsg.msgIcon
               }
-              animSrc={useHoverAnim ? presenceData.presenceStatusMsg.msgIcon : null}
+              animSrc={useHoverAnim ? accountContent.presenceStatusMsg.msgIcon : null}
             />
           ) : null}
           {existMsgPresence ? (
             <span className="text-truncate cs-text">
               {twemojifyReact(
                 !presenceIsPureText
-                  ? presenceData.presenceStatusMsg.msg.substring(0, 100)
-                  : presenceData.presenceStatusMsg.substring(0, 100),
+                  ? accountContent.presenceStatusMsg.msg.substring(0, 100)
+                  : accountContent.presenceStatusMsg.substring(0, 100),
               )}
             </span>
           ) : null}
@@ -82,10 +96,10 @@ const UserCustomStatus = React.forwardRef(
 );
 
 UserCustomStatus.propTypes = {
+  user: PropTypes.object,
   animParentsCount: PropTypes.number,
   emojiFix: PropTypes.string,
   className: PropTypes.string,
-  presenceData: PropTypes.object,
   useHoverAnim: PropTypes.bool,
   disableEmojiOnly: PropTypes.bool,
   altContent: PropTypes.node,

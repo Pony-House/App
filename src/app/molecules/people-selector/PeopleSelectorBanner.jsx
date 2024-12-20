@@ -181,9 +181,7 @@ function PeopleSelectorBanner({ name, color, user = null, roomId }) {
             size="large"
             isDefaultImage
           />
-          {canUsePresence() && (
-            <UserStatusIcon className="pe-2" user={user} presenceData={accountContent} />
-          )}
+          {canUsePresence() && <UserStatusIcon className="pe-2" user={user} />}
         </div>
 
         <div className="card bg-bg mx-3 text-start">

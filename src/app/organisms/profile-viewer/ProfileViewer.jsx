@@ -62,6 +62,7 @@ import tinyAPI from '../../../util/mods';
 
 import EthereumProfileTab from './tabs/Ethereum';
 import MutualServersTab from './tabs/MutualServers';
+import userPresenceEffect from '@src/util/libs/userPresenceEffect';
 
 function ModerationTools({ roomId, userId }) {
   const [, forceUpdate] = useReducer((count) => count + 1, 0);
@@ -352,12 +353,14 @@ function useToggleDialog() {
   const [roomId, setRoomId] = useState(null);
   const [userId, setUserId] = useState(null);
   const [selectedMenu, setSelectedMenu] = useState(0);
-  const [accountContent, setAccountContent] = useState(null);
 
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [username, setUsername] = useState(null);
   const [bannerSrc, setBannerSrc] = useState(null);
   const [loadingBanner, setLoadingBanner] = useState(false);
+
+  const mx = initMatrix.matrixClient;
+  const { accountContent } = userPresenceEffect(mx.getUser(userId));
 
   useEffect(() => {
     const loadProfile = (uId, rId) => {
@@ -374,7 +377,6 @@ function useToggleDialog() {
   const closeDialog = () => setIsOpen(false);
 
   const afterClose = () => {
-    setAccountContent(null);
     setUserId(null);
     setRoomId(null);
     setSelectedMenu(0);
@@ -390,8 +392,6 @@ function useToggleDialog() {
     userId,
     closeDialog,
     afterClose,
-    accountContent,
-    setAccountContent,
     selectedMenu,
     setSelectedMenu,
     bannerSrc,
@@ -402,6 +402,7 @@ function useToggleDialog() {
     setUsername,
     loadingBanner,
     setLoadingBanner,
+    accountContent,
   ];
 }
 
@@ -438,9 +439,7 @@ function ProfileViewer() {
     roomId,
     userId,
     closeDialog,
-    handleAfterClose,
-    accountContent,
-    setAccountContent,
+    afterClose,
     selectedMenu,
     setSelectedMenu,
     bannerSrc,
@@ -451,6 +450,7 @@ function ProfileViewer() {
     setUsername,
     loadingBanner,
     setLoadingBanner,
+    accountContent,
   ] = useToggleDialog();
 
   const [lightbox, setLightbox] = useState(false);
@@ -595,41 +595,6 @@ function ProfileViewer() {
     }
   }, [user]);
 
-  // User profile updated
-  useEffect(() => {
-    if (user) {
-      const updateProfileStatus = (mEvent, tinyData, isFirstTime = false) => {
-        // Tiny Data
-        const tinyUser = tinyData;
-
-        // Is You
-        if (tinyUser.userId === mx.getUserId()) {
-          const yourData = clone(mx.getAccountData('pony.house.profile')?.getContent() ?? {});
-          yourData.ethereum = getUserWeb3Account();
-          if (typeof yourData.ethereum.valid !== 'undefined') delete yourData.ethereum.valid;
-          tinyUser.presenceStatusMsg = JSON.stringify(yourData);
-        }
-
-        // Update Status Icon
-        setAccountContent(getPresence(tinyUser));
-      };
-
-      user.on(UserEvent.CurrentlyActive, updateProfileStatus);
-      user.on(UserEvent.LastPresenceTs, updateProfileStatus);
-      user.on(UserEvent.Presence, updateProfileStatus);
-      user.on(UserEvent.AvatarUrl, updateProfileStatus);
-      user.on(UserEvent.DisplayName, updateProfileStatus);
-      if (!accountContent) updateProfileStatus(null, user);
-      return () => {
-        if (user) user.removeListener(UserEvent.CurrentlyActive, updateProfileStatus);
-        if (user) user.removeListener(UserEvent.LastPresenceTs, updateProfileStatus);
-        if (user) user.removeListener(UserEvent.Presence, updateProfileStatus);
-        if (user) user.removeListener(UserEvent.AvatarUrl, updateProfileStatus);
-        if (user) user.removeListener(UserEvent.DisplayName, updateProfileStatus);
-      };
-    }
-  }, [user]);
-
   // Render Profile
   const renderProfile = () => {
     const powerLevel = roomMember?.powerLevel || 0;
@@ -761,9 +726,7 @@ function ProfileViewer() {
                 size="large"
                 isDefaultImage
               />
-              {canUsePresence() && (
-                <UserStatusIcon className="pe-2" user={user} presenceData={accountContent} />
-              )}
+              {canUsePresence() && <UserStatusIcon className="pe-2" user={user} />}
             </div>
 
             <div className="col-md-9">
@@ -820,10 +783,7 @@ function ProfileViewer() {
                     </div>
                   ) : null}
 
-                  <UserCustomStatus
-                    className="mt-2 small profile-modal "
-                    presenceData={accountContent}
-                  />
+                  <UserCustomStatus className="mt-2 small profile-modal " user={user} />
                 </>
               ) : null}
 
@@ -921,10 +881,7 @@ function ProfileViewer() {
                     ) : // Text presence status
                     typeof accountContent.presenceStatusMsg === 'string' &&
                       accountContent.presenceStatusMsg.length > 0 ? (
-                      <UserCustomStatus
-                        className="mt-2 small profile-modal "
-                        presenceData={accountContent}
-                      />
+                      <UserCustomStatus className="mt-2 small profile-modal " user={user} />
                     ) : null
                   ) : null}
                   <hr />
@@ -961,7 +918,7 @@ function ProfileViewer() {
       className="modal-dialog-centered modal-lg noselect modal-dialog-user-profile"
       isOpen={isOpen}
       title="User Profile"
-      onAfterClose={handleAfterClose}
+      onAfterClose={afterClose}
       onRequestClose={closeDialog}
     >
       {userId ? renderProfile() : null}
