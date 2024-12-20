@@ -23,10 +23,34 @@ const userPresenceEffect = (user) => {
 
   useEffect(() => {
     if (!isClosed) {
+      // Insert content data
+      const isNotYou = user && user.userId !== mx.getUserId();
+      const customValues = [];
+
+      // Web3
+      if (envAPI.get('WEB3'))
+        customValues.push({
+          value: 'ethereum',
+
+          get: (presenceObj, data, content) => {
+            // Complete
+            const tinyComplete = () => {
+              if (content.ethereum.valid) data.ethereumEnabled = true;
+            };
+
+            // Insert web3
+            if (isNotYou) {
+              content.ethereum = getUserWeb3Account(presenceObj.ethereum, user.userId);
+              tinyComplete();
+            } else {
+              content.ethereum = getUserWeb3Account();
+              tinyComplete();
+            }
+          },
+        });
+
       // Update Status Profile
-      const customValues = ['ethereum'];
       const updateProfileStatus = (mEvent, tinyData) => {
-        if (envAPI.get('WEB3')) tinyData.ethereum = getUserWeb3Account();
         setAccountContent(getPresence(tinyData, customValues));
       };
       if (user) {
@@ -40,7 +64,7 @@ const userPresenceEffect = (user) => {
         // Create first data
         if (!accountContent) {
           // User account
-          if (user.userId !== mx.getUserId()) updateProfileStatus(null, user);
+          if (isNotYou) updateProfileStatus(null, user);
           // Youself!
           else {
             // Tiny Data
@@ -48,9 +72,6 @@ const userPresenceEffect = (user) => {
 
             // Get account data here
             const yourData = clone(mx.getAccountData('pony.house.profile')?.getContent() ?? {});
-
-            // Get ethereum data
-            if (envAPI.get('WEB3')) yourData.ethereum = getUserWeb3Account();
 
             // Stringify data
             tinyUser.presenceStatusMsg = JSON.stringify(yourData);
@@ -61,7 +82,7 @@ const userPresenceEffect = (user) => {
         }
       }
       // Delete data
-      else if (accountContent) setAccountContent(null);
+      else if (accountContent !== null) setAccountContent(null);
       return () => {
         if (user) {
           user.removeListener(UserEvent.CurrentlyActive, updateProfileStatus);

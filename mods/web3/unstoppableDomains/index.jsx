@@ -36,12 +36,10 @@ function UnstoppableDomainsTab({ userId, accountContent }) {
                 if (Array.isArray(newAddresses) && newAddresses.length > 0) {
                   setDnsDomain(domain);
                   setAddresses(newAddresses);
-                } else tinyError();
+                } else setIsEmpty(true);
               })
               .catch(tinyError);
-          } else {
-            tinyError();
-          }
+          } else setIsEmpty(true);
         })
         .catch(tinyError);
     }
@@ -58,6 +56,15 @@ function UnstoppableDomainsTab({ userId, accountContent }) {
     }
   };
 
+  // Is Empty
+  if (isEmpty)
+    return (
+      <strong className="small">No reverse UD domains were found linked to this wallet.</strong>
+    );
+
+  // Is Error
+  if (isError) return <strong className="small text-danger">ERROR LOADING!</strong>;
+
   // Is Loading
   if (isLoading)
     return (
@@ -67,15 +74,6 @@ function UnstoppableDomainsTab({ userId, accountContent }) {
         </div>{' '}
         Loading data...
       </strong>
-    );
-
-  // Is Error
-  if (isError) return <strong className="small text-danger">ERROR LOADING!</strong>;
-
-  // Is Empty
-  if (isEmpty)
-    return (
-      <strong className="small">No reverse UD domains were found linked to this wallet.</strong>
     );
 
   // Complete

@@ -1,3 +1,4 @@
+import { objType } from 'for-promise/utils/lib.mjs';
 import moment from '@src/util/libs/momentjs';
 
 import initMatrix from '../client/initMatrix';
@@ -66,7 +67,7 @@ export function validatorStatusIcon(presence) {
 }
 
 // Parse Status
-export function parsePresenceStatus(presence) {
+export function parsePresenceStatus(presence, customValues, content) {
   if (typeof presence === 'string') {
     // Get data
     const mxcUrl = initMatrix.mxcUrl;
@@ -76,7 +77,7 @@ export function parsePresenceStatus(presence) {
     try {
       // Parse
       const tinyParse = JSON.parse(presence);
-      if (tinyParse) {
+      if (objType(tinyParse, 'object')) {
         // Status Profile
         if (typeof tinyParse.status === 'string') {
           tinyParse.status = tinyParse.status.trim();
@@ -121,6 +122,15 @@ export function parsePresenceStatus(presence) {
         if (typeof tinyParse.timezone === 'string' && tinyParse.timezone.length > 0) {
           tinyResult.timezone = tinyParse.timezone.substring(0, 100);
         }
+
+        // Custom values
+        if (Array.isArray(customValues))
+          for (const item in customValues)
+            if (
+              typeof customValues[item].get === 'function' &&
+              typeof customValues[item].value === 'string'
+            )
+              customValues[item].get(tinyParse, tinyResult, content);
       }
     } catch {
       tinyResult.msg = presence.substring(0, 100);
@@ -167,7 +177,11 @@ export function getPresence(user, customValues, canStatus = true, canPresence = 
 
     // Convert presence
     if (typeof content.presenceStatusMsg === 'string') {
-      content.presenceStatusMsg = parsePresenceStatus(content.presenceStatusMsg);
+      content.presenceStatusMsg = parsePresenceStatus(
+        content.presenceStatusMsg,
+        customValues,
+        content,
+      );
       if (
         content.presence !== 'offline' &&
         content.presence !== 'unavailable' &&
@@ -192,10 +206,6 @@ export function getPresence(user, customValues, canStatus = true, canPresence = 
       content.isAfk = true;
     // No Afk
     else content.isAfk = false;
-
-    // Custom values
-    if (Array.isArray(customValues))
-      for (const item in customValues) content[customValues[item]] = user[customValues[item]];
 
     // Complete
     return content;

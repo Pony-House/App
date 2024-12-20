@@ -360,7 +360,7 @@ function useToggleDialog() {
   const [loadingBanner, setLoadingBanner] = useState(false);
 
   const mx = initMatrix.matrixClient;
-  const { accountContent } = userPresenceEffect(mx.getUser(userId));
+  const { accountContent } = userPresenceEffect(userId ? mx.getUser(userId) : null);
 
   useEffect(() => {
     const loadProfile = (uId, rId) => {
