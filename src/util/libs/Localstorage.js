@@ -844,6 +844,98 @@ class StorageManager extends EventEmitter {
     }
   }
 
+  async _syncCheckTimelineStepsLegacy(
+    valueId,
+    lastEventId,
+    canLastCheckPoint,
+    eventId,
+    roomId,
+    threadId,
+    thread,
+    room,
+    checkPoint,
+    firstTime,
+    tm,
+    loadComplete,
+  ) {
+    // Matrix Client
+    const mx = initMatrix.matrixClient;
+
+    const nextTimeline = async () => {
+      // Validator
+      if (lastEventId !== this._timelineSyncCache[valueId].lastEvent || canLastCheckPoint) {
+        // Next page
+        await waitTimelineTimeout();
+        await mx.paginateEventTimeline(tm, {
+          backwards: Direction.Forward,
+          limit: SYNC_TIMELINE_DOWNLOAD_LIMIT,
+        });
+
+        console.log(
+          `[room-db-sync] [${valueId}] Next data!`,
+          this._timelineSyncCache[valueId].lastEvent,
+        );
+
+        this._syncTimelineCache.data.push({
+          eventId,
+          roomId,
+          threadId,
+          thread,
+          room,
+          checkpoint: null,
+          timeline: tm,
+        });
+        loadComplete(roomId, threadId, checkPoint, lastEventId, true);
+      }
+
+      // Complete
+      else {
+        console.log(`[room-db-sync] [${roomId}] Complete!`);
+        loadComplete(roomId, threadId, checkPoint, lastEventId, false);
+      }
+    };
+
+    const nextEventId = async () => {
+      await waitTimelineTimeout();
+      const eTimeline = await mx.getEventTimeline(
+        !thread ? room.getUnfilteredTimelineSet() : thread.getUnfilteredTimelineSet(),
+        checkPoint,
+      );
+
+      if (!this._timelineSyncCacheFirstTime[valueId]) {
+        this._timelineSyncCacheFirstTime[valueId] = true;
+        await waitTimelineTimeout();
+        await mx.paginateEventTimeline(eTimeline, {
+          backwards: Direction.Backward,
+          limit: SYNC_TIMELINE_DOWNLOAD_LIMIT,
+        });
+      }
+
+      console.log(`[room-db-sync] [${valueId}] Next data by event id!`, checkPoint);
+
+      this._syncTimelineCache.data.push({
+        roomId,
+        thread,
+        threadId,
+        room,
+        checkpoint: null,
+        timeline: eTimeline,
+        eventId,
+      });
+      loadComplete(roomId, threadId, checkPoint, lastEventId, true);
+    };
+
+    // Next checkpoint
+    if (!checkPoint || !firstTime || canLastCheckPoint) await nextTimeline();
+    // Next event id
+    else if (lastEventId !== this._timelineSyncCache[valueId].lastEvent) await nextEventId();
+    // Complete
+    else {
+      console.log(`[room-db-sync] [${valueId}] Complete!`);
+      loadComplete(roomId, threadId, checkPoint, lastEventId, false);
+    }
+  }
+
   async _syncTimelineRunning(
     room,
     thread,
@@ -859,8 +951,6 @@ class StorageManager extends EventEmitter {
     isComplete,
     loadComplete,
   ) {
-    // Matrix Client
-    const mx = initMatrix.matrixClient;
     const tinyThis = this;
 
     // Start timeline sync cache
@@ -968,100 +1058,20 @@ class StorageManager extends EventEmitter {
         console.log(`[room-db-sync] [${valueId}] Preparing next step...`);
 
         this._syncTimelineCache.used = true;
-        const nextTimeline = async () => {
-          // Validator
-          if (lastEventId !== this._timelineSyncCache[valueId].lastEvent || canLastCheckPoint) {
-            // Next page
-            await waitTimelineTimeout();
-            await mx.paginateEventTimeline(tm, {
-              backwards: Direction.Forward,
-              limit: SYNC_TIMELINE_DOWNLOAD_LIMIT,
-            });
-
-            console.log(
-              `[room-db-sync] [${valueId}] Next data!`,
-              this._timelineSyncCache[valueId].lastEvent,
-            );
-
-            this._syncTimelineCache.data.push({
-              eventId,
-              roomId,
-              threadId,
-              thread,
-              room,
-              checkpoint: null,
-              timeline: tm,
-            });
-            loadComplete(roomId, threadId, checkPoint, lastEventId, true);
-          }
-
-          // Complete
-          else {
-            console.log(`[room-db-sync] [${roomId}] Complete!`);
-            loadComplete(roomId, threadId, checkPoint, lastEventId, false);
-          }
-        };
-
-        const nextEventId = async () => {
-          // GLITCH return nextTimeline();
-          await waitTimelineTimeout();
-          const eTimeline = await mx.getEventTimeline(
-            !thread ? room.getUnfilteredTimelineSet() : thread.getUnfilteredTimelineSet(),
-            checkPoint,
-          );
-
-          if (!this._timelineSyncCacheFirstTime[valueId]) {
-            this._timelineSyncCacheFirstTime[valueId] = true;
-            await waitTimelineTimeout();
-            await mx.paginateEventTimeline(eTimeline, {
-              backwards: Direction.Backward,
-              limit: SYNC_TIMELINE_DOWNLOAD_LIMIT,
-            });
-          }
-
-          /*
-          GLITCH
-          tm.setPaginationToken(
-            this._timelineSyncCache[valueId].paginationToken,
-            Direction.Backward,
-          );
-
-          if (!this._timelineSyncCacheFirstTime[valueId])
-            this._timelineSyncCacheFirstTime[valueId] = true;
-
-          await waitTimelineTimeout();
-          await mx.paginateEventTimeline(tm, {
-            backwards: Direction.Backward,
-            limit: SYNC_TIMELINE_DOWNLOAD_LIMIT,
-          });
-          */
-
-          console.log(`[room-db-sync] [${valueId}] Next data by event id!`, checkPoint);
-
-          this._syncTimelineCache.data.push({
-            roomId,
-            thread,
-            threadId,
-            room,
-            checkpoint: null,
-            timeline: eTimeline,
-            eventId,
-          });
-          loadComplete(roomId, threadId, checkPoint, lastEventId, true);
-        };
-
-        // First time
-        // GLITCH if (!this._timelineSyncCacheFirstTime[valueId] && checkPoint) await nextEventId();
-
-        // Next checkpoint
-        if (!checkPoint || !firstTime || canLastCheckPoint) await nextTimeline();
-        // Next event id
-        else if (lastEventId !== this._timelineSyncCache[valueId].lastEvent) await nextEventId();
-        // Complete
-        else {
-          console.log(`[room-db-sync] [${valueId}] Complete!`);
-          loadComplete(roomId, threadId, checkPoint, lastEventId, false);
-        }
+        await this._syncCheckTimelineStepsLegacy(
+          valueId,
+          lastEventId,
+          canLastCheckPoint,
+          eventId,
+          roomId,
+          threadId,
+          thread,
+          room,
+          checkPoint,
+          firstTime,
+          tm,
+          loadComplete,
+        );
       } else {
         console.log(`[room-db-sync] [${valueId}] Complete!`);
         loadComplete(roomId, threadId, checkPoint, lastEventId, false);
