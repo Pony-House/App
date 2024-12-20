@@ -263,13 +263,11 @@ const unicodeEmojiFix = (text) => {
   let code = text.toLowerCase();
 
   // Fix for "copyright" and "trademark" emojis
-  if (code.substring(0, 2) === '00') {
-    code = code.substring(2);
+  if (code.substring(0, 2) === '00') code = code.substring(2);
 
-    // Fix for keycap emojis
-    const regex = /-fe0f/i;
-    code = code.replace(regex, '');
-  }
+  // Fix for keycap emojis (need remove in some heart emojis)
+  const regex = /-fe0f/i;
+  code = code.replace(regex, '');
 
   // Fix for "Eye in Speech Bubble" emoji
   if (code.includes('1f441')) {
