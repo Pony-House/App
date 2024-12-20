@@ -16,7 +16,7 @@ export default function EthereumProfileTab(menuBarItems, accountContent, existEt
         const user = initMatrix.matrixClient.getUser(userId);
 
         // Ethereum
-        const ethereum = accountContent.presenceStatusMsg.ethereum;
+        const ethereum = accountContent.ethereum;
         return (
           <>
             <strong className="small">Address:</strong>{' '}

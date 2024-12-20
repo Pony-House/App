@@ -21,7 +21,7 @@ function UnstoppableDomainsTab({ userId, accountContent }) {
   const user = initMatrix.matrixClient.getUser(userId);
 
   // Ethereum
-  const ethereum = accountContent.presenceStatusMsg.ethereum;
+  const ethereum = accountContent.ethereum;
 
   // Get Data
   useEffect(() => {

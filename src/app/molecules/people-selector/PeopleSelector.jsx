@@ -12,7 +12,7 @@ import { blurOnBubbling } from '../../atoms/button/script';
 
 import Text from '../../atoms/text/Text';
 import Avatar from '../../atoms/avatar/Avatar';
-import { getPresence, canUsePresence } from '../../../util/onlineStatus';
+import { canUsePresence } from '../../../util/onlineStatus';
 import initMatrix from '../../../client/initMatrix';
 import UserCustomStatus from './UserCustomStatus';
 

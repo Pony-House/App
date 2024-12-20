@@ -5,6 +5,7 @@ import clone from 'clone';
 import { getPresence } from '../onlineStatus';
 import initMatrix from '@src/client/initMatrix';
 import { getUserWeb3Account } from '../web3';
+import envAPI from './env';
 
 const userPresenceEffect = (user) => {
   const mx = initMatrix.matrixClient;
@@ -23,8 +24,10 @@ const userPresenceEffect = (user) => {
   useEffect(() => {
     if (!isClosed) {
       // Update Status Profile
+      const customValues = ['ethereum'];
       const updateProfileStatus = (mEvent, tinyData) => {
-        setAccountContent(getPresence(tinyData));
+        if (envAPI.get('WEB3')) tinyData.ethereum = getUserWeb3Account();
+        setAccountContent(getPresence(tinyData, customValues));
       };
       if (user) {
         // Prepare events
@@ -47,14 +50,13 @@ const userPresenceEffect = (user) => {
             const yourData = clone(mx.getAccountData('pony.house.profile')?.getContent() ?? {});
 
             // Get ethereum data
-            yourData.ethereum = getUserWeb3Account();
-            if (typeof yourData.ethereum.valid !== 'undefined') delete yourData.ethereum.valid;
+            if (envAPI.get('WEB3')) yourData.ethereum = getUserWeb3Account();
 
             // Stringify data
             tinyUser.presenceStatusMsg = JSON.stringify(yourData);
 
             // Update presence
-            setAccountContent(getPresence(tinyUser));
+            setAccountContent(getPresence(tinyUser, customValues));
           }
         }
       }

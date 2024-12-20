@@ -2,7 +2,6 @@ import moment from '@src/util/libs/momentjs';
 
 import initMatrix from '../client/initMatrix';
 import { twemojifyToUrl } from './twemojify';
-import { getUserWeb3Account } from './web3';
 
 // Status Builder
 const statusList = {
@@ -67,7 +66,7 @@ export function validatorStatusIcon(presence) {
 }
 
 // Parse Status
-export function parsePresenceStatus(presence, userId) {
+export function parsePresenceStatus(presence) {
   if (typeof presence === 'string') {
     // Get data
     const mxcUrl = initMatrix.mxcUrl;
@@ -78,10 +77,6 @@ export function parsePresenceStatus(presence, userId) {
       // Parse
       const tinyParse = JSON.parse(presence);
       if (tinyParse) {
-        // Ethereum
-        if (tinyParse.ethereum)
-          tinyResult.ethereum = getUserWeb3Account(tinyParse.ethereum, userId);
-
         // Status Profile
         if (typeof tinyParse.status === 'string') {
           tinyParse.status = tinyParse.status.trim();
@@ -137,7 +132,7 @@ export function parsePresenceStatus(presence, userId) {
 }
 
 // Get Presence Data
-export function getPresence(user, canStatus = true, canPresence = true) {
+export function getPresence(user, customValues, canStatus = true, canPresence = true) {
   if (user) {
     // Base
     const content = {};
@@ -172,7 +167,7 @@ export function getPresence(user, canStatus = true, canPresence = true) {
 
     // Convert presence
     if (typeof content.presenceStatusMsg === 'string') {
-      content.presenceStatusMsg = parsePresenceStatus(content.presenceStatusMsg, user.userId);
+      content.presenceStatusMsg = parsePresenceStatus(content.presenceStatusMsg);
       if (
         content.presence !== 'offline' &&
         content.presence !== 'unavailable' &&
@@ -197,6 +192,10 @@ export function getPresence(user, canStatus = true, canPresence = true) {
       content.isAfk = true;
     // No Afk
     else content.isAfk = false;
+
+    // Custom values
+    if (Array.isArray(customValues))
+      for (const item in customValues) content[customValues[item]] = user[customValues[item]];
 
     // Complete
     return content;

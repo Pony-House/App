@@ -16,7 +16,7 @@ import Clock from '@src/app/atoms/time/Clock';
 import UserStatusIcon from '@src/app/atoms/user-status/UserStatusIcon';
 
 import { twemojifyReact } from '../../../util/twemojify';
-import { canUsePresence, getPresence } from '../../../util/onlineStatus';
+import { canUsePresence } from '../../../util/onlineStatus';
 
 import imageViewer from '../../../util/imageViewer';
 
@@ -657,8 +657,8 @@ function ProfileViewer() {
       envAPI.get('WEB3') &&
       ethConfig.web3Enabled &&
       existPresenceObject &&
-      accountContent.presenceStatusMsg.ethereum &&
-      accountContent.presenceStatusMsg.ethereum.valid;
+      accountContent.ethereum &&
+      accountContent.ethereum.valid;
 
     // Exist banner
     const existBanner =
@@ -755,12 +755,12 @@ function ProfileViewer() {
               <h6 ref={displayNameRef} className="emoji-size-fix m-0 mb-1 fw-bold display-name">
                 <span className="button">{twemojifyReact(username)}</span>
                 {existEthereum ? (
-                  <Tooltip content={accountContent.presenceStatusMsg.ethereum.address}>
+                  <Tooltip content={accountContent.ethereum.address}>
                     <span
                       className="ms-2 ethereum-icon"
                       onClick={() => {
                         copyText(
-                          accountContent.presenceStatusMsg.ethereum.address,
+                          accountContent.ethereum.address,
                           'Ethereum address successfully copied to the clipboard.',
                         );
                       }}

@@ -17,7 +17,7 @@ import Text from '../../atoms/text/Text';
 import Avatar from '../../atoms/avatar/Avatar';
 import NotificationBadge from '../../atoms/badge/NotificationBadge';
 import { blurOnBubbling } from '../../atoms/button/script';
-import { canUsePresence, getPresence } from '../../../util/onlineStatus';
+import { canUsePresence } from '../../../util/onlineStatus';
 import initMatrix from '../../../client/initMatrix';
 import favIconManager from '../../../util/libs/favicon';
 import { selectRoom, selectRoomMode } from '../../../client/action/navigation';

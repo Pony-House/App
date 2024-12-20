@@ -19,12 +19,13 @@ import { getUserWeb3Account, getWeb3Cfg } from '../../../util/web3';
 import { twemojifyReact } from '../../../util/twemojify';
 
 import Avatar, { AvatarJquery } from '../../atoms/avatar/Avatar';
-import { canUsePresence, getPresence } from '../../../util/onlineStatus';
+import { canUsePresence } from '../../../util/onlineStatus';
 import initMatrix from '../../../client/initMatrix';
 import { cssColorMXID } from '../../../util/colorMXID';
 import { addToDataFolder, getDataList } from '../../../util/selectedRoom';
 import matrixAppearance from '../../../util/libs/appearance';
 import UserCustomStatus from './UserCustomStatus';
+import userPresenceEffect from '@src/util/libs/userPresenceEffect';
 
 function PeopleSelectorBanner({ name, color, user = null, roomId }) {
   const [, forceUpdate] = useReducer((count) => count + 1, 0);
@@ -36,10 +37,10 @@ function PeopleSelectorBanner({ name, color, user = null, roomId }) {
   const noteRef = useRef(null);
 
   const [avatarUrl, setUserAvatar] = useState(user ? user?.avatarUrl : null);
-  const [accountContent, setAccountContent] = useState(null);
   const [bannerSrc, setBannerSrc] = useState(null);
   const [loadingBanner, setLoadingBanner] = useState(false);
 
+  const { accountContent } = userPresenceEffect(user);
   const mx = initMatrix.matrixClient;
   const mxcUrl = initMatrix.mxcUrl;
 
@@ -88,42 +89,6 @@ function PeopleSelectorBanner({ name, color, user = null, roomId }) {
       matrixAppearance.off('simplerHashtagSameHomeServer', updateClock);
     };
   });
-
-  // User profile updated
-  useEffect(() => {
-    if (user) {
-      const updateProfileStatus = (mEvent, tinyData, isFirstTime = false) => {
-        // Tiny Data
-        const tinyUser = tinyData;
-
-        // Is You
-        if (tinyUser.userId === mx.getUserId()) {
-          const yourData = clone(mx.getAccountData('pony.house.profile')?.getContent() ?? {});
-          yourData.ethereum = getUserWeb3Account();
-          if (typeof yourData.ethereum.valid !== 'undefined') delete yourData.ethereum.valid;
-          tinyUser.presenceStatusMsg = JSON.stringify(yourData);
-        }
-
-        // Update Status Icon
-        setAccountContent(getPresence(tinyUser));
-        setUserAvatar(tinyUser?.avatarUrl);
-      };
-
-      user.on(UserEvent.CurrentlyActive, updateProfileStatus);
-      user.on(UserEvent.LastPresenceTs, updateProfileStatus);
-      user.on(UserEvent.Presence, updateProfileStatus);
-      user.on(UserEvent.AvatarUrl, updateProfileStatus);
-      user.on(UserEvent.DisplayName, updateProfileStatus);
-      if (!accountContent) updateProfileStatus(null, user);
-      return () => {
-        if (user) user.removeListener(UserEvent.CurrentlyActive, updateProfileStatus);
-        if (user) user.removeListener(UserEvent.LastPresenceTs, updateProfileStatus);
-        if (user) user.removeListener(UserEvent.Presence, updateProfileStatus);
-        if (user) user.removeListener(UserEvent.AvatarUrl, updateProfileStatus);
-        if (user) user.removeListener(UserEvent.DisplayName, updateProfileStatus);
-      };
-    }
-  }, [user]);
 
   // Exist Presence
   const existPresenceObject = accountContent && objType(accountContent.presenceStatusMsg, 'object');
