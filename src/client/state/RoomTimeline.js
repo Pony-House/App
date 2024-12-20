@@ -30,7 +30,6 @@ class RoomTimeline extends EventEmitter {
     this.roomId = roomId;
     this.roomAlias = roomAlias;
     this.initialized = false;
-    this.ended = false;
     this.firstStart = false;
 
     this.editedTimeline = new Map();
@@ -99,180 +98,149 @@ class RoomTimeline extends EventEmitter {
 
     // Start timeline events
     this._startTimeline = async (data, eventId) => {
-      if (!tinyThis.ended) {
-        console.log(`${this._consoleTag} Starting timeline`);
-        const tinyError = (err) => {
-          console.error(err);
-          alert(err.message, 'Timeline load error');
-        };
+      console.log(`${this._consoleTag} Starting timeline`);
+      const tinyError = (err) => {
+        console.error(err);
+        alert(err.message, 'Timeline load error');
+      };
 
-        if (!data.err) {
-          if (data.firstTime) {
-            try {
-              if (tinyThis.threadId) {
-                let thread = tinyThis.room.getThread(tinyThis.threadId);
-                if (!thread) {
-                  await initMatrix.matrixClient.getEventTimeline(
-                    tinyThis.getUnfilteredTimelineSet(),
-                    tinyThis.threadId,
-                  );
+      if (!data.err) {
+        if (data.firstTime) {
+          try {
+            if (tinyThis.threadId) {
+              let thread = tinyThis.room.getThread(tinyThis.threadId);
+              if (!thread) {
+                await initMatrix.matrixClient.getEventTimeline(
+                  tinyThis.getUnfilteredTimelineSet(),
+                  tinyThis.threadId,
+                );
 
-                  if (!tinyThis.ended) {
-                    const tm = tinyThis.room.getLiveTimeline();
-                    if (tinyThis.room.hasEncryptionStateEvent())
-                      await decryptAllEventsOfTimeline(tm);
-                    thread = tinyThis.room.getThread(tinyThis.threadId);
-                  }
-                }
-
-                if (thread) {
-                  tinyThis.thread = thread;
-                  thread.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
-                }
+                const tm = tinyThis.room.getLiveTimeline();
+                if (tinyThis.room.hasEncryptionStateEvent()) await decryptAllEventsOfTimeline(tm);
+                thread = tinyThis.room.getThread(tinyThis.threadId);
               }
 
-              if (!tinyThis.ended) {
-                const getMsgConfig = tinyThis._buildPagination({ page: 1 });
-
-                if (tinyThis.timelineCache.pages < 1) {
-                  tinyThis.timelineCache.pages =
-                    await storageManager.getMessagesPagination(getMsgConfig);
-                  tinyThis.emit(cons.events.roomTimeline.PAGES_UPDATED, tinyThis.timelineCache);
-                }
-
-                if (tinyThis.timelineCache.timeline.length < 1) {
-                  if (!eventId || tinyThis.forceLoad) {
-                    const getMsgTinyCfg = tinyThis._buildPagination({ page: 1 });
-                    const events = await storageManager.getMessages(getMsgTinyCfg);
-                    while (tinyThis.timelineCache.timeline.length > 0) {
-                      tinyThis._deletingEventById(tinyThis.timelineCache.timeline[0].getId());
-                    }
-
-                    if (!tinyThis.ended) {
-                      for (const item in events) {
-                        tinyThis._insertIntoTimeline(events[item], undefined, true, true);
-                      }
-                    }
-                    tinyThis.forceLoad = false;
-                  } else tinyThis._selectEvent = eventId;
-                }
-
-                if (!tinyThis.ended) {
-                  if (tinyThis._ydoc.initialized) {
-                    const events = await storageManager.getCrdt(getMsgConfig);
-                    if (!tinyThis.ended) {
-                      for (const item in events) {
-                        const mEvent = events[item];
-                        tinyThis.sendCrdtToTimeline(mEvent);
-                      }
-                    }
-                  }
-
-                  if (!tinyThis.ended) {
-                    if (tinyThis.timelineCache.page < 1) {
-                      tinyThis.timelineCache.page = 1;
-                      tinyThis.emit(cons.events.roomTimeline.PAGES_UPDATED, tinyThis.timelineCache);
-                    }
-
-                    tinyThis.initialized = true;
-                    tinyThis.emit(cons.events.roomTimeline.READY, eventId || null);
-                    console.log(`${this._consoleTag} Timeline started`);
-                    tinyThis.firstStart = true;
-                  }
-                }
+              if (thread) {
+                tinyThis.thread = thread;
+                thread.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
               }
-            } catch (err) {
-              tinyError(err);
             }
+
+            const getMsgConfig = tinyThis._buildPagination({ page: 1 });
+
+            if (tinyThis.timelineCache.pages < 1) {
+              tinyThis.timelineCache.pages =
+                await storageManager.getMessagesPagination(getMsgConfig);
+              tinyThis.emit(cons.events.roomTimeline.PAGES_UPDATED, tinyThis.timelineCache);
+            }
+
+            if (tinyThis.timelineCache.timeline.length < 1) {
+              if (!eventId || tinyThis.forceLoad) {
+                const getMsgTinyCfg = tinyThis._buildPagination({ page: 1 });
+                const events = await storageManager.getMessages(getMsgTinyCfg);
+                while (tinyThis.timelineCache.timeline.length > 0) {
+                  tinyThis._deletingEventById(tinyThis.timelineCache.timeline[0].getId());
+                }
+
+                for (const item in events) {
+                  tinyThis._insertIntoTimeline(events[item], undefined, true, true);
+                }
+                tinyThis.forceLoad = false;
+              } else tinyThis._selectEvent = eventId;
+            }
+
+            if (tinyThis._ydoc.initialized) {
+              const events = await storageManager.getCrdt(getMsgConfig);
+              for (const item in events) {
+                const mEvent = events[item];
+                tinyThis.sendCrdtToTimeline(mEvent);
+              }
+            }
+
+            if (tinyThis.timelineCache.page < 1) {
+              tinyThis.timelineCache.page = 1;
+              tinyThis.emit(cons.events.roomTimeline.PAGES_UPDATED, tinyThis.timelineCache);
+            }
+
+            tinyThis.initialized = true;
+            tinyThis.emit(cons.events.roomTimeline.READY, eventId || null);
+            console.log(`${this._consoleTag} Timeline started`);
+            tinyThis.firstStart = true;
+          } catch (err) {
+            tinyError(err);
           }
-        } else tinyError(data.err);
-      }
+        }
+      } else tinyError(data.err);
     };
 
     // Message events
     this._onMessage = async (r, mEvent) => {
       const tmc = tinyThis.getTimelineCache(mEvent);
       if (!tmc && !mEvent.isRedacted()) return;
-      if (!tinyThis.ended) {
-        tmc.pages = await storageManager.getMessagesPagination(
-          this._buildPagination({ threadId: mEvent.getThreadId(), roomId: mEvent.getRoomId() }),
-        );
-        if (!tinyThis.ended) {
-          // Check event
-          if (!mEvent.isSending() || mEvent.getSender() === initMatrix.matrixClient.getUserId()) {
-            // Send into the timeline
-            tinyThis._insertIntoTimeline(mEvent, tmc);
-          }
-        }
+      tmc.pages = await storageManager.getMessagesPagination(
+        this._buildPagination({ threadId: mEvent.getThreadId(), roomId: mEvent.getRoomId() }),
+      );
+      // Check event
+      if (!mEvent.isSending() || mEvent.getSender() === initMatrix.matrixClient.getUserId()) {
+        // Send into the timeline
+        tinyThis._insertIntoTimeline(mEvent, tmc);
       }
     };
 
     this._onYourMessage = (data, mEvent) => {
       const tmc = tinyThis.getTimelineCache(mEvent);
       if (!tmc) return;
-      if (!tinyThis.ended) {
-        tinyThis._insertIntoTimeline(mEvent, tmc);
-      }
+      tinyThis._insertIntoTimeline(mEvent, tmc);
     };
 
     this._onYourMessageComplete = (data, mEvent) => {
       const tmc = tinyThis.getTimelineCache(mEvent);
       if (!tmc) return;
-      if (!tinyThis.ended) {
-        const eventId = mEvent.getId();
-        const msgIndex = tmc.timeline.findIndex((item) => item.getId() === eventId);
-        if (msgIndex > -1) {
-          this.timelineCache.timeline.splice(msgIndex, 1);
-          this._deletingEventPlaces(eventId);
-        }
+      const eventId = mEvent.getId();
+      const msgIndex = tmc.timeline.findIndex((item) => item.getId() === eventId);
+      if (msgIndex > -1) {
+        this.timelineCache.timeline.splice(msgIndex, 1);
+        this._deletingEventPlaces(eventId);
       }
     };
 
     this._onYourMessageError = (data, mEvent) => {
       const tmc = tinyThis.getTimelineCache(mEvent);
       if (!tmc) return;
-      if (!tinyThis.ended) {
-        const eventId = mEvent.getId();
-        const msgIndex = tmc.timeline.findIndex((item) => item.getId() === eventId);
-        if (msgIndex > -1) {
-        }
+      const eventId = mEvent.getId();
+      const msgIndex = tmc.timeline.findIndex((item) => item.getId() === eventId);
+      if (msgIndex > -1) {
       }
     };
 
     // Reaction events
     this._onReaction = (r, mEvent) => {
-      if (!tinyThis.ended) {
-        if (!tinyThis.belongToRoom(mEvent)) return;
-        console.log(
-          `${mEvent.getType()} ${mEvent.getRoomId()} ${mEvent.getId()} Reaction Wait ${mEvent.getSender()}`,
-          mEvent.getContent(),
-          mEvent,
-        );
-        // Reactions
-      }
+      if (!tinyThis.belongToRoom(mEvent)) return;
+      console.log(
+        `${mEvent.getType()} ${mEvent.getRoomId()} ${mEvent.getId()} Reaction Wait ${mEvent.getSender()}`,
+        mEvent.getContent(),
+        mEvent,
+      );
+      // Reactions
     };
 
     // Timeline events
     this._onTimeline = (r, mEvent) => {
-      if (!tinyThis.ended) {
-        const tmc = tinyThis.getTimelineCache(mEvent);
-        if (!tmc) return;
-        if (mEvent.getType() !== 'm.room.redaction') tinyThis._insertIntoTimeline(mEvent, tmc);
-        else tinyThis._deletingEvent(mEvent);
-      }
+      const tmc = tinyThis.getTimelineCache(mEvent);
+      if (!tmc) return;
+      if (mEvent.getType() !== 'm.room.redaction') tinyThis._insertIntoTimeline(mEvent, tmc);
+      else tinyThis._deletingEvent(mEvent);
     };
 
     // Thread added events
     this._onThreadEvent = (r, mEvent) => {
       if (!tinyThis.belongToRoom(mEvent)) return;
-      if (!tinyThis.ended) {
-      }
     };
 
     // Crdt events
     this._onCrdt = (r, mEvent) => {
       if (!tinyThis.belongToRoom(mEvent)) return;
-      if (!tinyThis.ended) tinyThis.sendCrdtToTimeline(mEvent);
+      tinyThis.sendCrdtToTimeline(mEvent);
     };
 
     // Event Status Events
@@ -474,107 +442,99 @@ class RoomTimeline extends EventEmitter {
 
   // Pagination
   async paginateTimeline(backwards = false) {
-    if (!this.ended) {
-      // Initialization
-      if (this.isOngoingPagination) return false;
-      const oldPage = this.timelineCache.page;
+    // Initialization
+    if (this.isOngoingPagination) return false;
+    const oldPage = this.timelineCache.page;
 
-      if (typeof backwards === 'boolean') {
-        if (backwards) this.timelineCache.page++;
-        else this.timelineCache.page--;
-      } else if (typeof backwards === 'number') this.timelineCache.page = backwards;
+    if (typeof backwards === 'boolean') {
+      if (backwards) this.timelineCache.page++;
+      else this.timelineCache.page--;
+    } else if (typeof backwards === 'number') this.timelineCache.page = backwards;
 
-      this.isOngoingPagination = true;
+    this.isOngoingPagination = true;
 
-      // Old Size
-      const oldSize = this.timelineCache.timeline.length;
+    // Old Size
+    const oldSize = this.timelineCache.timeline.length;
 
-      // Try time
-      try {
-        // Get Last Page
-        if (this.timelineCache.page > 1 && !this.timelineCache.lastEvent) {
-          const firstTimeline = await storageManager.getMessages(
-            this._buildPagination({ page: 1, limit: 1 }),
-          );
-          if (firstTimeline[0]) this.timelineCache.lastEvent = firstTimeline[0];
-        }
-
-        if (oldPage > 0 || this._selectEvent) {
-          let events;
-          const tinyThis = this;
-
-          // Normal get page
-          const normalGetData = async () => {
-            tinyThis.timelineCache.pages = await storageManager.getMessagesPagination(
-              this._buildPagination(),
-            );
-            events = await storageManager.getMessages(
-              this._buildPagination({ page: this.timelineCache.page }),
-            );
-            tinyThis.emit(cons.events.roomTimeline.PAGES_UPDATED, tinyThis.timelineCache);
-          };
-
-          // Remove old timeline
-          const clearTimeline = () => {
-            while (tinyThis.timelineCache.timeline.length > 0) {
-              tinyThis._deletingEventById(tinyThis.timelineCache.timeline[0].getId());
-            }
-          };
-
-          // Normal get page
-          if (!this._selectEvent) {
-            await normalGetData();
-            clearTimeline();
-          }
-
-          // Use event id
-          if (!this.ended && this._selectEvent) {
-            const data = await storageManager.getLocationMessagesId(
-              this._buildPagination({ eventId: this._selectEvent }),
-            );
-
-            if (!this.ended) {
-              if (data && data.success) {
-                this.timelineCache.pages = data.pages;
-                this.timelineCache.page = data.page;
-                events = data.items;
-                tinyThis.emit(cons.events.roomTimeline.PAGES_UPDATED, tinyThis.timelineCache);
-              } else await normalGetData();
-
-              this._selectEvent = null;
-              clearTimeline();
-            }
-          }
-
-          // Insert events into the timeline
-          if (!this.ended && Array.isArray(events)) {
-            for (const item in events) {
-              this._insertIntoTimeline(events[item], undefined, true, true);
-            }
-          }
-        }
-
-        if (!this.ended) {
-          // Loaded Check
-          const loaded = this.timelineCache.timeline.length - oldSize;
-
-          // Complete
-          this.emit(cons.events.roomTimeline.PAGINATED, backwards, loaded);
-          this.isOngoingPagination = false;
-
-          updateRoomInfo();
-          urlParams.delete('event_id');
-          return true;
-        }
-        return false;
-      } catch {
-        // Error
-        this.emit(cons.events.roomTimeline.PAGINATED, backwards, 0);
-        this.isOngoingPagination = false;
-        return false;
+    // Try time
+    try {
+      // Get Last Page
+      if (this.timelineCache.page > 1 && !this.timelineCache.lastEvent) {
+        const firstTimeline = await storageManager.getMessages(
+          this._buildPagination({ page: 1, limit: 1 }),
+        );
+        if (firstTimeline[0]) this.timelineCache.lastEvent = firstTimeline[0];
       }
+
+      if (oldPage > 0 || this._selectEvent) {
+        let events;
+        const tinyThis = this;
+
+        // Normal get page
+        const normalGetData = async () => {
+          tinyThis.timelineCache.pages = await storageManager.getMessagesPagination(
+            this._buildPagination(),
+          );
+          events = await storageManager.getMessages(
+            this._buildPagination({ page: this.timelineCache.page }),
+          );
+          tinyThis.emit(cons.events.roomTimeline.PAGES_UPDATED, tinyThis.timelineCache);
+        };
+
+        // Remove old timeline
+        const clearTimeline = () => {
+          while (tinyThis.timelineCache.timeline.length > 0) {
+            tinyThis._deletingEventById(tinyThis.timelineCache.timeline[0].getId());
+          }
+        };
+
+        // Normal get page
+        if (!this._selectEvent) {
+          await normalGetData();
+          clearTimeline();
+        }
+
+        // Use event id
+        if (this._selectEvent) {
+          const data = await storageManager.getLocationMessagesId(
+            this._buildPagination({ eventId: this._selectEvent }),
+          );
+
+          if (data && data.success) {
+            this.timelineCache.pages = data.pages;
+            this.timelineCache.page = data.page;
+            events = data.items;
+            tinyThis.emit(cons.events.roomTimeline.PAGES_UPDATED, tinyThis.timelineCache);
+          } else await normalGetData();
+
+          this._selectEvent = null;
+          clearTimeline();
+        }
+
+        // Insert events into the timeline
+        if (Array.isArray(events)) {
+          for (const item in events) {
+            this._insertIntoTimeline(events[item], undefined, true, true);
+          }
+        }
+      }
+
+      // Loaded Check
+      const loaded = this.timelineCache.timeline.length - oldSize;
+
+      // Complete
+      this.emit(cons.events.roomTimeline.PAGINATED, backwards, loaded);
+      this.isOngoingPagination = false;
+
+      updateRoomInfo();
+      urlParams.delete('event_id');
+      return true;
+    } catch {
+      // Error
+      this.emit(cons.events.roomTimeline.PAGINATED, backwards, 0);
+      this.isOngoingPagination = false;
+      return false;
     }
-    return false;
   }
 
   // Get User renders
@@ -668,7 +628,6 @@ class RoomTimeline extends EventEmitter {
   }
 
   removeInternalListeners() {
-    this.ended = true;
     this._disableYdoc();
     storageManager.off('dbEventCachePreparing', this._onYourMessage);
     storageManager.off('dbEventCacheReady', this._onYourMessageComplete);
