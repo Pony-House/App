@@ -730,7 +730,6 @@ class StorageManager extends EventEmitter {
             eventId,
             checkpoint,
             timeline,
-            firstTime,
             singleTime,
             roomId,
             threadId,
@@ -844,13 +843,27 @@ class StorageManager extends EventEmitter {
     }
   }
 
+  async _requestTimelineToken(roomId, paginationToken) {
+    const result = await initMatrix.matrixClient.http.authedRequest(
+      'GET',
+      `/rooms/${encodeURIComponent(roomId)}/messages`,
+      {
+        from: paginationToken,
+        dir: Direction.Forward,
+        limit: SYNC_TIMELINE_DOWNLOAD_LIMIT,
+      },
+    );
+
+    const chuck = result.chunk;
+    return chuck;
+  }
+
   async _syncTimelineRunning(
     room,
     thread,
     eventId,
     checkpoint,
     timeline,
-    firstTime,
     singleTime,
     roomId,
     threadId,
@@ -859,6 +872,7 @@ class StorageManager extends EventEmitter {
     isComplete,
     loadComplete,
   ) {
+    // Matrix client
     const tinyThis = this;
     const mx = initMatrix.matrixClient;
 
@@ -988,6 +1002,9 @@ class StorageManager extends EventEmitter {
               backwards: Direction.Forward,
               limit: SYNC_TIMELINE_DOWNLOAD_LIMIT,
             });
+
+            if (typeof this._lastTimelineSyncCache[valueId].paginationToken === 'string')
+              delete this._lastTimelineSyncCache[valueId].paginationToken;
 
             console.log(
               `[room-db-sync] [${valueId}] Next data!\n${lastTimelineEventId}\n${lastTimelineToken}`,
