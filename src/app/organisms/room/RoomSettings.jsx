@@ -270,7 +270,7 @@ function RoomSettings({ roomTimeline = {} }) {
 }
 
 RoomSettings.propTypes = {
-  roomId: PropTypes.string.isRequired,
+  roomTimeline: PropTypes.object.isRequired,
 };
 
 export default RoomSettings;

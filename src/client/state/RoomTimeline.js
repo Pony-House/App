@@ -304,11 +304,15 @@ class RoomTimeline extends EventEmitter {
 
   syncTimeline() {
     if (this.timeline.length > 0)
-      storageManager.warnTimeline(this.roomId, this.threadId, null, this.timeline[0].getId(), {
-        firstTime: true,
-        checkPoint: this.timeline[0].getId(),
-        isNext: false,
-      });
+      storageManager.warnTimeline(
+        this.roomId,
+        this.threadId,
+        this.timeline[this.timeline.length - 1].getId(),
+        {
+          firstTime: true,
+          isNext: false,
+        },
+      );
     else storageManager.syncTimeline(this.roomId, this.threadId);
   }
 

@@ -1,31 +1,31 @@
 import $ from 'jquery';
+import { opSetTimeout } from '@src/util/libs/timeoutLib';
 
 const chatboxQuery = '#chatbox-scroll';
 const roomViewQuery = '> .room-view__content #chatbox';
-const timeoutFixer = { i: 200, value: 10 };
 let height = null;
 
-let tinyFix = 0;
-setInterval(() => {
-  if (tinyFix > 0) tinyFix--;
-}, 5000);
-
-export default function tinyFixScrollChat(tinyI = timeoutFixer.i) {
-  tinyFix++;
+export default function tinyFixScrollChat(tinyI = 200) {
   for (let i = 0; i < tinyI; i++) {
-    setTimeout(() => {
-      if (typeof height === 'number') {
-        const scrollBar = $(chatboxQuery);
-        const roomView = scrollBar.find(roomViewQuery);
+    opSetTimeout(
+      'tinyFixScrollChat',
+      () => {
+        if (typeof height === 'number') {
+          const scrollBar = $(chatboxQuery);
+          const roomView = scrollBar.find(roomViewQuery);
 
-        const oldHeight = height;
-        const newHeight = roomView.height();
-        height = newHeight;
+          const oldHeight = height;
+          const newHeight = roomView.height();
+          height = newHeight;
 
-        const diffHeight = newHeight - oldHeight;
-        if (diffHeight > 0) scrollBar.animate({ scrollTop: scrollBar.scrollTop() + diffHeight }, 0);
-      }
-    }, timeoutFixer.value * tinyFix);
+          const diffHeight = newHeight - oldHeight;
+          if (diffHeight > 0)
+            scrollBar.animate({ scrollTop: scrollBar.scrollTop() + diffHeight }, 0);
+        }
+      },
+      10,
+      1000,
+    );
   }
 }
 

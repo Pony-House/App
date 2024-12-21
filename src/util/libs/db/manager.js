@@ -61,7 +61,7 @@ class TinyDbManager extends EventEmitter {
       },
     ];
 
-    this._waitTimelineTimeout = new Promise((resolve) => resolve());
+    this._waitTimelineTimeout = () => new Promise((resolve) => resolve());
   }
 
   setTimelineTimeout(waitTimelineTimeout) {
