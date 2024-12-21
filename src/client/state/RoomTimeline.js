@@ -167,6 +167,10 @@ class RoomTimeline extends EventEmitter {
         } catch (err) {
           tinyError(err);
         }
+      } else {
+        tinyThis.initialized = true;
+        tinyThis.firstStart = true;
+        tinyThis.emit(cons.events.roomTimeline.TIMELINE_INIT_UPDATED, tinyThis.initialized);
       }
     };
 

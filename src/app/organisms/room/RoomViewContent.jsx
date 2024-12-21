@@ -763,6 +763,16 @@ function RoomViewContent({
     };
   });
 
+  useEffect(() => {
+    const forceTinyUpdate = () => forceUpdateLimit();
+    if (roomTimeline)
+      roomTimeline.on(cons.events.roomTimeline.TIMELINE_INIT_UPDATED, forceTinyUpdate);
+    return () => {
+      if (roomTimeline)
+        roomTimeline.off(cons.events.roomTimeline.TIMELINE_INIT_UPDATED, forceTinyUpdate);
+    };
+  });
+
   console.log(
     `[room-status] [${tmValue}]  Loading ${String(isLoading)} / Initialized ${String(roomTimeline.initialized)} / isRoomSyncingTmLast ${String(roomTimeline.isRoomSyncingTmLast())}`,
   );

@@ -174,6 +174,7 @@ const cons = {
     },
 
     roomTimeline: {
+      TIMELINE_INIT_UPDATED: 'TIMELINE_INIT_UPDATED',
       PAGES_UPDATED: 'PAGES_UPDATED',
       READY: 'READY',
       EVENT: 'EVENT',
