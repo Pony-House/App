@@ -1070,7 +1070,15 @@ class StorageManager extends EventEmitter {
     const valueId = `${roomId}${threadId ? `:${threadId}` : ''}`;
     return new Promise((resolve, reject) => {
       if (!tinyThis._lastEventsLoadWaiting[valueId]) {
-        room.refreshLiveTimeline().then(resolve).catch(reject);
+        room
+          .refreshLiveTimeline()
+          .then((data) =>
+            room
+              .loadMembersIfNeeded()
+              .then((data2) => ({ refresh: data, loadMembers: data2 }))
+              .catch(reject),
+          )
+          .catch(reject);
       } else setTimeout(() => tinyThis.refreshLiveTimeline().then(resolve).catch(reject), 100);
     });
   }
