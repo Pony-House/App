@@ -723,21 +723,6 @@ class StorageManager extends EventEmitter {
 
         // Run normal script
         await tinyThis.waitAddTimeline('sync');
-        const _syncTimelineRunning = () =>
-          this._syncTimelineRunning(
-            room,
-            thread,
-            eventId,
-            checkpoint,
-            timeline,
-            singleTime,
-            roomId,
-            threadId,
-            valueId,
-            tm,
-            isComplete,
-            loadComplete,
-          );
 
         console.log(
           `[room-db-sync] [${valueId}] [re-add] Reading data...`,
@@ -750,7 +735,21 @@ class StorageManager extends EventEmitter {
           console.log(`[room-db-sync] [${valueId}] [re-add] Re-add progress detected!`);
           this.syncTimelineRecoverEvent(room, threadId, tm);
         }
-        await _syncTimelineRunning();
+        await this._syncTimelineRunning(
+          firstTime,
+          room,
+          thread,
+          eventId,
+          checkpoint,
+          timeline,
+          singleTime,
+          roomId,
+          threadId,
+          valueId,
+          tm,
+          isComplete,
+          loadComplete,
+        );
       }
 
       // Error
@@ -859,6 +858,7 @@ class StorageManager extends EventEmitter {
   }
 
   async _syncTimelineRunning(
+    firstTime,
     room,
     thread,
     eventId,
@@ -972,58 +972,69 @@ class StorageManager extends EventEmitter {
 
     // To complete data scripts
     const updateTinyData = () => {
-      if (lastTimelineToken)
-        tinyThis._timelineSyncCache[valueId].paginationToken = lastTimelineToken;
-      if (lastTimelineEventId) tinyThis._timelineSyncCache[valueId].lastEvent = lastTimelineEventId;
-      if (lastTimelineEventTs) tinyThis._timelineSyncCache[valueId].lastTs = lastTimelineEventTs;
-      tinyThis.setJson('ponyHouse-timeline-sync', tinyThis._timelineSyncCache);
+      if (!singleTime) {
+        if (lastTimelineToken)
+          tinyThis._timelineSyncCache[valueId].paginationToken = lastTimelineToken;
+        if (lastTimelineEventId)
+          tinyThis._timelineSyncCache[valueId].lastEvent = lastTimelineEventId;
+        if (lastTimelineEventTs) tinyThis._timelineSyncCache[valueId].lastTs = lastTimelineEventTs;
+        tinyThis.setJson('ponyHouse-timeline-sync', tinyThis._timelineSyncCache);
+      }
     };
 
     const tinyComplete = (isNext) => {
       console.log(`[room-db-sync] [${valueId}] Complete!`);
-      loadComplete(roomId, threadId, checkPoint, lastEventId, isNext);
       updateTinyData();
+      loadComplete(roomId, threadId, checkPoint, lastEventId, isNext);
     };
 
     // Next Timeline
     if (!singleTime) {
       const nextTimelineToken = tm.getPaginationToken(Direction.Backward);
       if ((!isComplete && nextTimelineToken) || canLastCheckPoint) {
-        console.log(`[room-db-sync] [${valueId}] Preparing next step...`);
         this._syncTimelineCache.used = true;
 
+        console.log(`[room-db-sync] [${valueId}] Preparing next step...`);
+        console.log(
+          `[room-db-sync] [${valueId}] firstTime ${String(firstTime)} / canLastCheckPoint ${String(canLastCheckPoint)} / lastTimelineToken ${String(lastTimelineToken)}`,
+        );
+
+        const canSync = firstTime || lastTimelineToken || canLastCheckPoint;
+        console.log(`[room-db-sync] [${valueId}] canSync ${String(canSync)}`);
+
         // Next checkpoint
-        if (lastTimelineToken || canLastCheckPoint) {
-          // Validator
-          if (lastTimelineToken) {
-            // Next page
-            await waitTimelineTimeout();
-            await mx.paginateEventTimeline(tm, {
-              backwards: Direction.Forward,
-              limit: SYNC_TIMELINE_DOWNLOAD_LIMIT,
-            });
+        if (canSync) {
+          // Next page
+          console.log(`[room-db-sync] [${valueId}] Getting next timeline page...`);
+          await waitTimelineTimeout();
+          await mx.paginateEventTimeline(tm, {
+            backwards: Direction.Forward,
+            limit: SYNC_TIMELINE_DOWNLOAD_LIMIT,
+          });
 
-            if (typeof this._lastTimelineSyncCache[valueId].paginationToken === 'string')
-              delete this._lastTimelineSyncCache[valueId].paginationToken;
+          console.log(`[room-db-sync] [${valueId}] New paginate page loaded!`);
 
-            console.log(
-              `[room-db-sync] [${valueId}] Next data!\n${lastTimelineEventId}\n${lastTimelineToken}`,
-            );
+          if (
+            this._lastTimelineSyncCache[valueId] &&
+            typeof this._lastTimelineSyncCache[valueId].paginationToken === 'string'
+          )
+            delete this._lastTimelineSyncCache[valueId].paginationToken;
 
-            this._syncTimelineCache.data.push({
-              eventId,
-              roomId,
-              threadId,
-              thread,
-              room,
-              checkpoint: null,
-              timeline: tm,
-            });
-            updateTinyData();
-            loadComplete(roomId, threadId, checkPoint, lastEventId, true);
-          }
-          // Complete
-          else tinyComplete(false);
+          console.log(
+            `[room-db-sync] [${valueId}] Next data!\n${lastTimelineEventId}\n${lastTimelineToken}`,
+          );
+
+          this._syncTimelineCache.data.push({
+            eventId,
+            roomId,
+            threadId,
+            thread,
+            room,
+            checkpoint: null,
+            timeline: tm,
+          });
+          updateTinyData();
+          loadComplete(roomId, threadId, checkPoint, lastEventId, true);
         }
         // Complete
         else tinyComplete(false);
