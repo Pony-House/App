@@ -1113,9 +1113,9 @@ class StorageManager extends EventEmitter {
       // Used timeline progress
       if (this._syncTimelineCache.used) {
         const tinyRoomsUsed = clone(this._syncTimelineCache.roomsUsed);
-        const tinyRoomsIdsUsed = clone(this._syncTimelineCache.roomsIdsUsed);
-        const usingTmLastEvent = clone(this._syncTimelineCache.usingTmLastEvent);
-        const mx = initMatrix.matrixClient;
+        // const tinyRoomsIdsUsed = clone(this._syncTimelineCache.roomsIdsUsed);
+        // const usingTmLastEvent = clone(this._syncTimelineCache.usingTmLastEvent);
+        // const mx = initMatrix.matrixClient;
 
         // Complete!
         for (const item in tinyRoomsUsed) {
@@ -1126,7 +1126,7 @@ class StorageManager extends EventEmitter {
           }
         }
 
-        for (const item in tinyRoomsIdsUsed) {
+        /* for (const item in tinyRoomsIdsUsed) {
           const tinyRoom = mx.getRoom(tinyRoomsIdsUsed[item].roomId);
           const tmLastEventUsed = usingTmLastEvent.indexOf(item) > -1 ? true : false;
 
@@ -1134,7 +1134,7 @@ class StorageManager extends EventEmitter {
             this.refreshLiveTimeline(tinyRoom, tinyRoomsIdsUsed[item].threadId).catch((err) =>
               console.error(err),
             );
-        }
+        } */
 
         console.log(`[room-db-sync] Database checker complete!`);
       }

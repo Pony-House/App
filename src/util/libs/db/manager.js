@@ -98,8 +98,8 @@ class TinyDbManager extends EventEmitter {
     data.redaction =
       typeof isRedacted === 'boolean'
         ? isRedacted
-        : typeof this.dbManager._deletedIds[data.event_id] === 'boolean'
-          ? this.dbManager._deletedIds[data.event_id]
+        : typeof this._deletedIds[data.event_id] === 'boolean'
+          ? this._deletedIds[data.event_id]
           : false;
 
     if (typeof threadId === 'string' && threadId !== data.event_id) data.thread_id = threadId;
