@@ -329,7 +329,6 @@ class StorageManager extends EventEmitter {
       data: [],
     };
 
-    this._timelineSyncCacheFirstTime = {};
     this._timelineSyncCache = this.getJson('ponyHouse-timeline-sync', 'obj');
     this._lastTimelineSyncCache = clone(this._timelineSyncCache) || {};
     console.log(`[room-db-sync] [sync] Data loaded!`, this._lastTimelineSyncCache);
@@ -665,26 +664,33 @@ class StorageManager extends EventEmitter {
     const tinyThis = this;
     if (!singleTime) this._syncTimelineCache.roomId = null;
     const loadComplete = (roomId, threadId, checkPoint, lastEventId, isNext, err) => {
-      tinyThis.warnTimeline(roomId, threadId, eventId, lastEventId, err, {
+      if (err) {
+        console.error(err);
+        alert(err.message, 'Timeline sync error!');
+        tinyThis._resetTimelineCache();
+        return;
+      }
+
+      tinyThis.warnTimeline(roomId, threadId, eventId, lastEventId, {
         firstTime,
         checkPoint,
         isNext,
       });
 
       const valueId = `${roomId}${threadId ? `:${threadId}` : ''}`;
-      if (!singleTime && this._syncTimelineCache.roomsUsed.indexOf(valueId) < 0)
-        this._syncTimelineCache.roomsUsed.push(valueId);
+      if (!singleTime && tinyThis._syncTimelineCache.roomsUsed.indexOf(valueId) < 0)
+        tinyThis._syncTimelineCache.roomsUsed.push(valueId);
 
       if (
         !singleTime &&
-        !this._syncTimelineCache.roomsIdsUsed.find(
+        !tinyThis._syncTimelineCache.roomsIdsUsed.find(
           (tItem) =>
             tItem.roomId === roomId && (!threadId ? !tItem.threadId : threadId === tItem.threadId),
         )
       ) {
         const newTinyData = { roomId };
         if (threadId) newTinyData.threadId = threadId;
-        this._syncTimelineCache.roomsIdsUsed.push(newTinyData);
+        tinyThis._syncTimelineCache.roomsIdsUsed.push(newTinyData);
       }
 
       tinyThis._sendSyncStatus();
@@ -1200,7 +1206,6 @@ class StorageManager extends EventEmitter {
     threadId,
     eventId,
     lastEventId = null,
-    err = null,
     data = {
       firstTime: false,
       checkPoint: null,
@@ -1212,7 +1217,6 @@ class StorageManager extends EventEmitter {
     tinyData.roomId = roomId;
     tinyData.threadId = threadId;
     tinyData.lastEventId = lastEventId;
-    tinyData.err = err;
 
     this.emit('dbTimelineLoaded', tinyData, eventId);
     if (typeof eventId === 'string')
