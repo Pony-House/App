@@ -3,21 +3,37 @@ import pluginJs from "@eslint/js";
 import tseslint from "typescript-eslint";
 import react from "eslint-plugin-react";
 import reactHooks from 'eslint-plugin-react-hooks';
-// import airbnb from 'eslint-config-airbnb';
-// import prettier from 'eslint-config-prettier';
-import importRules from 'eslint-plugin-import';
+import eslintConfigPrettier from 'eslint-config-prettier';
+import importPlugin from 'eslint-plugin-import';
 import jsx from 'eslint-plugin-jsx-a11y';
-// import prettier from 'eslint-plugin-prettier';
+import { fixupPluginRules } from "@eslint/compat";
+
+// import airbnb from 'eslint-config-airbnb';
 
 export default [
+  eslintConfigPrettier,
+  importPlugin.flatConfigs.recommended,
+  pluginJs.configs.recommended,
+  jsx.flatConfigs.recommended,
   {
     plugins: {
-      'react-hooks': reactHooks.configs.recommended,
+      'react-hooks': fixupPluginRules(reactHooks),
+    },
+    rules: {
+      ...reactHooks.configs.recommended.rules,
+    }
+  },
+  {
+    settings: {
+      react: {
+        version: 'detect',
+        defaultVersion: '',
+      }
+    },
+    plugins: {
+      // airbnb,
       react,
-      'js': pluginJs.configs.recommended,
       '@typescript-eslint': tseslint.configs.recommended,
-      'jsx-a11y': jsx.configs.recommended,
-      'import': importRules,
     },
     languageOptions: {
       globals: {
@@ -36,6 +52,7 @@ export default [
       }
     },
     ignores: [
+      'android/**',
       'experiment/**',
       'node_modules/**',
       'gallery/**',
@@ -44,10 +61,10 @@ export default [
       'vendor/**',
       'release/**',
       '.flatpak/**',
+      '*.md',
       'old/**/**',
       '**/old.js',
       '**/old.jsx',
-      '*.md',
     ],
     rules: {
 
