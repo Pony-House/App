@@ -23,7 +23,6 @@ import TinyDbManager from './db/manager';
 import eventsDb from './db/eventsDb';
 
 const genKey = () => generateApiKey().replace(/\~/g, 'pud');
-const SYNC_TIMELINE_DOWNLOAD_LIMIT = 100;
 
 const finishWhereDbPrepare = (memberType, threadId, data, existMemberType = false) => {
   if (!Array.isArray(data.where)) data.where = [data.where];
@@ -285,10 +284,7 @@ class StorageManager extends EventEmitter {
     this._syncTimelineCache = {
       eventsAdded: {},
       usedIds: [],
-      roomId: null,
-      threadId: null,
       using: false,
-      used: false,
       usedLastTm: false,
       usedTmLastEvent: [],
       usingTmLastEvent: [],
@@ -871,7 +867,6 @@ class StorageManager extends EventEmitter {
         if (!singleTime) {
           const nextTimelineToken = tm.getPaginationToken(Direction.Backward);
           if ((!isComplete && nextTimelineToken) || canLastCheckPoint) {
-            this._syncTimelineCache.used = true;
             console.log(
               `[room-db-sync] [${valueId}] Preparing next step...\nfirstTime ${String(firstTime)}\ncanLastCheckPoint ${String(canLastCheckPoint)}\nlastTimelineToken ${String(lastTimelineToken)}`,
             );
@@ -880,7 +875,7 @@ class StorageManager extends EventEmitter {
             console.log(`[room-db-sync] [${valueId}] Getting next timeline page...`);
             await mx.paginateEventTimeline(tm, {
               backwards: Direction.Forward,
-              limit: SYNC_TIMELINE_DOWNLOAD_LIMIT,
+              limit: __ENV_APP__.TIMELINE_EVENTS_PER_TIME,
             });
 
             // Delete old cache
@@ -993,7 +988,7 @@ class StorageManager extends EventEmitter {
       {
         from: paginationToken,
         dir: Direction.Forward,
-        limit: SYNC_TIMELINE_DOWNLOAD_LIMIT,
+        limit: __ENV_APP__.TIMELINE_EVENTS_PER_TIME,
       },
     );
 
@@ -1008,7 +1003,6 @@ class StorageManager extends EventEmitter {
       this._syncTimelineCache.usedTmLastEvent = [];
       this._syncTimelineCache.usingTmLastEvent = [];
       this._syncTimelineCache.using = false;
-      this._syncTimelineCache.used = false;
       this._syncTimelineCache.usedLastTm = false;
       this._syncTimelineCache.busy = 0;
       this._sendSyncStatus('ALL');
@@ -1037,28 +1031,25 @@ class StorageManager extends EventEmitter {
 
   // Next timeline
   _syncTimelineComplete(roomId, threadId, valueId) {
-    // Used timeline progress
-    if (this._syncTimelineCache.used) {
-      // const usingTmLastEvent = clone(this._syncTimelineCache.usingTmLastEvent);
-      // const mx = initMatrix.matrixClient;
+    // const usingTmLastEvent = clone(this._syncTimelineCache.usingTmLastEvent);
+    // const mx = initMatrix.matrixClient;
 
-      // Complete!
-      if (this._timelineSyncCache[valueId]) {
-        this._timelineSyncCache[valueId].isComplete = true;
-        this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
-      }
-
-      /* const tinyRoom = mx.getRoom(roomId);
-        const tmLastEventUsed = usingTmLastEvent.indexOf(valueId) > -1 ? true : false;
-
-        if (tinyRoom && !tmLastEventUsed)
-          this.refreshLiveTimeline(tinyRoom, threadId).catch((err) =>
-            console.error(err),
-          );
-      */
-
-      console.log(`[room-db-sync] Database checker complete!`);
+    // Complete!
+    if (this._timelineSyncCache[valueId]) {
+      this._timelineSyncCache[valueId].isComplete = true;
+      this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
     }
+
+    /* const tinyRoom = mx.getRoom(roomId);
+      const tmLastEventUsed = usingTmLastEvent.indexOf(valueId) > -1 ? true : false;
+
+      if (tinyRoom && !tmLastEventUsed)
+        this.refreshLiveTimeline(tinyRoom, threadId).catch((err) =>
+          console.error(err),
+        );
+    */
+
+    console.log(`[room-db-sync] Database checker complete!`);
 
     // Reset
     this._resetTimelineCache();
