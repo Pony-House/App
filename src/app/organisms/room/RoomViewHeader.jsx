@@ -140,11 +140,8 @@ function RoomViewHeader({ roomId, threadId, roomAlias, roomItem, disableActions 
   const contentThread = thread && thread.rootEvent ? thread.rootEvent.getContent() : null;
 
   useEffect(() => {
-    const handleRoomSyncUpdate = (syncTimelineCache) => {
-      if (
-        roomId !== syncTimelineCache.roomId &&
-        (!threadId || threadId !== syncTimelineCache.threadId)
-      )
+    const handleRoomSyncUpdate = (roomId, threadId) => {
+      if (roomId === 'ALL' || (room.roomId !== roomId && (!thread || thread.id !== threadId)))
         return;
       forceUpdate();
     };

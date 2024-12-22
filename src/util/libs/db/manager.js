@@ -4,6 +4,7 @@ import EventEmitter from 'events';
 
 import { startDb } from './indexedDb';
 import { getMemberEventType } from '@src/app/organisms/room/MemberEvents';
+import eventsDb from './eventsDb';
 
 const getTableName = (tableData) => (typeof tableData === 'string' ? tableData : tableData.name);
 
@@ -19,49 +20,65 @@ class TinyDbManager extends EventEmitter {
     this._deletedIds = {};
     this._threadIds = {};
 
-    this._eventDbs = [
-      'reactions',
-      'messages_search',
-      'messages_edit',
-      'crdt',
-      { name: 'timeline', existMemberType: true },
-      {
-        name: 'messages',
-        existMemberType: true,
-        join: [
-          {
-            where: {
-              room_id: '{room_id}',
-            },
-            type: 'left',
-            with: 'threads',
-            on: `threads.event_id=messages.event_id`,
-            as: {
-              event_id: 'is_thread_root',
-              room_id: 'is_thread_room_root',
-            },
-          },
-          {
-            with: 'messages_primary_edit',
-            on: `messages_primary_edit.event_id=messages.event_id`,
-            type: 'left',
-            where: {
-              room_id: '{room_id}',
-            },
-            as: {
-              event_id: 'primary_replace_event_id',
-              room_id: 'primary_replace_room_id',
-              thread_id: 'primary_replace_thread_id',
-              replace_id: 'primary_replace_to_id',
-              content: 'primary_replace_to',
-              origin_server_ts: 'primary_replace_to_ts',
-            },
-          },
-        ],
-      },
-    ];
-
+    this._queryCache = { data: [], busy: 0 };
     this._waitTimelineTimeout = () => new Promise((resolve) => resolve());
+  }
+
+  _runQuery(funcName, query, resolve, reject) {
+    this._queryCache.busy++;
+    this.emit('queryQueue', this._queryCache.busy);
+    const tinyThis = this;
+    this.storeConnection[funcName](query)
+      .then((result) => {
+        tinyThis._queryCache.busy--;
+        tinyThis.emit('queryQueue', tinyThis._queryCache.busy);
+        tinyThis._nextQuery();
+        resolve(result);
+      })
+      .catch((err) => {
+        tinyThis._queryCache.busy--;
+        tinyThis.emit('queryQueue', tinyThis._queryCache.busy);
+        tinyThis._nextQuery();
+        reject(err);
+      });
+  }
+
+  _nextQuery() {
+    if (this._queryCache.data.length > 0) {
+      this._queryCache.data.sort((a, b) => b.ts - a.ts);
+      const data = this._queryCache.data.shift();
+      this._runQuery(data.funcName, data.query, data.resolve, data.reject);
+    }
+  }
+
+  _executeQuery(funcName, query, ts, resolve, reject) {
+    if (this._queryCache.busy < __ENV_APP__.TIMELINE_EVENTS_PER_TIME)
+      this._runQuery(funcName, query, resolve, reject);
+    else this._queryCache.data.push({ funcName, query, resolve, reject, ts });
+  }
+
+  _insertQuery(query, date) {
+    const tinyThis = this;
+    const ts = date || new Date().valueOf();
+    return new Promise((resolve, reject) =>
+      tinyThis._executeQuery('insert', query, ts, resolve, reject),
+    );
+  }
+
+  _updateQuery(query, date) {
+    const tinyThis = this;
+    const ts = date || new Date().valueOf();
+    return new Promise((resolve, reject) =>
+      tinyThis._executeQuery('update', query, ts, resolve, reject),
+    );
+  }
+
+  _removeQuery(query, date) {
+    const tinyThis = this;
+    const ts = date || new Date().valueOf();
+    return new Promise((resolve, reject) =>
+      tinyThis._executeQuery('remove', query, ts, resolve, reject),
+    );
   }
 
   setTimelineTimeout(waitTimelineTimeout) {
@@ -124,12 +141,15 @@ class TinyDbManager extends EventEmitter {
     const tinyThis = this;
     const data = tinyThis._eventFilter(event, {}, extraValue);
     return new Promise((resolve, reject) =>
-      tinyThis.storeConnection
-        .insert({
-          into: dbName,
-          upsert: true,
-          values: [data],
-        })
+      tinyThis
+        ._insertQuery(
+          {
+            into: dbName,
+            upsert: true,
+            values: [data],
+          },
+          event.getTs(),
+        )
         .then((result) => {
           tinyThis.emit(dbEvent, result, data);
           tinyThis._waitTimelineTimeout().then(() => resolve(result));
@@ -141,15 +161,18 @@ class TinyDbManager extends EventEmitter {
   _deleteDataByIdTemplate = (dbName, dbEvent, event, where) => {
     const tinyThis = this;
     return new Promise((resolve, reject) =>
-      tinyThis.storeConnection
-        .remove({
-          from: dbName,
-          where: where
-            ? where
-            : {
-                event_id: event.getId(),
-              },
-        })
+      tinyThis
+        ._removeQuery(
+          {
+            from: dbName,
+            where: where
+              ? where
+              : {
+                  event_id: event.getId(),
+                },
+          },
+          event.getTs(),
+        )
         .then((result) => {
           tinyThis.emit(dbEvent, result, event);
           tinyThis._waitTimelineTimeout().then(() => resolve(result));
@@ -161,19 +184,19 @@ class TinyDbManager extends EventEmitter {
   async deleteRoomDb(roomId) {
     const where = { room_id: roomId };
 
-    const timeline = await this.storeConnection.remove({ from: 'timeline', where });
+    const timeline = await this._removeQuery({ from: 'timeline', where });
     await this._waitTimelineTimeout();
-    const messages = await this.storeConnection.remove({ from: 'messages', where });
+    const messages = await this._removeQuery({ from: 'messages', where });
     await this._waitTimelineTimeout();
-    const crdt = await this.storeConnection.remove({ from: 'crdt', where });
+    const crdt = await this._removeQuery({ from: 'crdt', where });
     await this._waitTimelineTimeout();
-    const reactions = await this.storeConnection.remove({ from: 'reactions', where });
+    const reactions = await this._removeQuery({ from: 'reactions', where });
     await this._waitTimelineTimeout();
-    const members = await this.storeConnection.remove({ from: 'members', where });
+    const members = await this._removeQuery({ from: 'members', where });
     await this._waitTimelineTimeout();
-    const messagesEdit = await this.storeConnection.remove({ from: 'messages_edit', where });
+    const messagesEdit = await this._removeQuery({ from: 'messages_edit', where });
     await this._waitTimelineTimeout();
-    const messagesSearch = await this.storeConnection.remove({ from: 'messages_search', where });
+    const messagesSearch = await this._removeQuery({ from: 'messages_search', where });
     await this._waitTimelineTimeout();
     const receipt = await this.deleteReceiptByRoomId(roomId);
 
@@ -223,12 +246,15 @@ class TinyDbManager extends EventEmitter {
                 typeof tinyData.origin_server_ts !== 'number' ||
                 data.origin_server_ts >= tinyData.origin_server_ts)
             ) {
-              tinyThis.storeConnection
-                .insert({
-                  into: 'members',
-                  upsert: true,
-                  values: [data],
-                })
+              tinyThis
+                ._insertQuery(
+                  {
+                    into: 'members',
+                    upsert: true,
+                    values: [data],
+                  },
+                  event.getTs(),
+                )
                 .then((result) => {
                   tinyThis.emit('dbMember', result, { event: clone(data) });
                   tinyThis._waitTimelineTimeout().then(() => resolve(result));
@@ -252,20 +278,23 @@ class TinyDbManager extends EventEmitter {
       (!this._editedIds[msgRelative.event_id] ||
         replaceTs > this._editedIds[msgRelative.event_id].replace_to_ts)
     ) {
-      await this.storeConnection.insert({
-        into: 'messages_primary_edit',
-        upsert: true,
-        values: [
-          {
-            replace_id: msgRelative.event_id,
-            event_id: event.getId(),
-            room_id: event.getRoomId(),
-            thread_id: event.getThread()?.id,
-            content: event.getContent(),
-            origin_server_ts: replaceTs,
-          },
-        ],
-      });
+      await this._insertQuery(
+        {
+          into: 'messages_primary_edit',
+          upsert: true,
+          values: [
+            {
+              replace_id: msgRelative.event_id,
+              event_id: event.getId(),
+              room_id: event.getRoomId(),
+              thread_id: event.getThread()?.id,
+              content: event.getContent(),
+              origin_server_ts: replaceTs,
+            },
+          ],
+        },
+        event.getTs(),
+      );
 
       this._editedIds[msgRelative.event_id] = {
         replace_to_ts: replaceTs,
@@ -299,12 +328,15 @@ class TinyDbManager extends EventEmitter {
         origin_server_ts: ts,
       };
 
-      tinyThis.storeConnection
-        .insert({
-          into: 'receipt',
-          upsert: true,
-          values: [data],
-        })
+      tinyThis
+        ._insertQuery(
+          {
+            into: 'receipt',
+            upsert: true,
+            values: [data],
+          },
+          ts,
+        )
         .then((result) => {
           tinyThis.emit('dbReceipt', result, { event: clone(data) });
           tinyThis._waitTimelineTimeout().then(() => resolve(result));
@@ -319,8 +351,8 @@ class TinyDbManager extends EventEmitter {
     whereData[where] = id;
 
     return new Promise((resolve, reject) =>
-      tinyThis.storeConnection
-        .remove({
+      tinyThis
+        ._removeQuery({
           from: 'receipt',
           where: whereData,
         })
@@ -390,12 +422,15 @@ class TinyDbManager extends EventEmitter {
               }
             }
 
-            tinyThis.storeConnection
-              .insert({
-                into: 'messages_search',
-                upsert: true,
-                values: [tinyItem],
-              })
+            tinyThis
+              ._insertQuery(
+                {
+                  into: 'messages_search',
+                  upsert: true,
+                  values: [tinyItem],
+                },
+                event.getTs(),
+              )
               .then((result2) => {
                 tinyThis.emit('dbMessageSearch', result2, tinyItem);
                 tinyThis._waitTimelineTimeout().then(() => resolve(result));
@@ -464,14 +499,17 @@ class TinyDbManager extends EventEmitter {
                       msgTs <= 0 ||
                       data2.replace_to_ts >= msgTs
                     ) {
-                      tinyThis.storeConnection
-                        .update({
-                          in: 'messages',
-                          set: data2,
-                          where: {
-                            event_id: relatesTo.event_id,
+                      tinyThis
+                        ._updateQuery(
+                          {
+                            in: 'messages',
+                            set: data2,
+                            where: {
+                              event_id: relatesTo.event_id,
+                            },
                           },
-                        })
+                          event.getTs(),
+                        )
                         .then((result2) =>
                           tinyThis.emit(
                             'dbMessageUpdate',
@@ -483,12 +521,15 @@ class TinyDbManager extends EventEmitter {
                   }
                 });
 
-              tinyThis.storeConnection
-                .insert({
-                  into: 'messages_search',
-                  upsert: true,
-                  values: [tinyItem],
-                })
+              tinyThis
+                ._insertQuery(
+                  {
+                    into: 'messages_search',
+                    upsert: true,
+                    values: [tinyItem],
+                  },
+                  event.getTs(),
+                )
                 .then((result2) => {
                   tinyThis.emit('dbMessageSearch', result2, tinyItem);
                   tinyThis._waitTimelineTimeout().then(() => resolve(result));
@@ -561,12 +602,15 @@ class TinyDbManager extends EventEmitter {
           event_id: threadId,
           room_id: event.getRoomId(),
         };
-        tinyThis.storeConnection
-          .insert({
-            into: 'threads',
-            upsert: true,
-            values: [data],
-          })
+        tinyThis
+          ._insertQuery(
+            {
+              into: 'threads',
+              upsert: true,
+              values: [data],
+            },
+            event.getTs(),
+          )
           .then((result) => {
             tinyThis.emit('dbThreads', result, data);
             tinyThis._waitTimelineTimeout().then(() => resolve(result));
@@ -580,8 +624,8 @@ class TinyDbManager extends EventEmitter {
     const tinyThis = this;
     this._deletedIds[eventId] = isRedacted;
     return new Promise((resolve, reject) =>
-      tinyThis.storeConnection
-        .update({
+      tinyThis
+        ._updateQuery({
           in: dbName,
           set: {
             redaction: isRedacted,
@@ -605,20 +649,20 @@ class TinyDbManager extends EventEmitter {
   }
 
   async _sendSetRedaction(event) {
-    for (const dbIndex in this._eventDbs) {
+    for (const dbIndex in eventsDb) {
       const content = event.getContent();
       const unsigned = event.getUnsigned();
       if (content) {
         // Normal way
         if (typeof content.redacts === 'string')
-          await this._setRedaction(content.redacts, getTableName(this._eventDbs[dbIndex]), true);
+          await this._setRedaction(content.redacts, getTableName(eventsDb[dbIndex]), true);
         // String
         else if (Array.isArray(content.redacts)) {
           for (const item in content.redacts) {
             if (typeof content.redacts[item] === 'string')
               await this._setRedaction(
                 content.redacts[item],
-                getTableName(this._eventDbs[dbIndex]),
+                getTableName(eventsDb[dbIndex]),
                 true,
               );
           }
@@ -628,7 +672,7 @@ class TinyDbManager extends EventEmitter {
         if (unsigned && typeof unsigned.transaction_id === 'string')
           await this._setRedaction(
             `~${event.getRoomId()}:${unsigned.transaction_id}`,
-            getTableName(this._eventDbs[dbIndex]),
+            getTableName(eventsDb[dbIndex]),
             true,
           );
       }

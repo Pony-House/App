@@ -80,8 +80,9 @@ export default function RoomIntroContainer({ event, timeline }) {
   // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     const handleUpdate = () => nameForceUpdate();
-    const handleRoomSyncUpdate = (syncTimelineCache) => {
-      if (room.roomId !== syncTimelineCache.roomId) return;
+    const handleRoomSyncUpdate = (roomId, threadId) => {
+      if (roomId === 'ALL' || (room.roomId !== roomId && (!thread || thread.id !== threadId)))
+        return;
       nameForceUpdate();
     };
 

@@ -165,8 +165,6 @@ export default defineConfig(({ command, mode }) => {
 
     GUEST_ACCOUNT: addBooleanToEnv('GUEST_ACCOUNT'),
 
-    TIMELINE_TIMEOUT: Number(env.TIMELINE_TIMEOUT),
-    TIMELINE_TIMEOUT_MULTI: Number(env.TIMELINE_TIMEOUT_MULTI),
     TIMELINE_EVENTS_PER_TIME: Number(env.TIMELINE_EVENTS_PER_TIME),
 
     MAX_LISTENERS: Number(env.MAX_LISTENERS),

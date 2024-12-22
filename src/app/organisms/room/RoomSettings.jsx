@@ -209,10 +209,11 @@ function RoomSettings({ roomTimeline = {} }) {
   });
 
   useEffect(() => {
-    const handleRoomSyncUpdate = (syncTimelineCache) => {
+    const handleRoomSyncUpdate = (roomId, threadId) => {
       if (
-        roomId !== syncTimelineCache.roomId &&
-        (!threadId || threadId !== syncTimelineCache.threadId)
+        roomId === 'ALL' ||
+        (syncTimelineCache.roomId !== roomId &&
+          (!syncTimelineCache.threadId || syncTimelineCache.threadId !== threadId))
       )
         return;
       forceUpdate();
