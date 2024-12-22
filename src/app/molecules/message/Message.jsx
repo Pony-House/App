@@ -1417,7 +1417,7 @@ function Message({
     <>
       {haveReactions && <MessageReactionGroup roomTimeline={roomTimeline} mEvent={mEvent} />}
       {roomTimeline && shouldShowThreadSummary(mEvent, roomTimeline) && (
-        <MessageThreadSummary useManualCheck={useManualCheck} thread={mEvent.thread} />
+        <MessageThreadSummary thread={mEvent.thread} />
       )}
     </>
   );

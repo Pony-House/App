@@ -1,6 +1,6 @@
 import EventEmitter from 'events';
 
-import storageManager from '@src/util/libs/Localstorage';
+import storageManager, { timelineCache } from '@src/util/libs/Localstorage';
 import { getAppearance } from '@src/util/libs/appearance';
 
 import initMatrix from '../initMatrix';
@@ -12,8 +12,6 @@ import { getLastLinkedTimeline, getLiveReaders, getEventReaders } from './Timeli
 import installYjs from './Timeline/yjs';
 import { memberEventAllowed } from '@src/app/organisms/room/MemberEvents';
 
-const timelineCache = {};
-
 // Class
 class RoomTimeline extends EventEmitter {
   constructor(roomId, threadId, roomAlias = null) {
@@ -24,6 +22,7 @@ class RoomTimeline extends EventEmitter {
     this.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
     this._selectEvent = null;
     this.forceLoad = false;
+    this._eventsQueue = { data: [], busy: 0 };
 
     // Client Prepare
     this.matrixClient = initMatrix.matrixClient;
@@ -38,7 +37,7 @@ class RoomTimeline extends EventEmitter {
     this.room = this.matrixClient.getRoom(roomId);
     this.room.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
 
-    this.timelineId = `${roomId}${threadId ? `_${threadId}` : ''}`;
+    this.timelineId = `${roomId}${threadId ? `:${threadId}` : ''}`;
 
     if (!timelineCache[this.timelineId])
       timelineCache[this.timelineId] = {
@@ -143,6 +142,7 @@ class RoomTimeline extends EventEmitter {
               for (const item in events) {
                 tinyThis._insertIntoTimeline(events[item], undefined, true, true);
               }
+              await tinyThis.waitTimeline();
               tinyThis.forceLoad = false;
             } else tinyThis._selectEvent = eventId;
           }
@@ -337,7 +337,7 @@ class RoomTimeline extends EventEmitter {
   getTimelineCache(event) {
     const threadId = event.getThreadId();
     const roomId = event.getRoomId();
-    return timelineCache[`${roomId}${threadId ? `_${threadId}` : ''}`];
+    return timelineCache[`${roomId}${threadId ? `:${threadId}` : ''}`];
   }
 
   // Belong to Room
@@ -390,36 +390,97 @@ class RoomTimeline extends EventEmitter {
     return getMsgConfig;
   }
 
-  // Insert into timeline
-  _insertIntoTimeline(mEvent, tmc = this.timelineCache, isFirstTime = false, forceAdd = false) {
-    if (!memberEventAllowed(mEvent.getMemberEventType(), true)) return;
-    const pageLimit = getAppearance('pageLimit');
-    const eventTs = mEvent.getTs();
-    if (
-      (tmc.page < 2 || forceAdd) &&
-      !mEvent.isRedacted() &&
-      cons.supportEventTypes.indexOf(mEvent.getType()) > -1 &&
-      (tmc.timeline.length < pageLimit || eventTs > tmc.timeline[0].getTs())
-    ) {
-      const eventId = mEvent.getId();
-      if (!tmc.lastEvent || eventTs > tmc.lastEvent.getTs()) tmc.lastEvent = mEvent;
+  async _addEventQueue() {
+    // Add event
+    const tinyThis = this;
+    const eventQueue = this._eventsQueue.data.shift();
+    if (eventQueue) {
+      // Complete
+      const tinyComplete = () => {
+        if (tinyThis._eventsQueue.data.length < 1) this._eventsQueue.busy--;
+        else tinyThis._addEventQueue();
+      };
 
-      const msgIndex = tmc.timeline.findIndex((item) => item.getId() === eventId);
-      if (msgIndex < 0) {
-        tmc.timeline.push(mEvent);
-        if (tmc.timeline.length > pageLimit) {
-          const removedEvent = tmc.timeline.shift();
-          this._deletingEventPlaces(removedEvent.getId());
+      try {
+        const { mEvent, tmc, isFirstTime, forceAdd } = eventQueue;
+        // Validate
+        if (!memberEventAllowed(mEvent.getMemberEventType(), true)) {
+          tinyComplete();
+          return;
         }
 
-        tmc.timeline.sort((a, b) => a.getTs() - b.getTs());
-      } else tmc.timeline[msgIndex] = mEvent;
+        // Get info
+        const pageLimit = getAppearance('pageLimit');
+        const eventTs = mEvent.getTs();
+        if (
+          // Is page 1
+          (tmc.page < 2 || forceAdd) &&
+          // Exist?
+          !mEvent.isRedacted() &&
+          // More validation
+          cons.supportEventTypes.indexOf(mEvent.getType()) > -1 &&
+          // Timeline limit or by event time?
+          (tmc.timeline.length < pageLimit || eventTs > tmc.timeline[0].getTs())
+        ) {
+          // Update last event
+          const eventId = mEvent.getId();
+          if (!tmc.lastEvent || eventTs > tmc.lastEvent.getTs()) tmc.lastEvent = mEvent;
 
-      if (tmc.roomId === this.roomId && (!tmc.threadId || tmc.threadId === this.threadId)) {
-        if (mEvent.isEdited()) this.editedTimeline.set(eventId, [mEvent.getEditedContent()]);
-        if (!isFirstTime) this.emit(cons.events.roomTimeline.EVENT, mEvent);
+          // Insert event
+          const msgIndex = tmc.timeline.findIndex((item) => item.getId() === eventId);
+          if (msgIndex < 0) {
+            // Check thread
+            if (
+              mEvent.thread &&
+              typeof mEvent.thread.fetch === 'function' &&
+              !mEvent.thread.initialized
+            )
+              await mEvent.thread.fetch();
+
+            // Add event
+            tmc.timeline.push(mEvent);
+            if (tmc.timeline.length > pageLimit) {
+              // Remove event
+              const removedEvent = tmc.timeline.shift();
+              this._deletingEventPlaces(removedEvent.getId());
+            }
+
+            // Sort list
+            tmc.timeline.sort((a, b) => a.getTs() - b.getTs());
+          } else tmc.timeline[msgIndex] = mEvent;
+
+          // Complete
+          if (tmc.roomId === this.roomId && (!tmc.threadId || tmc.threadId === this.threadId)) {
+            if (mEvent.isEdited()) this.editedTimeline.set(eventId, [mEvent.getEditedContent()]);
+            if (!isFirstTime) this.emit(cons.events.roomTimeline.EVENT, mEvent);
+          }
+        }
+      } catch (err) {
+        console.error(err);
+        alert(err.message, 'Timeline updater error!');
       }
+
+      // Complete
+      tinyComplete();
     }
+  }
+
+  // Insert into timeline
+  _insertIntoTimeline(mEvent, tmc = this.timelineCache, isFirstTime = false, forceAdd = false) {
+    this._eventsQueue.data.push({ mEvent, tmc, isFirstTime, forceAdd });
+    this._eventsQueue.data.sort((a, b) => a.mEvent.getTs() - b.mEvent.getTs());
+    if (this._eventsQueue.busy < 1) {
+      this._eventsQueue.busy++;
+      this._addEventQueue();
+    }
+  }
+
+  waitTimeline() {
+    const tinyThis = this;
+    return new Promise((resolve, reject) => {
+      if (tinyThis._eventsQueue.busy < 1) resolve();
+      else setTimeout(() => tinyThis.waitTimeline().then(resolve).catch(reject), 300);
+    });
   }
 
   // Deleting events
@@ -514,6 +575,7 @@ class RoomTimeline extends EventEmitter {
           for (const item in events) {
             this._insertIntoTimeline(events[item], undefined, true, true);
           }
+          await this.waitTimeline();
         }
       }
 

@@ -15,7 +15,7 @@ export function shouldShowThreadSummary(mEvent, roomTimeline) {
   if (mEvent.isThreadRoot) {
     const thread = mEvent.getThread();
     return (
-      // there must be events in the threadW
+      // there must be events in the thread
       (thread?.length ?? 0) > 0 &&
       Array.isArray(roomTimeline.timeline) &&
       roomTimeline.timeline.length > 0 &&
@@ -27,12 +27,8 @@ export function shouldShowThreadSummary(mEvent, roomTimeline) {
 }
 
 const MessageThreadSummary = React.memo(({ thread }) => {
-  const useManualCheck = true;
   const [lastReply, setLastReply] = useState(thread.lastReply());
-  const [manualCheck, setManualCheck] = useState(false);
-  const [show, setShow] = useState(false);
-  thread.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
-
+  const [show, setShow] = useState(thread.timeline.length > 0 ? true : false);
   const appearanceSettings = getAppearance();
 
   // can't have empty threads
@@ -62,55 +58,18 @@ const MessageThreadSummary = React.memo(({ thread }) => {
 
   // Stuff
   useEffect(() => {
-    const threadTimelineUpdate = (event, room, toStartOfTimeline, removed, data) => {
-      setShow(
-        typeof event.thread.liveTimeline !== 'undefined' && event.thread.liveTimeline !== null,
-      );
+    const threadTimelineUpdate = () => {
+      setShow(thread.timeline.length > 0 ? true : false);
       setLastReply(thread.lastReply());
     };
-    const threadTimelineUpdate2 = () => {
-      setShow(typeof thread.liveTimeline !== 'undefined' && thread.liveTimeline !== null);
-      setLastReply(thread.lastReply());
-    };
-
-    if (useManualCheck && !manualCheck) {
-      setManualCheck(true);
-      setShow(thread.liveTimeline !== 'undefined' && thread.liveTimeline !== null);
-    }
 
     thread.on(RoomEvent.Timeline, threadTimelineUpdate);
-    thread.on(RoomEvent.TimelineRefresh, threadTimelineUpdate2);
-    thread.on(RoomEvent.TimelineReset, threadTimelineUpdate2);
     return () => {
       thread.off(RoomEvent.Timeline, threadTimelineUpdate);
-      thread.off(RoomEvent.TimelineRefresh, threadTimelineUpdate2);
-      thread.off(RoomEvent.TimelineReset, threadTimelineUpdate2);
     };
   });
 
-  /* useEffect(() => {
-    const threadTimelineUpdate = (r, newReply) => {
-      const valueId = `${roomTimeline.roomId}:${mEvent.getId()}`;
-      if (
-        !newReply.isRedacted() ||
-        newReply.getRoomId() !== roomTimeline.roomId ||
-        newReply.getThreadId() !== mEvent.getId() ||
-        !threads[valueId]
-      )
-        return;
-      threads[valueId].lastReply = newReply;
-      setLastReply(newReply);
-    };
-    storageManager.on('dbMessage', threadTimelineUpdate);
-    storageManager.on('dbMessageUpdate', threadTimelineUpdate);
-    return () => {
-      storageManager.off('dbMessage', threadTimelineUpdate);
-      storageManager.off('dbMessageUpdate', threadTimelineUpdate);
-    };
-  }); */
-
   // Complete
-  // Couldn&apos;t load latest message
   return (
     <button
       disabled={!show}
