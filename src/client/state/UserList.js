@@ -124,6 +124,7 @@ class UserList extends EventEmitter {
 
   populateRoom(room) {
     const tinyThis = this;
+    if (__ENV_APP__.LOAD_ALL_TIMELINES_FIRST_START) storageManager.syncTimeline(room.roomId);
     room.getJoinedMembers().forEach((member) => {
       tinyThis._addUser(room.roomId, member.userId);
     });
@@ -151,6 +152,7 @@ class UserList extends EventEmitter {
 
     mx.on(RoomEvent.MyMembership, async (room, membership) => {
       if (room && membership === 'join') {
+        if (__ENV_APP__.LOAD_ALL_TIMELINES_FIRST_START) storageManager.syncTimeline(room.roomId);
         room.getJoinedMembers().forEach((member) => {
           tinyThis._addUser(room.roomId, member.userId);
         });

@@ -166,6 +166,7 @@ export default defineConfig(({ command, mode }) => {
     GUEST_ACCOUNT: addBooleanToEnv('GUEST_ACCOUNT'),
 
     TIMELINE_EVENTS_PER_TIME: Number(env.TIMELINE_EVENTS_PER_TIME),
+    LOAD_ALL_TIMELINES_FIRST_START: addBooleanToEnv('LOAD_ALL_TIMELINES_FIRST_START'),
 
     MAX_LISTENERS: Number(env.MAX_LISTENERS),
     MXC_FETCH_WAITER: Number(env.MXC_FETCH_WAITER),
