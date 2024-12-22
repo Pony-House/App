@@ -1049,7 +1049,8 @@ class StorageManager extends EventEmitter {
         );
     */
 
-    console.log(`[room-db-sync] Database checker complete!`);
+    // 100% complete message
+    if (this._syncTimelineCache.busy < 1) console.log(`[room-db-sync] Database checker complete!`);
 
     // Reset
     this._resetTimelineCache();
