@@ -24,6 +24,9 @@ export default [
     }
   },
   {
+    parserOptions: {
+      ecmaVersion: 'latest',
+    },
     settings: {
       react: {
         version: 'detect',

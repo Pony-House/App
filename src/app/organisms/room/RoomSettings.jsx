@@ -32,7 +32,6 @@ import RoomEmojis from '../../molecules/room-emojis/RoomEmojis';
 
 import { useForceUpdate } from '../../hooks/useForceUpdate';
 import { confirmDialog } from '../../molecules/confirm-dialog/ConfirmDialog';
-import storageManager from '@src/util/libs/Localstorage';
 
 const tabText = {
   GENERAL: 'General',
@@ -208,23 +207,6 @@ function RoomSettings({ roomTimeline = {} }) {
     };
   });
 
-  useEffect(() => {
-    const handleRoomSyncUpdate = (roomId, threadId) => {
-      if (
-        roomId === 'ALL' ||
-        (roomTimeline.roomId !== roomId &&
-          (!roomTimeline.threadId || roomTimeline.threadId !== threadId))
-      )
-        return;
-      forceUpdate();
-    };
-
-    storageManager.on('timelineSyncStatus', handleRoomSyncUpdate);
-    return () => {
-      storageManager.off('timelineSyncStatus', handleRoomSyncUpdate);
-    };
-  });
-
   if (!navigation.isRoomSettings) return null;
 
   return (
@@ -240,11 +222,6 @@ function RoomSettings({ roomTimeline = {} }) {
             <strong className="me-2">
               {`${room.name}`}
               <span className="text-bg-low"> — room settings</span>
-              {roomTimeline.isRoomSyncing() && (
-                <Tooltip placement="bottom" content="Room being synced...">
-                  <Spinner className="ms-1" size="sm" />
-                </Tooltip>
-              )}
             </strong>
             <RawIcon size="small" fa="fa-solid fa-chevron-up" />
           </button>

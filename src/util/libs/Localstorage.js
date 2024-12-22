@@ -187,7 +187,22 @@ class LocalStorageEvent extends EventEmitter {
     if (typeof this.event.member_type !== 'undefined' && this.event.member_type === 'NULL')
       delete this.event.member_type;
 
-    this.thread = { id: this.threadId };
+    if (this.threadId) {
+      this.thread = {
+        ...new EventEmitter(),
+      };
+
+      this.lastReply = () =>
+        this.thread.liveTimeline
+          ? this.thread.liveTimeline[this.thread.liveTimeline.length - 1]
+          : null;
+
+      this.thread.rootEvent = this;
+      this.thread.id = this.threadId;
+      this.thread.length = 0;
+      this.thread.liveTimeline = null;
+    }
+
     this.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
   }
 

@@ -53,7 +53,6 @@ function renderEvent(
   disableActions,
   usernameHover,
   refRoomInput,
-  useManualCheck,
 ) {
   const isBodyOnly =
     prevMEvent !== null &&
@@ -80,7 +79,6 @@ function renderEvent(
 
   return (
     <Message
-      useManualCheck={useManualCheck}
       refRoomInput={refRoomInput}
       usernameHover={usernameHover}
       isGuest={isGuest}
@@ -378,7 +376,6 @@ function RoomViewContent({
 }) {
   const [throttle] = useState(new Throttle());
   const [pageLimit, setPageLimit] = useState(getAppearance('pageLimit'));
-  const [useManualCheck] = useState(true);
 
   const timelineSVRef = useRef(null);
   const timelineScrollRef = useRef(null);
@@ -714,7 +711,6 @@ function RoomViewContent({
           disableActions,
           usernameHover,
           refRoomInput,
-          useManualCheck,
         ),
       );
       itemCountIndex += 1;

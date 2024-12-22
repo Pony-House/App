@@ -1,27 +1,21 @@
-/* eslint-disable react-hooks/rules-of-hooks */
 import React, { useState, useEffect, useCallback, useRef, useReducer } from 'react';
 import PropTypes from 'prop-types';
 import $ from 'jquery';
 
-import { MatrixEventEvent, RoomEvent, THREAD_RELATION_TYPE } from 'matrix-js-sdk';
+import { MatrixEventEvent, THREAD_RELATION_TYPE } from 'matrix-js-sdk';
 import { objType } from 'for-promise/utils/lib.mjs';
 
-import clone from 'clone';
-import hljs from 'highlight.js';
 import * as linkify from 'linkifyjs';
 import forPromise from 'for-promise';
 
-import { defaultAvatar } from '@src/app/atoms/avatar/defaultAvatar';
 import cons from '@src/client/state/cons';
 import { isMobile } from '@src/util/libs/mobile';
 import muteUserManager from '@src/util/libs/muteUserManager';
-import attemptDecryption from '@src/util/libs/attemptDecryption';
 
 import libreTranslate from '@src/util/libs/libreTranslate';
 import { setLoadingPage } from '@src/app/templates/client/Loading';
 
 import {
-  ReactionImgReact,
   getCustomEmojiUrl,
   getEventReactions,
   reactionImgjQuery,
@@ -31,13 +25,11 @@ import tinyClipboard from '@src/util/libs/Clipboard';
 import storageManager from '@src/util/libs/Localstorage';
 import { decryptAllEventsOfTimeline } from '@src/client/state/Timeline/functions';
 
-import Text from '../../atoms/text/Text';
 import { btModal, resizeWindowChecker, toast } from '../../../util/tools';
 import { twemojify, twemojifyReact } from '../../../util/twemojify';
 import initMatrix from '../../../client/initMatrix';
 
 import {
-  getUsername,
   getUsernameOfRoomMember,
   parseReply,
   trimHTMLReply,
@@ -46,11 +38,9 @@ import {
   dfAvatarSize,
 } from '../../../util/matrixUtil';
 
-import { colorMXID, backgroundColorMXID } from '../../../util/colorMXID';
+import { colorMXID } from '../../../util/colorMXID';
 import { getEventCords } from '../../../util/common';
-import { sendReaction } from '../../../client/action/roomTimeline';
 import {
-  openEmojiBoard,
   openProfileViewer,
   openReadReceipts,
   openViewSource,
@@ -60,10 +50,8 @@ import {
 } from '../../../client/action/navigation';
 import { sanitizeCustomHtml } from '../../../util/sanitize';
 
-import { shiftNuller } from '../../../util/shortcut';
 import RawIcon from '../../atoms/system-icons/RawIcon';
 import Button from '../../atoms/button/Button';
-import Tooltip from '../../atoms/tooltip/Tooltip';
 import Input from '../../atoms/input/Input';
 import Avatar, { AvatarJquery } from '../../atoms/avatar/Avatar';
 import IconButton from '../../atoms/button/IconButton';
@@ -73,25 +61,23 @@ import ContextMenu, {
   MenuItem,
   MenuBorder,
 } from '../../atoms/context-menu/ContextMenu';
-import * as Media from '../media/Media';
 
 import { confirmDialog } from '../confirm-dialog/ConfirmDialog';
-import { getBlobSafeMimeType } from '../../../util/mimetypes';
 import { html, plain } from '../../../util/markdown';
 import getUrlPreview from '../../../util/libs/getUrlPreview';
 
 import Embed from './Embed';
 import tinyAPI from '../../../util/mods';
-import matrixAppearance, {
-  getAnimatedImageUrl,
-  getAppearance,
-} from '../../../util/libs/appearance';
+import matrixAppearance, { getAppearance } from '../../../util/libs/appearance';
 import UserOptions from '../user-options/UserOptions';
-import { getDataList } from '../../../util/selectedRoom';
 import { tinyLinkifyFixer } from '../../../util/clear-urls/clearUrls';
 import { canPinMessage, isPinnedMessage, setPinMessage } from '../../../util/libs/pinMessage';
 import tinyFixScrollChat from '../media/mediaFix';
 import { everyoneTags } from '../global-notification/KeywordNotification';
+
+import MessageThreadSummary, { shouldShowThreadSummary } from './thread/MessageThreadSummary';
+import MessageReactionGroup, { pickEmoji } from './MessageReaction';
+import { genMediaContent, isMedia } from './Media';
 
 function PlaceholderMessage({
   // loadingPage = false,
@@ -597,247 +583,6 @@ MessageEdit.propTypes = {
   onCancel: PropTypes.func.isRequired,
 };
 
-// Get Emoji
-function getMyEmojiEvent(emojiKey, eventId, roomTimeline) {
-  const mx = initMatrix.matrixClient;
-  const rEvents = roomTimeline.reactionTimeline.get(eventId);
-  let rEvent = null;
-  rEvents?.find((rE) => {
-    if (rE.getRelation() === null) return false;
-    if (rE.getRelation().key === emojiKey && rE.getSender() === mx.getUserId()) {
-      rEvent = rE;
-      return true;
-    }
-    return false;
-  });
-  return rEvent;
-}
-
-function toggleEmoji(roomId, eventId, emojiKey, shortcode, roomTimeline) {
-  const myAlreadyReactEvent = getMyEmojiEvent(emojiKey, eventId, roomTimeline);
-  if (myAlreadyReactEvent) {
-    const rId = myAlreadyReactEvent.getId();
-    if (rId.startsWith('~')) return;
-    storageManager.redactEvent(roomId, rId);
-    return;
-  }
-  sendReaction(roomId, eventId, emojiKey, shortcode);
-}
-
-// Pick Emoji Modal
-const reactionLimit = 20;
-function pickEmoji(e, roomId, eventId, roomTimeline, extraX = 0, extraX2 = 0, reacts = null) {
-  // Get Cords
-  let reactsLength = Array.isArray(reacts) ? reacts.length : null;
-  const cords = getEventCords(e);
-
-  // Mobile Screen - Viewport
-  cords.y -= 170;
-  if (window.matchMedia('screen and (max-width: 479px)').matches) {
-    cords.x -= 230 + extraX2;
-  }
-
-  // Normal Screen
-  else {
-    cords.x -= 430 + extraX;
-  }
-
-  if (Math.round(cords.y) >= document.body.offsetHeight - 340) {
-    cords.y -= 260;
-  }
-
-  // Open the Emoji Board
-  openEmojiBoard(roomId, cords, 'emoji', (emoji) => {
-    if (reactsLength === null || reactsLength < reactionLimit) {
-      if (reactsLength !== null) reactsLength++;
-      toggleEmoji(roomId, eventId, emoji.mxc ?? emoji.unicode, emoji.shortcodes[0], roomTimeline);
-    } else {
-      e.target.click();
-    }
-    shiftNuller(() => e.target.click());
-  });
-}
-
-// Reaction Generator
-function genReactionMsg(userIds, reaction, shortcode, customEmojiUrl) {
-  const usersReaction = [];
-  let userLimit = 3;
-  let extraUserLimit = 0;
-  for (const item in userIds) {
-    if (usersReaction.length < userLimit) {
-      usersReaction.push(userIds[item]);
-    } else {
-      extraUserLimit++;
-    }
-  }
-  return (
-    <>
-      <div className="img">
-        <center>
-          <ReactionImgReact
-            reaction={reaction}
-            shortcode={shortcode}
-            customEmojiUrl={customEmojiUrl}
-          />
-        </center>
-      </div>
-      <div className="info">
-        {usersReaction.map((userId, index) => (
-          <React.Fragment key={userId}>
-            <span className="emoji-size-fix-2">{twemojifyReact(getUsername(userId))}</span>
-            {index < usersReaction.length - 1 && (
-              <span style={{ opacity: '.6' }}>
-                {index === usersReaction.length - 2 ? ' and ' : ', '}
-              </span>
-            )}
-          </React.Fragment>
-        ))}
-        <React.Fragment key={`reactionUserMessage${String(extraUserLimit)}`}>
-          {extraUserLimit > 0 && (
-            <span
-              style={{ opacity: '.6' }}
-            >{`, and ${extraUserLimit < 2 ? `${String(extraUserLimit)} other` : `${String(extraUserLimit)} others`}`}</span>
-          )}
-        </React.Fragment>
-        <span style={{ opacity: '.6' }}>{' reacted with '}</span>
-        <span className="emoji-size-fix-2">
-          {twemojifyReact(shortcode ? `:${shortcode}:` : reaction, { className: 'react-emoji' })}
-        </span>
-      </div>
-    </>
-  );
-}
-
-// Reaction Manager
-function MessageReaction({ reaction, shortcode, count, users, isActive, onClick }) {
-  const customEmojiUrl = getCustomEmojiUrl(reaction);
-  return (
-    <Tooltip
-      className="msg__reaction-tooltip"
-      content={
-        <div className="small">
-          {users.length > 0
-            ? genReactionMsg(users, reaction, shortcode, customEmojiUrl)
-            : 'Unable to load who has reacted'}
-        </div>
-      }
-    >
-      <button
-        onClick={onClick}
-        type="button"
-        className={`msg__reaction${isActive ? ' msg__reaction--active' : ''}${customEmojiUrl ? ' custom-emoji' : ' default-emoji'}`}
-      >
-        <ReactionImgReact
-          reaction={reaction}
-          shortcode={shortcode}
-          customEmojiUrl={customEmojiUrl}
-        />
-        <div className="very-small text-gray msg__reaction-count">{count}</div>
-      </button>
-    </Tooltip>
-  );
-}
-
-MessageReaction.propTypes = {
-  reaction: PropTypes.node.isRequired,
-  shortcode: PropTypes.string,
-  count: PropTypes.number.isRequired,
-  users: PropTypes.arrayOf(PropTypes.string).isRequired,
-  isActive: PropTypes.bool.isRequired,
-  onClick: PropTypes.func.isRequired,
-};
-
-function MessageReactionGroup({ roomTimeline, mEvent }) {
-  const [, forceUpdate] = useReducer((count) => count + 1, 0);
-
-  const { roomId, room, reactionTimeline } = roomTimeline;
-  const mx = initMatrix.matrixClient;
-  const canSendReaction = getCurrentState(room).maySendEvent('m.reaction', mx.getUserId());
-
-  const eventReactions = reactionTimeline.get(mEvent.getId());
-
-  useEffect(() => {
-    const tinyUpdate = () => forceUpdate();
-    muteUserManager.on('muteReaction', tinyUpdate);
-    return () => {
-      muteUserManager.off('muteReaction', tinyUpdate);
-    };
-  });
-
-  // Create reaction list and limit the amount to 20
-  const reacts = getEventReactions(eventReactions, false, reactionLimit);
-
-  useEffect(() => tinyFixScrollChat());
-
-  return (
-    <div className="noselect">
-      {reacts.order.map((key) => (
-        <MessageReaction
-          key={key}
-          reaction={key}
-          shortcode={reacts.data[key].shortcode}
-          count={reacts.data[key].count}
-          users={reacts.data[key].users}
-          isActive={reacts.data[key].isActive}
-          onClick={() => {
-            toggleEmoji(roomId, mEvent.getId(), key, reacts.data[key].shortcode, roomTimeline);
-          }}
-        />
-      ))}
-
-      {canSendReaction && (
-        <IconButton
-          className="ms-2 btn-sm reaction-message"
-          onClick={(e) => {
-            if (reacts.order.length < reactionLimit) {
-              pickEmoji(e, roomId, mEvent.getId(), roomTimeline, -430, 0, reacts);
-            } else {
-              toast(
-                'Your reaction was not added because there are too many reactions on this message.',
-                'We appreciate the enthusiasm, but...',
-              );
-            }
-          }}
-          fa="fa-solid fa-heart-circle-plus"
-          size="normal"
-          tooltip="Add reaction"
-        />
-      )}
-    </div>
-  );
-}
-MessageReactionGroup.propTypes = {
-  roomTimeline: PropTypes.shape({}).isRequired,
-  mEvent: PropTypes.shape({}).isRequired,
-};
-
-// Detect Media
-function isMedia(mE) {
-  return (
-    mE.getContent()?.msgtype === 'm.file' ||
-    mE.getContent()?.msgtype === 'm.image' ||
-    mE.getContent()?.msgtype === 'm.audio' ||
-    mE.getContent()?.msgtype === 'm.video' ||
-    mE.getType() === 'm.sticker'
-  );
-}
-
-function shouldShowThreadSummary(mEvent, roomTimeline) {
-  if (mEvent.isThreadRoot) {
-    const thread = mEvent.getThread();
-    return (
-      // there must be events in the threadW
-      (thread?.length ?? 0) > 0 &&
-      Array.isArray(roomTimeline.timeline) &&
-      roomTimeline.timeline.length > 0 &&
-      // thread.lastEvent &&
-      // don't show the thread summary if we're in a thread
-      !roomTimeline.thread
-    );
-  }
-  return false;
-}
-
 const MessageOptions = React.memo(
   ({
     allowTranslate = false,
@@ -1262,304 +1007,6 @@ MessageOptions.propTypes = {
   reply: PropTypes.func.isRequired,
 };
 
-// Thread
-const MessageThreadSummary = React.memo(({ thread, useManualCheck = false }) => {
-  const [lastReply, setLastReply] = useState(thread.lastReply());
-  const [manualCheck, setManualCheck] = useState(false);
-  const [show, setShow] = useState(false);
-  thread.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
-
-  const appearanceSettings = getAppearance();
-
-  // can't have empty threads
-  if (thread.length === 0) return null;
-
-  // Matrix
-  const mx = initMatrix.matrixClient;
-  const mxcUrl = initMatrix.mxcUrl;
-
-  // Sender
-  const lastSender =
-    typeof lastReply?.sender === 'string' ? mx.getUser(lastReply?.sender) : lastReply?.sender;
-
-  // Color
-  const color =
-    lastSender && typeof lastSender?.userId === 'string' ? colorMXID(lastSender?.userId) : null;
-
-  // Avatar
-  const avatarSrc =
-    mxcUrl.getAvatarUrl(lastSender, dfAvatarSize, dfAvatarSize, undefined, true, false) ?? null;
-  const avatarAnimSrc = mxcUrl.getAvatarUrl(lastSender);
-
-  // Select Thread
-  function selectThread() {
-    selectRoom(thread.roomId, undefined, thread.rootEvent?.getId());
-  }
-
-  // Stuff
-  useEffect(() => {
-    const threadTimelineUpdate = (event, room, toStartOfTimeline, removed, data) => {
-      setShow(
-        typeof event.thread.liveTimeline !== 'undefined' && event.thread.liveTimeline !== null,
-      );
-      setLastReply(thread.lastReply());
-    };
-    const threadTimelineUpdate2 = () => {
-      setShow(typeof thread.liveTimeline !== 'undefined' && thread.liveTimeline !== null);
-      setLastReply(thread.lastReply());
-    };
-
-    if (useManualCheck && !manualCheck) {
-      setManualCheck(true);
-      setShow(thread.liveTimeline !== 'undefined' && thread.liveTimeline !== null);
-    }
-
-    thread.on(RoomEvent.Timeline, threadTimelineUpdate);
-    thread.on(RoomEvent.TimelineRefresh, threadTimelineUpdate2);
-    thread.on(RoomEvent.TimelineReset, threadTimelineUpdate2);
-    return () => {
-      thread.off(RoomEvent.Timeline, threadTimelineUpdate);
-      thread.off(RoomEvent.TimelineRefresh, threadTimelineUpdate2);
-      thread.off(RoomEvent.TimelineReset, threadTimelineUpdate2);
-    };
-  });
-
-  // Complete
-  // Couldn&apos;t load latest message
-  return (
-    <button
-      disabled={!show}
-      className={`message__threadSummary p-2 small${!show ? ' disabled' : ''}`}
-      onClick={selectThread}
-      type="button"
-    >
-      <div className="message__threadSummary-count">
-        <Text>
-          {thread.length} message{thread.length > 1 ? 's' : ''} ›
-        </Text>
-      </div>
-      <div className="message__threadSummary-lastReply text-truncate text-bg">
-        {lastReply ? (
-          <>
-            {lastSender ? (
-              <>
-                <Avatar
-                  animParentsCount={2}
-                  isDefaultImage
-                  className="profile-image-container"
-                  imageSrc={avatarSrc}
-                  imageAnimSrc={avatarAnimSrc}
-                  text={lastSender?.name}
-                  bgColor={backgroundColorMXID(lastSender?.userId)}
-                  size="small"
-                />
-                <span className="message__threadSummary-lastReply-sender very-small text-truncate">
-                  {lastSender?.name}{' '}
-                </span>
-              </>
-            ) : (
-              <span className="message__threadSummary-lastReply-sender very-small text-truncate">
-                Unknown user{' '}
-              </span>
-            )}
-            <span className="message__threadSummary-lastReply-body very-small text-truncate">
-              {show ? (
-                lastReply.getContent().body
-              ) : (
-                <>
-                  <div className="d-flex justify-content-center align-items-center spinner">
-                    <div className="spinner-border" role="status">
-                      <span className="visually-hidden">Loading...</span>
-                    </div>{' '}
-                    Loading...
-                  </div>
-                </>
-              )}
-            </span>
-          </>
-        ) : (
-          <>
-            <div className="d-flex justify-content-center align-items-center spinner">
-              <span className="message__threadSummary-lastReply-sender very-small text-truncate">
-                <i className="fa-solid fa-circle-exclamation me-1" />
-                Couldn't load the last message.
-              </span>
-            </div>
-          </>
-        )}
-      </div>
-    </button>
-  );
-});
-
-// Media Generator
-function genMediaContent(mE, seeHiddenData, setSeeHiddenData) {
-  // Client
-  const mx = initMatrix.matrixClient;
-  const mxcUrl = initMatrix.mxcUrl;
-  const mContent = mE.getContent();
-  if (!mContent || !mContent.body)
-    return <span style={{ color: 'var(--bg-danger)' }}>Malformed event</span>;
-
-  // Content URL
-  let mediaMXC = mContent?.url;
-  const isEncryptedFile = typeof mediaMXC === 'undefined';
-  if (isEncryptedFile) mediaMXC = mContent?.file?.url;
-
-  // Thumbnail
-  let thumbnailMXC = mContent?.info?.thumbnail_url;
-
-  // Bad Event Again
-  if (typeof mediaMXC === 'undefined' || mediaMXC === '')
-    return <span style={{ color: 'var(--bg-danger)' }}>Malformed event</span>;
-
-  // Content Type
-  let msgType = mE.getContent()?.msgtype;
-  const safeMimetype = getBlobSafeMimeType(mContent.info?.mimetype);
-
-  // Sticker
-  if (mE.getType() === 'm.sticker') {
-    msgType = 'm.sticker';
-  }
-
-  // File
-  else if (safeMimetype === 'application/octet-stream') {
-    msgType = 'm.file';
-  }
-
-  const blurhash = mContent?.info?.['xyz.amorgan.blurhash'];
-  const senderId = mE.getSender();
-
-  switch (msgType) {
-    // File
-    case 'm.file':
-      return (
-        <Media.File
-          roomId={mE.getRoomId()}
-          threadId={mE.getThread()?.id}
-          content={mContent}
-          link={mxcUrl.toHttp(mediaMXC)}
-          file={mContent.file || null}
-        />
-      );
-
-    // Image
-    case 'm.image':
-      return !muteUserManager.isImageMuted(senderId) || seeHiddenData ? (
-        <Media.Image
-          roomId={mE.getRoomId()}
-          threadId={mE.getThread()?.id}
-          width={typeof mContent.info?.w === 'number' ? mContent.info?.w : null}
-          height={typeof mContent.info?.h === 'number' ? mContent.info?.h : null}
-          link={mxcUrl.toHttp(mediaMXC)}
-          file={isEncryptedFile ? mContent.file : null}
-          content={mContent}
-          blurhash={blurhash}
-        />
-      ) : (
-        <a
-          href="#"
-          className="text-warning"
-          onClick={(e) => {
-            e.preventDefault();
-            setSeeHiddenData(true);
-          }}
-        >
-          <i className="fa-solid fa-eye-slash me-1" />
-          Hidden Image. Click here to view.
-        </a>
-      );
-
-    // Sticker
-    case 'm.sticker':
-      const enableAnimParams = getAppearance('enableAnimParams');
-      return !muteUserManager.isStickerMuted(senderId) || seeHiddenData ? (
-        <Media.Sticker
-          content={mContent}
-          roomId={mE.getRoomId()}
-          threadId={mE.getThread()?.id}
-          width={
-            typeof mContent.info?.w === 'number' && !Number.isNaN(mContent.info?.w)
-              ? mContent.info?.w
-              : null
-          }
-          height={
-            typeof mContent.info?.h === 'number' && !Number.isNaN(mContent.info?.h)
-              ? mContent.info?.h
-              : null
-          }
-          link={
-            !enableAnimParams
-              ? mxcUrl.toHttp(mediaMXC)
-              : getAnimatedImageUrl(mxcUrl.toHttp(mediaMXC, 170, 170))
-          }
-          file={isEncryptedFile ? mContent.file : null}
-        />
-      ) : (
-        <a
-          href="#"
-          className="text-warning"
-          onClick={(e) => {
-            e.preventDefault();
-            setSeeHiddenData(true);
-          }}
-        >
-          <i className="fa-solid fa-eye-slash me-1" />
-          Hidden Sticker. Click here to view.
-        </a>
-      );
-
-    // Audio
-    case 'm.audio':
-      return (
-        <Media.Audio
-          content={mContent}
-          roomId={mE.getRoomId()}
-          threadId={mE.getThread()?.id}
-          link={mxcUrl.toHttp(mediaMXC)}
-          file={mContent.file || null}
-        />
-      );
-
-    // Video
-    case 'm.video':
-      if (typeof thumbnailMXC === 'undefined') {
-        thumbnailMXC = mContent.info?.thumbnail_file?.url || null;
-      }
-      return !muteUserManager.isVideoMuted(senderId) || seeHiddenData ? (
-        <Media.Video
-          content={mContent}
-          roomId={mE.getRoomId()}
-          threadId={mE.getThread()?.id}
-          link={mxcUrl.toHttp(mediaMXC)}
-          thumbnail={thumbnailMXC === null ? null : mxcUrl.toHttp(thumbnailMXC)}
-          thumbnailFile={isEncryptedFile ? mContent.info?.thumbnail_file : null}
-          thumbnailType={mContent.info?.thumbnail_info?.mimetype || null}
-          width={typeof mContent.info?.w === 'number' ? mContent.info?.w : null}
-          height={typeof mContent.info?.h === 'number' ? mContent.info?.h : null}
-          file={isEncryptedFile ? mContent.file : null}
-          blurhash={blurhash}
-        />
-      ) : (
-        <a
-          href="#"
-          className="text-warning"
-          onClick={(e) => {
-            e.preventDefault();
-            setSeeHiddenData(true);
-          }}
-        >
-          <i className="fa-solid fa-eye-slash me-1" />
-          Hidden Video. Click here to view.
-        </a>
-      );
-
-    // Bad Event Again?
-    default:
-      return <span style={{ color: 'var(--bg-danger)' }}>Malformed event</span>;
-  }
-}
-
 function getEditedBody(editedMEvent) {
   const newContent = editedMEvent['m.new_content'];
   if (typeof newContent === 'undefined') return [null, false, null];
@@ -1591,7 +1038,6 @@ function Message({
   disableActions = false,
   usernameHover,
   refRoomInput,
-  useManualCheck = false,
 }) {
   // Get Room Data
   const { notifications } = initMatrix;
@@ -1970,7 +1416,6 @@ function Message({
   const msgItems2 = (
     <>
       {haveReactions && <MessageReactionGroup roomTimeline={roomTimeline} mEvent={mEvent} />}
-
       {roomTimeline && shouldShowThreadSummary(mEvent, roomTimeline) && (
         <MessageThreadSummary useManualCheck={useManualCheck} thread={mEvent.thread} />
       )}
@@ -2105,7 +1550,6 @@ function Message({
 
 // Message Default Data
 Message.propTypes = {
-  useManualCheck: PropTypes.bool,
   focusTime: PropTypes.number,
   classNameMessage: PropTypes.string,
   className: PropTypes.string,
