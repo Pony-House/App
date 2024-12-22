@@ -16,6 +16,7 @@ import {
   getSelectRoom,
 } from '../../util/selectedRoom';
 import { tinyCrypto } from '@mods/web3/ethers/base';
+import storageManager from '@src/util/libs/Localstorage';
 
 class Navigation extends EventEmitter {
   constructor() {
@@ -274,6 +275,7 @@ class Navigation extends EventEmitter {
   _selectSpace(roomId, asRoot, selectRoom = true) {
     this._addToSpacePath(roomId, asRoot);
     this.selectedSpaceId = roomId;
+    storageManager.syncTimeline(roomId);
 
     if (!asRoot && selectRoom) this._selectRoomWithSpace(this.selectedSpaceId);
 

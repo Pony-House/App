@@ -307,6 +307,7 @@ class StorageManager extends EventEmitter {
 
     console.log(`[room-db-sync] [re-add] Data loaded!`, this._lastEventsLoadWaiting);
 
+    // new Worker(new URL("worker.js", import.meta.url));
     this.dbManager = new TinyDbManager();
     this.dbManager.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
 
@@ -647,7 +648,7 @@ class StorageManager extends EventEmitter {
     newUpdateTinyData = null,
   ) {
     const tinyThis = this;
-    const loadComplete = (roomId, threadId, updateTinyData, isNext, err) => {
+    const loadComplete = (roomId, threadId, updateTinyData, isNext, newTm = null, err = null) => {
       // Default
       const valueId = `${roomId}${threadId ? `:${threadId}` : ''}`;
 
@@ -671,7 +672,7 @@ class StorageManager extends EventEmitter {
 
       // Next Timeline
       if (!singleTime && isNext)
-        tinyThis._syncTimelineRun(room, thread, eventId, tm, false, false, updateTinyData);
+        tinyThis._syncTimelineRun(room, thread, eventId, newTm || tm, false, false, updateTinyData);
       // Complete!
       else {
         if (!singleTime && typeof tinyThis._syncTimelineCache.eventsAdded[valueId] === 'number')
@@ -858,9 +859,9 @@ class StorageManager extends EventEmitter {
         };
 
         // Mission complete
-        const tinyComplete = (isNext, msg = 'Complete!') => {
+        const tinyComplete = (isNext, msg = 'Complete!', newTm = null) => {
           console.log(`[room-db-sync] [${valueId}] ${msg}`);
-          loadComplete(roomId, threadId, updateTinyData, isNext);
+          loadComplete(roomId, threadId, updateTinyData, isNext, newTm);
         };
 
         // Next Timeline
@@ -897,7 +898,7 @@ class StorageManager extends EventEmitter {
       else throw new Error(`[room-db-sync] No room found to sync in the indexedDb!`);
     } catch (err) {
       console.error(err);
-      loadComplete(null, null, null, false, err);
+      loadComplete(null, null, null, false, null, err);
     }
   }
 
