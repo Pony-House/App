@@ -212,8 +212,8 @@ function RoomSettings({ roomTimeline = {} }) {
     const handleRoomSyncUpdate = (roomId, threadId) => {
       if (
         roomId === 'ALL' ||
-        (syncTimelineCache.roomId !== roomId &&
-          (!syncTimelineCache.threadId || syncTimelineCache.threadId !== threadId))
+        (roomTimeline.roomId !== roomId &&
+          (!roomTimeline.threadId || roomTimeline.threadId !== threadId))
       )
         return;
       forceUpdate();
