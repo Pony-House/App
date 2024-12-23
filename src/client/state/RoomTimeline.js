@@ -147,6 +147,7 @@ class RoomTimeline extends EventEmitter {
               }
               await tinyThis.waitTimeline();
               await this._insertReactions(events);
+              await this._checkEventThreads(events);
               tinyThis.forceLoad = false;
             } else tinyThis._selectEvent = eventId;
           }
@@ -420,25 +421,35 @@ class RoomTimeline extends EventEmitter {
     }
   }
 
-  async _checkEventThreads(mEvent) {
+  async _checkEventThreads(newEvent) {
     if (this._closed) return;
 
-    // Get thread
-    const threadEvent = await storageManager.getThreadsById({
-      roomId: this.roomId,
-      eventId: mEvent.getId(),
-    });
-    if (threadEvent) {
-      if (
-        threadEvent.thread &&
-        typeof threadEvent.thread.fetch === 'function' &&
-        !threadEvent.thread.initialized
-      )
-        await threadEvent.thread.fetch();
+    // Get event list
+    const queryEvents = [];
+    const queryEvents2 = [];
+    if (!Array.isArray(newEvent)) { queryEvents.push(newEvent.getId()); queryEvents2.push(newEvent); }
+    else for (const item in newEvent) { queryEvents.push(newEvent[item].getId()); queryEvents2.push(newEvent[item]); }
 
-      // Replace to new event
-      mEvent.replaceThread(threadEvent);
-      console.log('NOW', mEvent);
+    // Get thread
+    const tEvents = await storageManager.getThreads({
+      roomId: this.roomId,
+      eventId: queryEvents,
+    });
+
+    if (tEvents) {
+      for (const item in tEvents) {
+        const threadEvent = tEvents[item];
+
+        if (
+          threadEvent.thread &&
+          typeof threadEvent.thread.fetch === 'function' &&
+          !threadEvent.thread.initialized
+        )
+          await threadEvent.thread.fetch();
+
+        // Replace to new event
+        queryEvents2.find(event => event.getId() === threadEvent.getId()).replaceThread(threadEvent);
+      }
     }
   }
 
@@ -478,6 +489,12 @@ class RoomTimeline extends EventEmitter {
           const eventId = mEvent.getId();
           if (!tmc.lastEvent || eventTs > tmc.lastEvent.getTs()) tmc.lastEvent = mEvent;
 
+          // Add reactions and more stuff
+          if (!ignoredReactions) {
+            await this._insertReactions(mEvent);
+            await this._checkEventThreads(mEvent);
+          }
+
           // Insert event
           const msgIndex = tmc.timeline.findIndex((item) => item.getId() === eventId);
           if (msgIndex < 0) {
@@ -488,12 +505,6 @@ class RoomTimeline extends EventEmitter {
               !mEvent.thread.initialized
             )
               await mEvent.thread.fetch();
-
-            // Add reactions and more stuff
-            if (!ignoredReactions) {
-              await this._checkEventThreads(mEvent);
-              await this._insertReactions(mEvent);
-            }
 
             // Add event
             tmc.timeline.push(mEvent);
@@ -642,6 +653,7 @@ class RoomTimeline extends EventEmitter {
           }
           await this.waitTimeline();
           await this._insertReactions(events);
+          await this._checkEventThreads(events);
         }
       }
 
