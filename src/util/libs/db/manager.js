@@ -12,13 +12,12 @@ class TinyDbManager extends EventEmitter {
   constructor() {
     super();
 
-    this._dbVersion = 29;
+    this._dbVersion = 30;
     this._oldDbVersion = global.localStorage.getItem('ponyHouse-db-version') || 0;
     this.dbName = 'pony-house-database';
 
     this._editedIds = {};
     this._deletedIds = {};
-    this._threadIds = {};
 
     this._queryCache = { data: [], busy: 0 };
     this._waitTimelineTimeout = () => new Promise((resolve) => resolve());
@@ -95,7 +94,7 @@ class TinyDbManager extends EventEmitter {
 
   _eventFilter(event, data = {}, extraValue = null) {
     const date = event.getDate();
-    const threadId = this._getEventThreadId(event);
+    const threadId = event.threadRootId;
     const isRedacted = event.isRedacted() ? true : false;
 
     data.event_id = event.getId();
@@ -287,7 +286,7 @@ class TinyDbManager extends EventEmitter {
               replace_id: msgRelative.event_id,
               event_id: event.getId(),
               room_id: event.getRoomId(),
-              thread_id: event.getThread()?.id,
+              thread_id: event.getThread()?.id || event.threadRootId,
               content: event.getContent(),
               origin_server_ts: replaceTs,
             },
@@ -564,7 +563,10 @@ class TinyDbManager extends EventEmitter {
   }
 
   setReaction(event) {
-    return this._setDataTemplate('reactions', 'dbReaction', event);
+    return this._setDataTemplate('reactions', 'dbReaction', event, (data) => {
+      const relation = event.getRelation();
+      if (relation && typeof relation.event_id === 'string') data.target_id = relation.event_id;
+    });
   }
 
   deleteReactionById(event) {
@@ -579,24 +581,10 @@ class TinyDbManager extends EventEmitter {
     return this._deleteDataByIdTemplate('timeline', 'dbTimelineDeleted', event);
   }
 
-  _getEventThreadId(event) {
-    const thread = event.getThread();
-    const content = event.getContent();
-    return thread && typeof thread.id === 'string'
-      ? thread.id
-      : content &&
-          content['m.relates_to'] &&
-          content['m.relates_to']['rel_type'] === 'm.thread' &&
-          typeof content['m.relates_to'].event_id === 'string'
-        ? content['m.relates_to'].event_id
-        : null;
-  }
-
   _setIsThread(event) {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
-      const threadId = tinyThis._getEventThreadId(event);
-      tinyThis._threadIds[threadId] = true;
+      const threadId = event.threadRootId;
       if (typeof threadId === 'string') {
         const data = {
           event_id: threadId,

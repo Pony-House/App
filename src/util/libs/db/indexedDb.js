@@ -376,6 +376,7 @@ export const startDb = async (tinyThis) => {
           sender: { notNull: false, dataType: DATA_TYPE.String },
           room_id: { notNull: false, dataType: DATA_TYPE.String },
           thread_id: { notNull: false, dataType: DATA_TYPE.String },
+          target_id: { notNull: false, dataType: DATA_TYPE.String },
 
           content: { notNull: false, dataType: DATA_TYPE.Object },
           unsigned: { notNull: false, dataType: DATA_TYPE.Object },
@@ -421,6 +422,14 @@ export const startDb = async (tinyThis) => {
           29: {
             add: {
               member_type: {
+                notNull: false,
+                dataType: DATA_TYPE.String,
+              },
+            },
+          },
+          30: {
+            add: {
+              target_id: {
                 notNull: false,
                 dataType: DATA_TYPE.String,
               },

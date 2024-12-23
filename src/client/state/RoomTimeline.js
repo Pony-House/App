@@ -23,6 +23,7 @@ class RoomTimeline extends EventEmitter {
     this._selectEvent = null;
     this.forceLoad = false;
     this._eventsQueue = { data: [], busy: 0 };
+    this._closed = false;
 
     // Client Prepare
     this.matrixClient = initMatrix.matrixClient;
@@ -97,6 +98,7 @@ class RoomTimeline extends EventEmitter {
 
     // Start timeline events
     this._startTimeline = async (data, eventId) => {
+      if (tinyThis._closed) return;
       console.log(`${this._consoleTag} Starting timeline`);
       const tinyError = (err) => {
         console.error(err);
@@ -139,10 +141,12 @@ class RoomTimeline extends EventEmitter {
                 tinyThis._deletingEventById(tinyThis.timelineCache.timeline[0].getId());
               }
 
+              if (tinyThis._closed) return;
               for (const item in events) {
-                tinyThis._insertIntoTimeline(events[item], undefined, true, true);
+                tinyThis._insertIntoTimeline(events[item], undefined, true, true, true);
               }
               await tinyThis.waitTimeline();
+              await this._insertReactions(events);
               tinyThis.forceLoad = false;
             } else tinyThis._selectEvent = eventId;
           }
@@ -184,6 +188,7 @@ class RoomTimeline extends EventEmitter {
       // Check event
       if (!mEvent.isSending() || mEvent.getSender() === initMatrix.matrixClient.getUserId()) {
         // Send into the timeline
+        if (tinyThis._closed) return;
         tinyThis._insertIntoTimeline(mEvent, tmc);
       }
     };
@@ -217,11 +222,6 @@ class RoomTimeline extends EventEmitter {
     // Reaction events
     this._onReaction = (r, mEvent) => {
       if (!tinyThis.belongToRoom(mEvent)) return;
-      console.log(
-        `${mEvent.getType()} ${mEvent.getRoomId()} ${mEvent.getId()} Reaction Wait ${mEvent.getSender()}`,
-        mEvent.getContent(),
-        mEvent,
-      );
       // Reactions
     };
 
@@ -377,20 +377,72 @@ class RoomTimeline extends EventEmitter {
     const getMsgConfig = {
       roomId: roomId,
       showRedaction: false,
-      limit:
-        typeof limit === 'number' && !Number.isNaN(limit) && Number.isFinite(limit) && limit > 0
-          ? limit
-          : 10,
     };
+
+    if (typeof limit === 'number') {
+      if (!Number.isNaN(limit) && Number.isFinite(limit) && limit > 0) getMsgConfig.limit = limit;
+    } else getMsgConfig.limit = 10;
 
     if (typeof page === 'number') getMsgConfig.page = page;
     if (!threadId) getMsgConfig.showThreads = false;
-    if (typeof eventId === 'string') getMsgConfig.eventId = eventId;
+    if (typeof eventId === 'string' || Array.isArray(eventId)) getMsgConfig.eventId = eventId;
     else getMsgConfig.threadId = threadId;
     return getMsgConfig;
   }
 
-  async _addEventQueue() {
+  getRelateToId(mEvent) {
+    const relation = mEvent.getRelation();
+    return relation && (relation.event_id ?? null);
+  }
+
+  async _insertReactions(newEvent) {
+    if (this._closed) return;
+    // Get event list
+    const queryEvents = [];
+    if (!Array.isArray(newEvent)) queryEvents.push(newEvent.getId());
+    else for (const item in newEvent) queryEvents.push(newEvent[item].getId());
+
+    const events = [];
+    await storageManager.getReactions(this._buildPagination({ limit: NaN }));
+
+    // Insert reactions
+    for (const item in events) {
+      const mEvent = events[item];
+
+      const relateToId = this.getRelateToId(mEvent);
+      if (relateToId === null) return null;
+      const mEventId = mEvent.getId();
+
+      if (!this.reactionTimeline.has(relateToId)) this.reactionTimeline.set(relateToId, []);
+      const mEvents = myMap.get(relateToId);
+      if (mEvents.find((ev) => ev.getId() === mEventId)) return;
+      mEvents.push(mEvent);
+    }
+  }
+
+  async _checkEventThreads(mEvent) {
+    if (this._closed) return;
+
+    // Get thread
+    const threadEvent = await storageManager.getThreadsById({
+      roomId: this.roomId,
+      eventId: mEvent.getId(),
+    });
+    if (threadEvent) {
+      if (
+        threadEvent.thread &&
+        typeof threadEvent.thread.fetch === 'function' &&
+        !threadEvent.thread.initialized
+      )
+        await threadEvent.thread.fetch();
+
+      // Replace to new event
+      mEvent.replaceThread(threadEvent);
+      console.log('NOW', mEvent);
+    }
+  }
+
+  async _addEventQueue(ignoredReactions = false) {
     // Add event
     const tinyThis = this;
     const eventQueue = this._eventsQueue.data.shift();
@@ -398,7 +450,7 @@ class RoomTimeline extends EventEmitter {
       // Complete
       const tinyComplete = () => {
         if (tinyThis._eventsQueue.data.length < 1) this._eventsQueue.busy--;
-        else tinyThis._addEventQueue();
+        else tinyThis._addEventQueue(ignoredReactions);
       };
 
       try {
@@ -437,6 +489,12 @@ class RoomTimeline extends EventEmitter {
             )
               await mEvent.thread.fetch();
 
+            // Add reactions and more stuff
+            if (!ignoredReactions) {
+              await this._checkEventThreads(mEvent);
+              await this._insertReactions(mEvent);
+            }
+
             // Add event
             tmc.timeline.push(mEvent);
             if (tmc.timeline.length > pageLimit) {
@@ -466,12 +524,18 @@ class RoomTimeline extends EventEmitter {
   }
 
   // Insert into timeline
-  _insertIntoTimeline(mEvent, tmc = this.timelineCache, isFirstTime = false, forceAdd = false) {
+  _insertIntoTimeline(
+    mEvent,
+    tmc = this.timelineCache,
+    isFirstTime = false,
+    forceAdd = false,
+    ignoredReactions = false,
+  ) {
     this._eventsQueue.data.push({ mEvent, tmc, isFirstTime, forceAdd });
     this._eventsQueue.data.sort((a, b) => a.mEvent.getTs() - b.mEvent.getTs());
     if (this._eventsQueue.busy < 1) {
       this._eventsQueue.busy++;
-      this._addEventQueue();
+      this._addEventQueue(ignoredReactions);
     }
   }
 
@@ -501,6 +565,7 @@ class RoomTimeline extends EventEmitter {
 
   // Pagination
   async paginateTimeline(backwards = false) {
+    if (this._closed) return;
     // Initialization
     if (this.isOngoingPagination) return false;
     const oldPage = this.timelineCache.page;
@@ -573,9 +638,10 @@ class RoomTimeline extends EventEmitter {
         // Insert events into the timeline
         if (Array.isArray(events)) {
           for (const item in events) {
-            this._insertIntoTimeline(events[item], undefined, true, true);
+            this._insertIntoTimeline(events[item], undefined, true, true, true);
           }
           await this.waitTimeline();
+          await this._insertReactions(events);
         }
       }
 
@@ -702,6 +768,7 @@ class RoomTimeline extends EventEmitter {
       `dbTimelineLoaded-${this.roomId}${this.threadId ? `-${this.threadId}` : ''}`,
       this._startTimeline,
     );
+    this._closed = true;
   }
 }
 

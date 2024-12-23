@@ -337,13 +337,59 @@ class LocalStorageEvent extends EventEmitter {
     if (typeof this.event.member_type !== 'undefined' && this.event.member_type === 'NULL')
       delete this.event.member_type;
 
-    if (this.threadId) {
-      const threadValue = `${this.getRoomId()}:${this.threadId}`;
-      if (!threadsCache[threadValue]) threadsCache[threadValue] = new MyThreadEmitter(this);
-      this.thread = threadsCache[threadValue];
-    }
-
+    if (!this.initThread()) this.thread = null;
     this.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
+  }
+
+  /* *
+
+    The thread has two boot processes...
+    This function will initialize the object "this.thread" to be available. 
+    This function is used when you still do not have an event with thread enabled.
+
+    After activating the thread, you need to use "this.thread.fetch()" to run the final startup 
+    that will make the thread behave like the matrix-js-sdk threads.
+
+    If you want to boot the thread completely, you can place true in the "fetchNow" value.
+    But if you put true, the value will return a promise.
+
+  * */
+  initThread(fetchNow = false) {
+    if (!this.thread) {
+      // Get Id
+      const threadId = this.threadId || this.threadRootId;
+
+      // Let's create it
+      if (threadId) {
+        // Add thread id into the event
+        this.threadId = threadId;
+        const threadValue = `${this.getRoomId()}:${threadId}`;
+
+        // Create the thread class and and this into the event
+        if (!threadsCache[threadValue]) threadsCache[threadValue] = new MyThreadEmitter(this);
+        this.thread = threadsCache[threadValue];
+
+        // Complete!
+        return !fetchNow ? true : this.thread.fetch();
+      }
+
+      // Nope! Tiny fail...
+      return !fetchNow
+        ? false
+        : new Promise((resolve, reject) =>
+            reject(new Error('This event is not ready to be a thread!')),
+          );
+    }
+    throw new Error('The thread has already been activated in this event!');
+  }
+
+  replaceThread(mEvent) {
+    this.threadId = mEvent.threadId;
+    this.thread = mEvent.thread;
+    this.isThreadRoot = mEvent.isThreadRoot;
+    this.threadRootId = mEvent.threadRootId;
+    this.event.thread_id = mEvent.event.thread_id;
+    this.emit('PonyHouse.ThreadReplaced', mEvent.thread);
   }
 
   getMemberEventType = () => {
@@ -474,10 +520,19 @@ class StorageManager extends EventEmitter {
         funcName += toTitleCase(nameParts[i]);
       }
 
+      const tinyOrder =
+        typeof data.orderWhere === 'string' || typeof data.orderBy === 'string'
+          ? `${typeof data.orderWhere === 'string' ? data.orderWhere : data.name}.${typeof data.orderBy === 'string' ? data.orderBy : 'origin_server_ts'}`
+          : null;
+
+      const forceTransaction =
+        typeof data.forceTransaction === 'boolean' ? data.forceTransaction : false;
+
       this[`getLocation${funcName}Id`] = ({
         eventId = null,
         threadId = null,
         showThreads = null,
+        sender = null,
         showRedaction = null,
         showTransaction = false,
         roomId = null,
@@ -485,6 +540,7 @@ class StorageManager extends EventEmitter {
         limit = null,
         join = null,
         memberType = null,
+        order = null,
 
         body = null,
         formattedBody = null,
@@ -493,12 +549,14 @@ class StorageManager extends EventEmitter {
         url = null,
       }) =>
         this._findEventIdInPagination({
+          order: order || tinyOrder,
           from: data.name,
           eventId,
           threadId,
           showThreads,
+          sender,
           showRedaction,
-          showTransaction,
+          showTransaction: showTransaction || forceTransaction,
           roomId,
           type,
           limit,
@@ -511,7 +569,9 @@ class StorageManager extends EventEmitter {
       this[`get${funcName}Count`] = ({
         roomId = null,
         threadId = null,
+        eventId,
         showThreads = null,
+        sender = null,
         showRedaction = null,
         showTransaction = false,
         type = null,
@@ -528,9 +588,11 @@ class StorageManager extends EventEmitter {
           from: data.name,
           roomId,
           threadId,
+          eventId,
           showThreads,
+          sender,
           showRedaction,
-          showTransaction,
+          showTransaction: showTransaction || forceTransaction,
           type,
           memberType,
           existMemberType: data.existMemberType,
@@ -541,7 +603,9 @@ class StorageManager extends EventEmitter {
       this[`get${funcName}Pagination`] = ({
         roomId = null,
         threadId = null,
+        eventId = null,
         showThreads = null,
+        sender = null,
         showRedaction = null,
         showTransaction = false,
         type = null,
@@ -559,9 +623,11 @@ class StorageManager extends EventEmitter {
           from: data.name,
           roomId,
           threadId,
+          eventId,
           showThreads,
+          sender,
           showRedaction,
-          showTransaction,
+          showTransaction: showTransaction || forceTransaction,
           type,
           limit,
           memberType,
@@ -573,7 +639,9 @@ class StorageManager extends EventEmitter {
       this[`get${funcName}`] = ({
         roomId = null,
         threadId = null,
+        eventId = null,
         showThreads = null,
+        sender = null,
         showRedaction = null,
         showTransaction = false,
         type = null,
@@ -581,6 +649,7 @@ class StorageManager extends EventEmitter {
         page = null,
         join = null,
         memberType = null,
+        order = null,
 
         body = null,
         formattedBody = null,
@@ -589,12 +658,15 @@ class StorageManager extends EventEmitter {
         url = null,
       }) =>
         this._eventsDataTemplate({
+          order: order || tinyOrder,
           from: data.name,
           roomId,
           threadId,
+          eventId,
           showThreads,
+          sender,
           showRedaction,
-          showTransaction,
+          showTransaction: showTransaction || forceTransaction,
           type,
           limit,
           page,
@@ -608,19 +680,26 @@ class StorageManager extends EventEmitter {
         roomId = null,
         threadId = null,
         type = null,
+        sender = null,
         eventId = null,
         showRedaction = null,
         memberType = null,
+        showTransaction = null,
+        join = null,
       }) =>
         this._eventsDataTemplate({
+          isSingle: true,
           from: data.name,
+          sender,
           roomId,
           threadId,
           eventId,
           showRedaction,
           type,
           memberType,
+          showTransaction: showTransaction || forceTransaction,
           existMemberType: data.existMemberType,
+          join: join || data.join,
         });
 
       this.dbManager.on('dbMessageUpdate', (r, mEvent) =>
@@ -714,7 +793,7 @@ class StorageManager extends EventEmitter {
   setTmLastEvent(event) {
     const roomId = event.getRoomId();
     const thread = event.getThread();
-    const threadId = thread ? thread.id : null || null;
+    const threadId = thread ? thread.id : this.threadRootId || null;
     const eventId = event.getId();
     const ts = event.getTs();
 
@@ -938,6 +1017,9 @@ class StorageManager extends EventEmitter {
         let lastTimelineToken = null;
 
         // Needs add data
+        console.log(
+          `[room-db-sync] [${valueId}] This room full sync is ${isComplete ? 'complete' : 'incomplete'}${canLastCheckPoint ? ' and need sync last events received' : ''}...`,
+        );
         if (!isComplete || canLastCheckPoint) {
           // Read event list
           if (events.length > 0) {
@@ -955,6 +1037,16 @@ class StorageManager extends EventEmitter {
               const eventIdp = events[item].getId();
               if (this._syncTimelineCache.usedIds.indexOf(eventIdp) < 0) {
                 this._syncTimelineCache.usedIds.push(eventIdp);
+
+                // Get thread
+                const newThread =
+                  !events[item].threadRootId || events[item].threadRootId === events[item].getId()
+                    ? events[item].getThread()
+                    : null;
+                if (newThread && typeof newThread.id === 'string')
+                  this.syncTimeline(roomId, newThread.id);
+                else if (events[item].threadRootId)
+                  this.syncTimeline(roomId, events[item].threadRootId);
 
                 // Send the event to the timeline database manager
                 this.addToTimeline(events[item], true);
@@ -1321,11 +1413,14 @@ class StorageManager extends EventEmitter {
   }
 
   async _eventsDataTemplate({
+    order = null,
+    isSingle = false,
     from = '',
     roomId = null,
     threadId = null,
     eventId = null,
     showThreads = null,
+    sender = null,
     type = null,
     showRedaction = null,
     showTransaction = null,
@@ -1340,15 +1435,28 @@ class StorageManager extends EventEmitter {
     join = null,
   }) {
     const data = { from };
-    data.where = { room_id: roomId };
-    data.order = { type: 'desc', by: `${join ? `${from}.` : ''}${orderBy}` };
-    if (join) data.join = objWhereChecker(join, { room_id: roomId });
+    data.where = {};
+
+    if (!isSingle) {
+      data.order = { type: 'desc', by: `${join ? `${from}.` : ''}${orderBy}` };
+      if (typeof order === 'string') data.order.by = order;
+      else if (objType(order, 'object') && typeof order.by === 'string') data.order.by = order.by;
+    }
+
+    if (join) data.join = objWhereChecker(join, { room_id: roomId, thread_id: threadId });
 
     insertObjWhere(data, 'content', content);
     insertObjWhere(data, 'unsigned', unsigned);
     addCustomSearch(data.where, customWhere);
 
+    if (typeof roomId === 'string') data.where.room_id = roomId;
+    else if (Array.isArray(roomId)) data.where.room_id = { in: roomId };
+
+    if (typeof sender === 'string') data.where.sender = sender;
+    else if (Array.isArray(sender)) data.where.sender = { in: sender };
+
     if (typeof type === 'string') data.where.type = type;
+    else if (Array.isArray(type)) data.where.type = { in: type };
 
     if (typeof showThreads === 'boolean') {
       if (showThreads) data.where.thread_id = { '!=': 'NULL' };
@@ -1362,7 +1470,10 @@ class StorageManager extends EventEmitter {
 
     if (showTransaction !== true) data.where.is_transaction = false;
 
-    if (typeof eventId !== 'string') {
+    if (!isSingle) {
+      if (typeof eventId === 'string') data.where.event_id = eventId;
+      else if (Array.isArray(eventId)) data.where.event_id = { in: eventId };
+
       if (typeof limit === 'number') {
         if (!Number.isNaN(limit) && Number.isFinite(limit) && limit > -1) data.limit = limit;
         else data.limit = 0;
@@ -1394,7 +1505,9 @@ class StorageManager extends EventEmitter {
   async _eventsCounter({
     from = '',
     threadId = null,
+    eventId = null,
     showThreads = null,
+    sender = null,
     showRedaction = null,
     showTransaction = null,
     roomId = null,
@@ -1421,11 +1534,22 @@ class StorageManager extends EventEmitter {
 
     if (showTransaction !== true) data.where.is_transaction = false;
 
-    if (join) data.join = objWhereChecker(join, { room_id: roomId });
+    if (join) data.join = objWhereChecker(join, { room_id: roomId, thread_id: threadId });
     insertObjWhere(data, 'content', content);
     insertObjWhere(data, 'unsigned', unsigned);
     addCustomSearch(data.where, customWhere);
+
+    if (typeof roomId === 'string') data.where.room_id = roomId;
+    else if (Array.isArray(roomId)) data.where.room_id = { in: roomId };
+
     if (typeof type === 'string') data.where.type = type;
+    else if (Array.isArray(type)) data.where.type = { in: type };
+
+    if (typeof sender === 'string') data.where.sender = sender;
+    else if (Array.isArray(sender)) data.where.sender = { in: sender };
+
+    if (typeof eventId === 'string') data.where.event_id = eventId;
+    else if (Array.isArray(eventId)) data.where.event_id = { in: eventId };
 
     finishWhereDbPrepare(memberType, threadId, data, existMemberType);
     return this.dbManager.storeConnection.count(data);
@@ -1435,6 +1559,8 @@ class StorageManager extends EventEmitter {
     from = '',
     roomId = null,
     threadId = null,
+    eventId = null,
+    sender = null,
     showThreads = null,
     showRedaction = null,
     showTransaction = null,
@@ -1451,6 +1577,8 @@ class StorageManager extends EventEmitter {
       from,
       roomId,
       threadId,
+      eventId,
+      sender,
       showThreads,
       showRedaction,
       showTransaction,
@@ -1469,12 +1597,14 @@ class StorageManager extends EventEmitter {
   }
 
   async _findEventIdInPagination({
+    order = null,
     eventId = null,
     valueName = 'event_id',
     from = '',
     threadId = null,
     showThreads = null,
     showRedaction = null,
+    sender = null,
     showTransaction = null,
     roomId = null,
     type = null,
@@ -1493,6 +1623,7 @@ class StorageManager extends EventEmitter {
       showThreads,
       showRedaction,
       showTransaction,
+      sender,
       roomId,
       unsigned,
       content,
@@ -1507,10 +1638,12 @@ class StorageManager extends EventEmitter {
     for (let i = 0; i < data.pages; i++) {
       const p = i + 1;
       const items = await this._eventsDataTemplate({
+        order,
         from,
         roomId,
         threadId,
         showThreads,
+        sender,
         showRedaction,
         showTransaction,
         unsigned,
@@ -1603,7 +1736,7 @@ class StorageManager extends EventEmitter {
     const roomId = event.getRoomId();
 
     const thread = event.getThread();
-    const threadId = thread ? thread?.id : null;
+    const threadId = thread ? thread?.id : event.threadRootId || null;
     const valueId = `${roomId}${threadId ? `:${threadId}` : ''}`;
 
     const eventSnap = event.toSnapshot();

@@ -22,6 +22,7 @@ import { jqueryTime } from '@src/app/atoms/time/Time';
 
 import { btModal } from '../../tools';
 import initMatrix, { fetchFn } from '../../../client/initMatrix';
+import storageManager from '../Localstorage';
 
 // The class
 class ThreadsList extends EventEmitter {
@@ -75,6 +76,20 @@ class ThreadsList extends EventEmitter {
 
   getActive(roomId, threadId) {
     return getDataList('thread', 'actives', `${roomId}:${threadId}`);
+  }
+
+  dbGet({ page = 1 }) {
+    const tinyThis = this;
+    return new Promise((resolve, reject) => {
+      /* storageManager.getMessages({
+        roomId: thread.roomId,
+        threadId: thread.id,
+        showThreads: true,
+        showRedaction: false,
+        page,
+        limit: getAppearance('pageLimit'),
+      }); */
+    });
   }
 
   /**

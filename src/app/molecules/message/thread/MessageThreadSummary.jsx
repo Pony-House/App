@@ -28,7 +28,7 @@ export function shouldShowThreadSummary(mEvent, roomTimeline) {
 
 const MessageThreadSummary = React.memo(({ thread }) => {
   const [lastReply, setLastReply] = useState(thread.lastReply());
-  const [show, setShow] = useState(thread.timeline.length > 0 ? true : false);
+  const [show, setShow] = useState(thread.length > 0 ? true : false);
   const appearanceSettings = getAppearance();
 
   // can't have empty threads
@@ -59,12 +59,14 @@ const MessageThreadSummary = React.memo(({ thread }) => {
   // Stuff
   useEffect(() => {
     const threadTimelineUpdate = () => {
-      setShow(thread.timeline.length > 0 ? true : false);
+      setShow(thread.length > 0 ? true : false);
       setLastReply(thread.lastReply());
     };
 
+    thread.on('PonyHouse.ThreadReplaced', threadTimelineUpdate);
     thread.on(RoomEvent.Timeline, threadTimelineUpdate);
     return () => {
+      thread.off('PonyHouse.ThreadReplaced', threadTimelineUpdate);
       thread.off(RoomEvent.Timeline, threadTimelineUpdate);
     };
   });
