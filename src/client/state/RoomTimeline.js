@@ -52,6 +52,10 @@ class RoomTimeline extends EventEmitter {
 
     this.timelineCache = timelineCache[this.timelineId];
     this.timeline = this.timelineCache.timeline;
+    for (const item in this.timeline) {
+      const mEvent = this.timeline[item];
+      if (mEvent.threadId) mEvent.insertThread();
+    }
 
     this._consoleTag = `[timeline] [${roomId}]${threadId ? ` [${threadId}]` : ''}`;
 
@@ -147,7 +151,6 @@ class RoomTimeline extends EventEmitter {
               }
               await tinyThis.waitTimeline();
               await this._insertReactions(events);
-              await this._checkEventThreads(events);
               tinyThis.forceLoad = false;
             } else tinyThis._selectEvent = eventId;
           }
@@ -235,8 +238,11 @@ class RoomTimeline extends EventEmitter {
     };
 
     // Thread added events
-    this._onThreadEvent = (r, mEvent) => {
-      if (!tinyThis.belongToRoom(mEvent)) return;
+    this._onThreadEvent = (r, event) => {
+      if (!event.room_id !== tinyThis.roomId) return;
+      const mEvent = this.findEventById(event.event_id);
+      if (!mEvent) return;
+      mEvent.insertThread();
     };
 
     // Crdt events
@@ -427,30 +433,48 @@ class RoomTimeline extends EventEmitter {
     // Get event list
     const queryEvents = [];
     const queryEvents2 = [];
-    if (!Array.isArray(newEvent)) { queryEvents.push(newEvent.getId()); queryEvents2.push(newEvent); }
-    else for (const item in newEvent) { queryEvents.push(newEvent[item].getId()); queryEvents2.push(newEvent[item]); }
+    if (!Array.isArray(newEvent)) {
+      if (!newEvent.thread) {
+        queryEvents.push(newEvent.getId());
+        queryEvents2.push(newEvent);
+      }
+    } else
+      for (const item in newEvent) {
+        if (!newEvent[item].thread) {
+          queryEvents.push(newEvent[item].getId());
+          queryEvents2.push(newEvent[item]);
+        }
+      }
 
     // Get thread
-    const tEvents = await storageManager.getThreads({
-      roomId: this.roomId,
-      eventId: queryEvents,
-    });
+    if (queryEvents.length > 0) {
+      const tEvents = await storageManager.getThreads({
+        roomId: this.roomId,
+        eventId: queryEvents,
+      });
 
-    if (tEvents) {
-      for (const item in tEvents) {
-        const threadEvent = tEvents[item];
+      if (tEvents) {
+        for (const item in tEvents) {
+          const threadEvent = tEvents[item];
 
-        if (
-          threadEvent.thread &&
-          typeof threadEvent.thread.fetch === 'function' &&
-          !threadEvent.thread.initialized
-        )
-          await threadEvent.thread.fetch();
+          if (
+            threadEvent.thread &&
+            typeof threadEvent.thread.fetch === 'function' &&
+            !threadEvent.thread.initialized
+          )
+            await threadEvent.thread.fetch();
 
-        // Replace to new event
-        queryEvents2.find(event => event.getId() === threadEvent.getId()).replaceThread(threadEvent);
+          // Replace to new event
+          queryEvents2
+            .find((event) => event.getId() === threadEvent.getId())
+            .replaceThread(threadEvent);
+        }
       }
     }
+  }
+
+  _autoUpdateEvent(thread, mEvent) {
+    // console.log('[timeline] Event room updated!', mEvent);
   }
 
   async _addEventQueue(ignoredReactions = false) {
@@ -522,6 +546,7 @@ class RoomTimeline extends EventEmitter {
           if (tmc.roomId === this.roomId && (!tmc.threadId || tmc.threadId === this.threadId)) {
             if (mEvent.isEdited()) this.editedTimeline.set(eventId, [mEvent.getEditedContent()]);
             if (!isFirstTime) this.emit(cons.events.roomTimeline.EVENT, mEvent);
+            this._addingEventPlaces(mEvent);
           }
         }
       } catch (err) {
@@ -562,6 +587,14 @@ class RoomTimeline extends EventEmitter {
   _deletingEventPlaces(redacts) {
     this.editedTimeline.delete(redacts);
     this.reactionTimeline.delete(redacts);
+    const mEvent = this.findEventById(redacts);
+    if (mEvent) {
+      mEvent.off('PonyHouse.ThreatInitialized', this._autoUpdateEvent);
+    }
+  }
+
+  _addingEventPlaces(mEvent) {
+    mEvent.on('PonyHouse.ThreatInitialized', this._autoUpdateEvent);
   }
 
   _deletingEvent(event) {
@@ -653,7 +686,6 @@ class RoomTimeline extends EventEmitter {
           }
           await this.waitTimeline();
           await this._insertReactions(events);
-          await this._checkEventThreads(events);
         }
       }
 
@@ -780,6 +812,8 @@ class RoomTimeline extends EventEmitter {
       `dbTimelineLoaded-${this.roomId}${this.threadId ? `-${this.threadId}` : ''}`,
       this._startTimeline,
     );
+
+    for (const item in this.timeline) this._deletingEventPlaces(this.timeline[item].getId());
     this._closed = true;
   }
 }

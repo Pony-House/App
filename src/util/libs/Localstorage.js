@@ -280,6 +280,8 @@ class MyThreadEmitter extends EventEmitter {
 
               // Complete
               thread.initialized = true;
+              thread.emit('initialized', true);
+              tinyThis.emit('PonyHouse.ThreatInitialized', thread, tinyThis);
               resolve(thread);
             } catch (err) {
               reject(err);
@@ -381,6 +383,17 @@ class LocalStorageEvent extends EventEmitter {
           );
     }
     throw new Error('The thread has already been activated in this event!');
+  }
+
+  insertThread() {
+    if (!this.thread) {
+      this.threadId = mEvent.getId();
+      this.threadRootId = this.threadId;
+      this.event.thread_id = this.threadId;
+      this.isThreadRoot = true;
+      return this.initThread(true);
+    }
+    return this.thread;
   }
 
   replaceThread(mEvent) {
@@ -705,9 +718,6 @@ class StorageManager extends EventEmitter {
       this.dbManager.on('dbMessageUpdate', (r, mEvent) =>
         tinyThis.emit('dbMessageUpdate', r, tinyThis.convertToEventFormat(mEvent)),
       );
-      this.dbManager.on('dbThreads', (r, mEvent) =>
-        tinyThis.emit('dbThreads', r, tinyThis.convertToEventFormat(mEvent)),
-      );
       this.dbManager.on('dbMessageEdit', (r, mEvent) =>
         tinyThis.emit('dbMessageEdit', r, tinyThis.convertToEventFormat(mEvent)),
       );
@@ -717,12 +727,15 @@ class StorageManager extends EventEmitter {
       this.dbManager.on('dbCrdt', (r, mEvent) =>
         tinyThis.emit('dbCrdt', r, tinyThis.convertToEventFormat(mEvent)),
       );
-      this.dbManager.on('dbReaction', (r, mEvent) =>
-        tinyThis.emit('dbReaction', r, tinyThis.convertToEventFormat(mEvent)),
-      );
       this.dbManager.on('dbTimeline', (r, mEvent) =>
         tinyThis.emit('dbTimeline', r, tinyThis.convertToEventFormat(mEvent)),
       );
+
+      this.dbManager.on('dbReaction', (r, mEvent) =>
+        tinyThis.emit('dbReaction', r, tinyThis.convertToEventFormat(mEvent)),
+      );
+
+      this.dbManager.on('dbThreads', (r, event) => tinyThis.emit('dbThreads', r, event));
 
       this.dbManager.on('dbMember', (r, mEvent) => tinyThis.emit('dbMember', r, mEvent));
       this.dbManager.on('dbReceipt', (r, mEvent) => tinyThis.emit('dbReceipt', r, mEvent));
