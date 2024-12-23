@@ -427,7 +427,7 @@ class RoomTimeline extends EventEmitter {
     }
   }
 
-  async _checkEventThreads(newEvent) {
+  async checkEventThreads(newEvent) {
     if (this._closed) return;
 
     // Get event list
@@ -516,7 +516,7 @@ class RoomTimeline extends EventEmitter {
           // Add reactions and more stuff
           if (!ignoredReactions) {
             await this._insertReactions(mEvent);
-            await this._checkEventThreads(mEvent);
+            await this.checkEventThreads(mEvent);
           }
 
           // Insert event

@@ -31,6 +31,21 @@ const MessageThreadSummary = React.memo(({ thread }) => {
   const [show, setShow] = useState(thread.length > 0 ? true : false);
   const appearanceSettings = getAppearance();
 
+  // Stuff
+  useEffect(() => {
+    const threadTimelineUpdate = () => {
+      setShow(thread.length > 0 ? true : false);
+      setLastReply(thread.lastReply());
+    };
+
+    thread.on('PonyHouse.ThreadReplaced', threadTimelineUpdate);
+    thread.on(RoomEvent.Timeline, threadTimelineUpdate);
+    return () => {
+      thread.off('PonyHouse.ThreadReplaced', threadTimelineUpdate);
+      thread.off(RoomEvent.Timeline, threadTimelineUpdate);
+    };
+  });
+
   // can't have empty threads
   if (thread.length === 0) return null;
 
@@ -55,21 +70,6 @@ const MessageThreadSummary = React.memo(({ thread }) => {
   function selectThread() {
     selectRoom(thread.roomId, undefined, thread.rootEvent?.getId());
   }
-
-  // Stuff
-  useEffect(() => {
-    const threadTimelineUpdate = () => {
-      setShow(thread.length > 0 ? true : false);
-      setLastReply(thread.lastReply());
-    };
-
-    thread.on('PonyHouse.ThreadReplaced', threadTimelineUpdate);
-    thread.on(RoomEvent.Timeline, threadTimelineUpdate);
-    return () => {
-      thread.off('PonyHouse.ThreadReplaced', threadTimelineUpdate);
-      thread.off(RoomEvent.Timeline, threadTimelineUpdate);
-    };
-  });
 
   // Complete
   return (

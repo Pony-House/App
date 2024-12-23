@@ -362,7 +362,7 @@ class LocalStorageEvent extends EventEmitter {
       const threadId = this.threadId || this.threadRootId;
 
       // Let's create it
-      if (threadId) {
+      if (threadId && this.isThreadRoot) {
         // Add thread id into the event
         this.threadId = threadId;
         const threadValue = `${this.getRoomId()}:${threadId}`;
