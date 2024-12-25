@@ -8,12 +8,7 @@ import cons from './cons';
 
 import { updateRoomInfo } from '../action/navigation';
 import urlParams from '../../util/libs/urlParams';
-import {
-  getLastLinkedTimeline,
-  getLiveReaders,
-  getEventReaders,
-  isReaction,
-} from './Timeline/functions';
+import { getLastLinkedTimeline, getLiveReaders, getEventReaders } from './Timeline/functions';
 import installYjs from './Timeline/yjs';
 import { memberEventAllowed } from '@src/app/organisms/room/MemberEvents';
 import TinyEventChecker from './Notifications/validator';
@@ -235,7 +230,7 @@ class RoomTimeline extends EventEmitter {
       const msgIndex = tmc.timeline.findIndex((item) => item.getId() === eventId);
       if (msgIndex > -1) {
         this.timelineCache.timeline.splice(msgIndex, 1);
-        this._deletingEventPlaces(eventId);
+        this._deletingEventPlaces(eventId, mEvent);
         this._disablingEventPlaces(mEvent);
       }
     };
@@ -254,7 +249,6 @@ class RoomTimeline extends EventEmitter {
     this._onReaction = (r, mEvent) => {
       if (!tinyCheckEvent.check(mEvent)) return;
       if (!tinyThis.belongToRoom(mEvent)) return;
-      console.log(`${tinyThis._consoleTag} New reaction: ${mEvent.getId()}`);
       tinyThis._insertReaction(mEvent);
     };
 
@@ -473,26 +467,24 @@ class RoomTimeline extends EventEmitter {
   _getReactionTimeline(mEvent) {
     const relateToId = this.getRelateToId(mEvent);
     if (relateToId === null) return { mEvents: null, mEventId: null, tsId: null };
-    const mEventId = mEvent.getId();
     if (!this.reactionTimeline.has(relateToId)) this.reactionTimeline.set(relateToId, []);
-
     const mEvents = this.reactionTimeline.get(relateToId);
-    return { mEventId, mEvents, tsId: `${relateToId}:${mEvent.getId()}` };
+    return { mEvents, tsId: `${relateToId}:${mEvent.getId()}` };
   }
 
   _insertReaction(mEvent) {
     const isRedacted = mEvent.isRedacted();
     if (!isRedacted) {
-      console.log('Reaction added!');
-      const { mEventId, mEvents, tsId } = this._getReactionTimeline(mEvent);
+      const { mEvents, tsId } = this._getReactionTimeline(mEvent);
+      const ts = mEvent.getTs();
       if (
         mEvents &&
-        (typeof this.reactionTimelineTs[tsId] !== 'number' ||
-          mEvent.getTs() > this.reactionTimelineTs[tsId])
+        (typeof this.reactionTimelineTs[tsId] !== 'number' || ts > this.reactionTimelineTs[tsId])
       ) {
-        if (mEvents.find((ev) => ev.getId() === mEventId)) return;
+        if (mEvents.find((ev) => ev.getId() === mEvent.getId())) return;
+        console.log(`${this._consoleTag} New reaction: ${mEvent.getId()}`, ts);
         mEvents.push(mEvent);
-        this.reactionTimelineTs[tsId] = mEvent.getTs();
+        this.reactionTimelineTs[tsId] = ts;
       }
     } else this._removeReaction(mEvent);
   }
@@ -500,17 +492,17 @@ class RoomTimeline extends EventEmitter {
   _removeReaction(mEvent) {
     const isRedacted = mEvent.isRedacted();
     if (isRedacted) {
-      console.log('Reaction removed!');
-      const { mEventId, mEvents, tsId } = this._getReactionTimeline(mEvent);
+      const { mEvents, tsId } = this._getReactionTimeline(mEvent);
+      const ts = mEvent.getTs();
       if (
         mEvents &&
-        (typeof this.reactionTimelineTs[tsId] !== 'number' ||
-          mEvent.getTs() > this.reactionTimelineTs[tsId])
+        (typeof this.reactionTimelineTs[tsId] !== 'number' || ts > this.reactionTimelineTs[tsId])
       ) {
-        const index = mEvents.find((ev) => ev.getId() === mEventId);
+        const index = mEvents.find((ev) => ev.getId() === mEvent.getId());
         if (index > -1) {
+          console.log(`${this._consoleTag} Reaction removed: ${mEvent.getId()}`, ts);
           mEvents.splice(index, 1);
-          this.reactionTimelineTs[tsId] = mEvent.getTs();
+          this.reactionTimelineTs[tsId] = ts;
         }
       }
     }
@@ -672,25 +664,31 @@ class RoomTimeline extends EventEmitter {
   }
 
   // Deleting places
-  _deletingEventPlaces(redacts) {
+  _deletingEventPlaces(redacts, mEvent) {
     this.editedTimeline.delete(redacts);
     this.reactionTimeline.delete(redacts);
 
     let relateToId = null;
     for (const item in this.reactionTimelineTs) {
-      if (item.startsWith(`:${redacts}`)) {
+      if (item.endsWith(`:${redacts}`)) {
         relateToId = item.substring(0, item.length - redacts.length - 1);
         break;
       }
     }
 
+    console.log('Preparing to delete', relateToId, redacts);
     if (relateToId) {
       const mEvents = this.reactionTimeline.get(relateToId);
       if (mEvents) {
-        const index = mEvents.find((ev) => ev.getId() === redacts);
+        const index = mEvents.findIndex((ev) => ev.getId() === redacts);
         if (index > -1) {
           mEvents.splice(index, 1);
-          this.reactionTimelineTs[`${relateToId}:${redacts}`] = new Date().valueOf();
+          const ts = mEvent ? mEvent.getTs() : new Date().valueOf();
+          console.log(
+            `${this._consoleTag} Reaction removed: ${mEvent ? mEvent.getId() : redacts}`,
+            ts,
+          );
+          this.reactionTimelineTs[`${relateToId}:${redacts}`] = ts;
         }
       }
     }
@@ -698,12 +696,12 @@ class RoomTimeline extends EventEmitter {
 
   // Enabling events
   _enablingEventPlaces(mEvent) {
-    mEvent.on('PonyHouse.ThreatInitialized', this._autoUpdateEvent);
+    // mEvent.on('PonyHouse.ThreatInitialized', this._autoUpdateEvent);
   }
 
   // Disabling events
   _disablingEventPlaces(mEvent) {
-    mEvent.off('PonyHouse.ThreatInitialized', this._autoUpdateEvent);
+    // mEvent.off('PonyHouse.ThreatInitialized', this._autoUpdateEvent);
   }
 
   // Deleting events
