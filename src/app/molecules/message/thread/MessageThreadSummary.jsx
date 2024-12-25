@@ -39,9 +39,11 @@ const MessageThreadSummary = React.memo(({ thread }) => {
     };
 
     thread.on('PonyHouse.ThreadReplaced', threadTimelineUpdate);
+    thread.on('PonyHouse.ThreatInitialized', threadTimelineUpdate);
     thread.on(RoomEvent.Timeline, threadTimelineUpdate);
     return () => {
       thread.off('PonyHouse.ThreadReplaced', threadTimelineUpdate);
+      thread.off('PonyHouse.ThreatInitialized', threadTimelineUpdate);
       thread.off(RoomEvent.Timeline, threadTimelineUpdate);
     };
   });

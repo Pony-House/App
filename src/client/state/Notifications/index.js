@@ -27,7 +27,10 @@ import { getAccountStatus } from '../../../app/organisms/navigation/ProfileAvata
 import favIconManager from '../../../util/libs/favicon';
 import { getPrivacyRefuseRoom } from '../../../app/organisms/navigation/Sidebar/InviteSidebar';
 import waitDecrypt from './waitDecrypt';
+import TinyEventChecker from './validator';
 // import { insertEvent } from '../eventsDelay';
+
+const tinyCheckEvent = new TinyEventChecker();
 
 function isNotifEvent(mEvent) {
   const eType = mEvent.getType();
@@ -609,17 +612,6 @@ class Notifications extends EventEmitter {
     });
 
     const mx = this.matrixClient;
-    mx.on(RoomEvent.Redaction, (mEvent) => {
-      storageManager.addToTimeline(mEvent);
-    });
-
-    mx.on(RoomEvent.Tags, (event) => {
-      console.log('[tags]', event);
-    });
-
-    mx.on(RoomEvent.UnreadNotifications, (event) => {
-      console.log('[UnreadNotifications]', event);
-    });
 
     mx.on(ClientEvent.AccountData, (mEvent, oldMEvent) => {
       if (mEvent.getType() === 'm.push_rules') {

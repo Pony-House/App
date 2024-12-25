@@ -280,7 +280,7 @@ class MyThreadEmitter extends EventEmitter {
 
               // Complete
               thread.initialized = true;
-              thread.emit('initialized', true);
+              thread.emit('PonyHouse.ThreatInitialized', true);
               tinyThis.emit('PonyHouse.ThreatInitialized', thread, tinyThis);
               resolve(thread);
             } catch (err) {
@@ -387,7 +387,7 @@ class LocalStorageEvent extends EventEmitter {
 
   insertThread() {
     if (!this.thread) {
-      this.threadId = mEvent.getId();
+      this.threadId = this.getId();
       this.threadRootId = this.threadId;
       this.event.thread_id = this.threadId;
       this.isThreadRoot = true;
@@ -542,6 +542,7 @@ class StorageManager extends EventEmitter {
         typeof data.forceTransaction === 'boolean' ? data.forceTransaction : false;
 
       this[`getLocation${funcName}Id`] = ({
+        targetId = null,
         eventId = null,
         threadId = null,
         showThreads = null,
@@ -565,6 +566,7 @@ class StorageManager extends EventEmitter {
           order: order || tinyOrder,
           from: data.name,
           eventId,
+          targetId,
           threadId,
           showThreads,
           sender,
@@ -580,6 +582,7 @@ class StorageManager extends EventEmitter {
         });
 
       this[`get${funcName}Count`] = ({
+        targetId = null,
         roomId = null,
         threadId = null,
         eventId,
@@ -602,6 +605,7 @@ class StorageManager extends EventEmitter {
           roomId,
           threadId,
           eventId,
+          targetId,
           showThreads,
           sender,
           showRedaction,
@@ -614,6 +618,7 @@ class StorageManager extends EventEmitter {
         });
 
       this[`get${funcName}Pagination`] = ({
+        targetId = null,
         roomId = null,
         threadId = null,
         eventId = null,
@@ -637,6 +642,7 @@ class StorageManager extends EventEmitter {
           roomId,
           threadId,
           eventId,
+          targetId,
           showThreads,
           sender,
           showRedaction,
@@ -650,6 +656,7 @@ class StorageManager extends EventEmitter {
         });
 
       this[`get${funcName}`] = ({
+        targetId = null,
         roomId = null,
         threadId = null,
         eventId = null,
@@ -676,6 +683,7 @@ class StorageManager extends EventEmitter {
           roomId,
           threadId,
           eventId,
+          targetId,
           showThreads,
           sender,
           showRedaction,
@@ -758,9 +766,7 @@ class StorageManager extends EventEmitter {
       );
 
       this.dbManager.on('dbReceiptDeleted', (event) => tinyThis.emit('dbReceiptDeleted', event));
-      this.dbManager.on('dbEventRedaction', (reaction) =>
-        tinyThis.emit('dbEventRedaction', reaction),
-      );
+      this.dbManager.on('dbEventRedaction', (event) => tinyThis.emit('dbEventRedaction', event));
       this.dbManager.on('isDbCreated', (isDbCreated) => tinyThis.emit('isDbCreated', isDbCreated));
 
       this._dbQueryQueue = 0;
@@ -918,8 +924,10 @@ class StorageManager extends EventEmitter {
       });
 
       // Next Timeline
-      if (!singleTime && isNext)
+      if (!singleTime && isNext) {
         tinyThis._syncTimelineRun(room, thread, eventId, newTm || tm, false, false, updateTinyData);
+        tinyThis.emit('timelineSyncNext', roomId, threadId);
+      }
       // Complete!
       else {
         if (!singleTime && typeof tinyThis._syncTimelineCache.eventsAdded[valueId] === 'number')
@@ -992,7 +1000,7 @@ class StorageManager extends EventEmitter {
           typeof this._lastTimelineLastEvent[valueId].id === 'string' &&
           typeof this._lastTimelineLastEvent[valueId].ts === 'number' &&
           events[events.length - 1] &&
-          this._lastTimelineLastEvent[valueId].ts < events[events.length - 1].getTs()
+          events[events.length - 1].getTs() < this._lastTimelineLastEvent[valueId].ts
             ? true
             : false;
 
@@ -1045,6 +1053,7 @@ class StorageManager extends EventEmitter {
 
             // Start the progress
             console.log(`[room-db-sync] [${valueId}] Adding new events...`);
+            let needsRemoveLastSync = false;
             for (const item in events) {
               // Get event id and check if this is a new event
               const eventIdp = events[item].getId();
@@ -1073,6 +1082,24 @@ class StorageManager extends EventEmitter {
                 // Event ts
                 lastTimelineEventTs = events[item].getTs();
 
+                // Update the last checkpoint
+                if (
+                  canLastCheckPoint &&
+                  this._lastTimelineLastEvent[valueId] &&
+                  (lastTimelineEventTs <= this._lastTimelineLastEvent[valueId].ts ||
+                    lastTimelineEventId === this._lastTimelineLastEvent[valueId].id)
+                ) {
+                  delete this._lastTimelineLastEvent[valueId];
+                  if (
+                    this._lastTimelineLastEvent[valueId] &&
+                    this._timelineLastEvent[valueId].id === this._lastTimelineLastEvent[valueId].id
+                  )
+                    needsRemoveLastSync = true;
+
+                  updateTmLastEventDetector();
+                  console.log(`[room-db-sync] [${valueId}] The last events part is complete now!`);
+                }
+
                 // New event added++
                 eventsAdded++;
               }
@@ -1082,21 +1109,19 @@ class StorageManager extends EventEmitter {
             this._sendSyncStatus(roomId, threadId);
             await this.waitAddTimeline();
             console.log(`[room-db-sync] [${valueId}] ${eventsAdded} new events added!`);
+            if (needsRemoveLastSync) {
+              if (this._timelineLastEvent[valueId].id === this._lastTimelineLastEvent[valueId].id) {
+                delete this._timelineLastEvent[valueId];
+                this.setJson('ponyHouse-timeline-le-sync', this._timelineLastEvent);
+              }
+            }
 
             // Function here? execute it now
             if (typeof newUpdateTinyData === 'function') newUpdateTinyData();
 
             // Update the non-full sync data
             if (!singleTime && lastTimelineEventId) {
-              if (!canLastCheckPoint) {
-                lastTimelineToken = tm.getPaginationToken(Direction.Backward);
-              } else if (
-                this._lastTimelineLastEvent[valueId] &&
-                this._lastTimelineLastEvent[valueId].ts < lastTimelineEventTs
-              ) {
-                delete this._lastTimelineLastEvent[valueId];
-                updateTmLastEventDetector();
-              }
+              lastTimelineToken = tm.getPaginationToken(Direction.Backward);
 
               // Complete
               this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
@@ -1127,7 +1152,10 @@ class StorageManager extends EventEmitter {
         // Next Timeline
         if (!singleTime) {
           const nextTimelineToken = tm.getPaginationToken(Direction.Backward);
-          if ((!isComplete && nextTimelineToken) || canLastCheckPoint) {
+          if (
+            (!isComplete && nextTimelineToken) ||
+            (canLastCheckPoint && this._lastTimelineLastEvent[valueId])
+          ) {
             console.log(
               `[room-db-sync] [${valueId}] Preparing next step...\nfirstTime ${String(firstTime)}\ncanLastCheckPoint ${String(canLastCheckPoint)}\nlastTimelineToken ${String(lastTimelineToken)}`,
             );
@@ -1314,6 +1342,7 @@ class StorageManager extends EventEmitter {
     if (this._syncTimelineCache.busy < 1) console.log(`[room-db-sync] Database checker complete!`);
 
     // Reset
+    this.emit('timelineSyncComplete', roomId, threadId);
     this._resetTimelineCache();
   }
 
@@ -1392,7 +1421,6 @@ class StorageManager extends EventEmitter {
 
       return;
     }
-    throw new Error('Invalid room id to try sync your timeline!');
   }
 
   warnTimeline(
@@ -1426,6 +1454,7 @@ class StorageManager extends EventEmitter {
   }
 
   async _eventsDataTemplate({
+    targetId = null,
     order = null,
     isSingle = false,
     from = '',
@@ -1487,6 +1516,9 @@ class StorageManager extends EventEmitter {
       if (typeof eventId === 'string') data.where.event_id = eventId;
       else if (Array.isArray(eventId)) data.where.event_id = { in: eventId };
 
+      if (typeof targetId === 'string') data.where.target_id = targetId;
+      else if (Array.isArray(targetId)) data.where.target_id = { in: targetId };
+
       if (typeof limit === 'number') {
         if (!Number.isNaN(limit) && Number.isFinite(limit) && limit > -1) data.limit = limit;
         else data.limit = 0;
@@ -1516,6 +1548,7 @@ class StorageManager extends EventEmitter {
   }
 
   async _eventsCounter({
+    targetId = null,
     from = '',
     threadId = null,
     eventId = null,
@@ -1564,11 +1597,15 @@ class StorageManager extends EventEmitter {
     if (typeof eventId === 'string') data.where.event_id = eventId;
     else if (Array.isArray(eventId)) data.where.event_id = { in: eventId };
 
+    if (typeof targetId === 'string') data.where.target_id = targetId;
+    else if (Array.isArray(targetId)) data.where.target_id = { in: targetId };
+
     finishWhereDbPrepare(memberType, threadId, data, existMemberType);
     return this.dbManager.storeConnection.count(data);
   }
 
   async _eventsPaginationCount({
+    targetId = null,
     from = '',
     roomId = null,
     threadId = null,
@@ -1587,6 +1624,7 @@ class StorageManager extends EventEmitter {
     join = null,
   }) {
     const count = await this._eventsCounter({
+      targetId,
       from,
       roomId,
       threadId,
@@ -1612,6 +1650,7 @@ class StorageManager extends EventEmitter {
   async _findEventIdInPagination({
     order = null,
     eventId = null,
+    targetId = null,
     valueName = 'event_id',
     from = '',
     threadId = null,
@@ -1631,6 +1670,7 @@ class StorageManager extends EventEmitter {
   }) {
     const data = { success: false, items: [], page: null, pages: null };
     data.pages = await this._eventsPaginationCount({
+      targetId,
       from,
       threadId,
       showThreads,
@@ -1651,6 +1691,7 @@ class StorageManager extends EventEmitter {
     for (let i = 0; i < data.pages; i++) {
       const p = i + 1;
       const items = await this._eventsDataTemplate({
+        targetId,
         order,
         from,
         roomId,
@@ -1743,7 +1784,6 @@ class StorageManager extends EventEmitter {
   // Add to timeline
   async addToTimeline(event, avoidCache = false) {
     const tinyThis = this;
-
     // Get data
     const eventId = event.getId();
     const roomId = event.getRoomId();

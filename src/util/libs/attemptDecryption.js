@@ -18,9 +18,7 @@ class AttemptDecryption extends EventEmitter {
     return new Promise(async (resolve) => {
       try {
         mEvent.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
-        const decryptFunc = () => {
-          storageManager.addToTimeline(mEvent);
-        };
+        const decryptFunc = () => storageManager.addToTimeline(mEvent);
 
         mEvent.once(MatrixEventEvent.Decrypted, decryptFunc);
 

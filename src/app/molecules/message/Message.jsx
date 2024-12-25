@@ -1416,7 +1416,9 @@ function Message({
   const msgItems2 = (
     <>
       {haveReactions && <MessageReactionGroup roomTimeline={roomTimeline} mEvent={mEvent} />}
-      {roomTimeline && mEvent.isThreadRoot && <MessageThreadSummary thread={mEvent.thread} />}
+      {roomTimeline && mEvent.isThreadRoot && !roomTimeline.thread && (
+        <MessageThreadSummary thread={mEvent.thread} />
+      )}
     </>
   );
 

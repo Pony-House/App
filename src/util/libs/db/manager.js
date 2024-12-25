@@ -608,7 +608,7 @@ class TinyDbManager extends EventEmitter {
     });
   }
 
-  _setRedaction(eventId, dbName, isRedacted = false) {
+  _setRedaction(eventId, roomId, dbName, isRedacted = false) {
     const tinyThis = this;
     this._deletedIds[eventId] = isRedacted;
     return new Promise((resolve, reject) =>
@@ -619,6 +619,7 @@ class TinyDbManager extends EventEmitter {
             redaction: isRedacted,
           },
           where: {
+            room_id: roomId,
             event_id: eventId,
           },
         })
@@ -627,6 +628,7 @@ class TinyDbManager extends EventEmitter {
             tinyThis.emit('dbEventRedaction', {
               in: dbName,
               eventId,
+              roomId,
               noOfRowsUpdated,
               isRedacted,
             });
@@ -643,13 +645,19 @@ class TinyDbManager extends EventEmitter {
       if (content) {
         // Normal way
         if (typeof content.redacts === 'string')
-          await this._setRedaction(content.redacts, getTableName(eventsDb[dbIndex]), true);
+          await this._setRedaction(
+            content.redacts,
+            event.getRoomId(),
+            getTableName(eventsDb[dbIndex]),
+            true,
+          );
         // String
         else if (Array.isArray(content.redacts)) {
           for (const item in content.redacts) {
             if (typeof content.redacts[item] === 'string')
               await this._setRedaction(
                 content.redacts[item],
+                event.getRoomId(),
                 getTableName(eventsDb[dbIndex]),
                 true,
               );
@@ -660,6 +668,7 @@ class TinyDbManager extends EventEmitter {
         if (unsigned && typeof unsigned.transaction_id === 'string')
           await this._setRedaction(
             `~${event.getRoomId()}:${unsigned.transaction_id}`,
+            event.getRoomId(),
             getTableName(eventsDb[dbIndex]),
             true,
           );

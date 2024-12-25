@@ -81,13 +81,18 @@ function Room() {
       console.log(
         `[selected-room] ${roomId}${threadId ? `:${threadId}` : ''}${eventId ? ` ${eventId}` : ''}`,
       );
-      const roomTimeline = new RoomTimeline(roomId, threadId);
 
-      sendRoomInfo({
-        roomTimeline,
-        eventId: eventId ?? null,
-        forceScroll,
-      });
+      try {
+        const roomTimeline = new RoomTimeline(roomId, threadId);
+        sendRoomInfo({
+          roomTimeline,
+          eventId: eventId ?? null,
+          forceScroll,
+        });
+      } catch (err) {
+        console.error(err);
+        alert(err.message, 'Timeline start error!');
+      }
     };
     const handleRoomSelected = (
       roomId,

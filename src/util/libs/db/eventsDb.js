@@ -2,10 +2,10 @@ import clone from 'clone';
 
 // Simple values
 const eventsDb = [
-  'reactions',
   'messages_search',
   'messages_edit',
   'crdt',
+  { name: 'reactions', existMemberType: true, forceTransaction: true },
   { name: 'timeline', existMemberType: true },
 ];
 
