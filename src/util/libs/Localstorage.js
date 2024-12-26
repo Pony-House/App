@@ -1867,17 +1867,7 @@ class StorageManager extends EventEmitter {
       if (mEvent) this.addToTimeline(mEvent);
       this._syncDeleteSendEvent(roomId, threadId, key, 'dbEventCacheReady', 'SENT');
     }
-
-    if (originalEvent)
-      this._syncDeleteSendEvent(
-        roomId,
-        threadId,
-        key,
-        'dbEventCacheReady',
-        'SENT',
-        originalEvent,
-        type,
-      );
+    if (originalEvent) this.emit('_eventUpdated', type, originalEvent, roomId, threadId, key);
   }
 
   _syncDeleteSendEvent(roomId, threadId, key, emitName, emitData, originalEvent, type) {
@@ -1896,7 +1886,6 @@ class StorageManager extends EventEmitter {
       this._sendingEventCache[key].emit(MatrixEventEvent.Status, emitData);
       delete this._sendingEventCache[key];
     }
-    if (originalEvent) this.emit('_eventUpdated', type, originalEvent, roomId, threadId, key);
   }
 
   _syncPrepareSendEvent(roomId, threadId, key, eventName, content) {

@@ -233,8 +233,6 @@ class RoomTimeline extends EventEmitter {
     };
 
     this._onYourMessageComplete = async (data, mEvent) => {
-      await tinyThis.waitTimeline();
-      if (!tinyCheckEvent.check(mEvent)) return;
       const tmc = tinyThis.getTimelineCache(mEvent);
       if (!tmc) return;
       const eventId = mEvent.getId();
