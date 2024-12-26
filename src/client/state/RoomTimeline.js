@@ -105,6 +105,13 @@ class RoomTimeline extends EventEmitter {
     if (typeof value === 'boolean') this.forceLoad = value;
   }
 
+  _timelineUpdated(eventType, mEvent) {
+    console.log(
+      `${this._consoleTag} [${eventType}]${mEvent ? ` [${mEvent.getType()}]` : ''} Timeline updated!`,
+      mEvent,
+    );
+  }
+
   _activeEvents() {
     const tinyThis = this;
 
@@ -201,6 +208,7 @@ class RoomTimeline extends EventEmitter {
 
     // Message events
     this._onMessage = async (r, mEvent) => {
+      await tinyThis.waitTimeline();
       if (!tinyCheckEvent.check(mEvent)) return;
       const tmc = tinyThis.getTimelineCache(mEvent);
       if (!tmc && !mEvent.isRedacted()) return;
@@ -213,16 +221,20 @@ class RoomTimeline extends EventEmitter {
         // Send into the timeline
         tinyThis._insertIntoTimeline(mEvent, tmc);
       }
+      return tinyThis._timelineUpdated('message', mEvent);
     };
 
-    this._onYourMessage = (data, mEvent) => {
+    this._onYourMessage = async (data, mEvent) => {
+      await tinyThis.waitTimeline();
       if (!tinyCheckEvent.check(mEvent)) return;
       const tmc = tinyThis.getTimelineCache(mEvent);
       if (!tmc) return;
       tinyThis._insertIntoTimeline(mEvent, tmc);
+      return tinyThis._timelineUpdated('your-message', mEvent);
     };
 
-    this._onYourMessageComplete = (data, mEvent) => {
+    this._onYourMessageComplete = async (data, mEvent) => {
+      await tinyThis.waitTimeline();
       if (!tinyCheckEvent.check(mEvent)) return;
       const tmc = tinyThis.getTimelineCache(mEvent);
       if (!tmc) return;
@@ -230,12 +242,14 @@ class RoomTimeline extends EventEmitter {
       const msgIndex = tmc.timeline.findIndex((item) => item.getId() === eventId);
       if (msgIndex > -1) {
         this.timelineCache.timeline.splice(msgIndex, 1);
-        this._deletingEventPlaces(eventId, mEvent);
+        this._deletingEventPlaces(eventId);
         this._disablingEventPlaces(mEvent);
       }
+      return tinyThis._timelineUpdated('message-complete', mEvent);
     };
 
-    this._onYourMessageError = (data, mEvent) => {
+    this._onYourMessageError = async (data, mEvent) => {
+      await tinyThis.waitTimeline();
       if (!tinyCheckEvent.check(mEvent)) return;
       const tmc = tinyThis.getTimelineCache(mEvent);
       if (!tmc) return;
@@ -243,41 +257,50 @@ class RoomTimeline extends EventEmitter {
       const msgIndex = tmc.timeline.findIndex((item) => item.getId() === eventId);
       if (msgIndex > -1) {
       }
+      return tinyThis._timelineUpdated('message-error', mEvent);
     };
 
     // Reaction events
-    this._onReaction = (r, mEvent) => {
+    this._onReaction = async (r, mEvent) => {
+      await tinyThis.waitTimeline();
       if (!tinyCheckEvent.check(mEvent)) return;
       if (!tinyThis.belongToRoom(mEvent)) return;
       tinyThis._insertReaction(mEvent);
+      return tinyThis._timelineUpdated('reaction', mEvent);
     };
 
     // Timeline events
-    this._onTimeline = (r, mEvent) => {
+    this._onTimeline = async (r, mEvent) => {
+      await tinyThis.waitTimeline();
       if (!tinyCheckEvent.check(mEvent)) return;
       const tmc = tinyThis.getTimelineCache(mEvent);
       if (!tmc) return;
       console.log(`${tinyThis._consoleTag} New timeline event: ${mEvent.getId()}`);
       if (mEvent.getType() !== 'm.room.redaction') tinyThis._insertIntoTimeline(mEvent, tmc);
       else tinyThis._deletingEvent(mEvent);
+      return tinyThis._timelineUpdated('timeline-event', mEvent);
     };
 
-    this._onRedaction = (info) => {
+    this._onRedaction = async (info) => {
+      await tinyThis.waitTimeline();
       if (!tinyCheckEvent.checkIds(info.roomId, info.eventId)) return;
       const { eventId, isRedacted, roomId } = info;
       if (!isRedacted || roomId !== this.roomId) return;
       console.log(`${tinyThis._consoleTag} New redaction: ${eventId}`);
       tinyThis._deletingEventById(eventId);
+      return tinyThis._timelineUpdated('redaction');
     };
 
     // Thread added events
-    this._onThreadEvent = (r, event) => {
+    this._onThreadEvent = async (r, event) => {
+      await tinyThis.waitTimeline();
       if (!tinyCheckEvent.checkIds(event.room_id, event.event_id)) return;
       if (!event.room_id !== tinyThis.roomId) return;
       console.log(`${tinyThis._consoleTag} New thread event: ${event.event_id}`);
       const mEvent = this.findEventById(event.event_id);
       if (!mEvent) return;
-      mEvent.insertThread();
+      await mEvent.insertThread();
+      return tinyThis._timelineUpdated('thread-event');
     };
 
     // Crdt events
@@ -285,9 +308,23 @@ class RoomTimeline extends EventEmitter {
       if (!tinyCheckEvent.check(mEvent)) return;
       if (!tinyThis.belongToRoom(mEvent)) return;
       tinyThis.sendCrdtToTimeline(mEvent);
+      return tinyThis._timelineUpdated('crdt', mEvent);
+    };
+
+    // Updated events
+    this._onEventsUpdated = async (type, mEvent, roomId /*, threadId */) => {
+      await tinyThis.waitTimeline();
+      const eventId = mEvent.getId();
+
+      if (type === 'redact') {
+        console.log(`${tinyThis._consoleTag} New redaction from local: ${eventId}`);
+        tinyThis._deletingEventById(eventId);
+        return tinyThis._timelineUpdated('redaction');
+      }
     };
 
     // Event Status Events
+    storageManager.on('_eventUpdated', this._onEventsUpdated);
     storageManager.on('dbEventCachePreparing', this._onYourMessage);
     storageManager.on('dbEventCacheReady', this._onYourMessageComplete);
     storageManager.on('dbEventCacheError', this._onYourMessageError);
@@ -485,6 +522,7 @@ class RoomTimeline extends EventEmitter {
         console.log(`${this._consoleTag} New reaction: ${mEvent.getId()}`, ts);
         mEvents.push(mEvent);
         this.reactionTimelineTs[tsId] = ts;
+        this.emit(cons.events.roomTimeline.EVENT, mEvent);
       }
     } else this._removeReaction(mEvent);
   }
@@ -500,9 +538,11 @@ class RoomTimeline extends EventEmitter {
       ) {
         const index = mEvents.find((ev) => ev.getId() === mEvent.getId());
         if (index > -1) {
+          mEvent.forceRedaction();
           console.log(`${this._consoleTag} Reaction removed: ${mEvent.getId()}`, ts);
           mEvents.splice(index, 1);
           this.reactionTimelineTs[tsId] = ts;
+          this.emit(cons.events.roomTimeline.EVENT_REDACTED, mEvent);
         }
       }
     }
@@ -592,12 +632,6 @@ class RoomTimeline extends EventEmitter {
           const eventId = mEvent.getId();
           if (!tmc.lastEvent || eventTs > tmc.lastEvent.getTs()) tmc.lastEvent = mEvent;
 
-          // Add reactions and more stuff
-          if (!ignoredReactions) {
-            // await this._insertReactions(mEvent);
-            // await this.checkEventThreads(mEvent);
-          }
-
           // Insert event
           const msgIndex = tmc.timeline.findIndex((item) => item.getId() === eventId);
           if (msgIndex < 0) {
@@ -664,7 +698,7 @@ class RoomTimeline extends EventEmitter {
   }
 
   // Deleting places
-  _deletingEventPlaces(redacts, mEvent) {
+  _deletingEventPlaces(redacts) {
     this.editedTimeline.delete(redacts);
     this.reactionTimeline.delete(redacts);
 
@@ -676,19 +710,18 @@ class RoomTimeline extends EventEmitter {
       }
     }
 
-    console.log('Preparing to delete', relateToId, redacts);
     if (relateToId) {
       const mEvents = this.reactionTimeline.get(relateToId);
       if (mEvents) {
         const index = mEvents.findIndex((ev) => ev.getId() === redacts);
         if (index > -1) {
+          const rEvent = mEvents[index];
           mEvents.splice(index, 1);
-          const ts = mEvent ? mEvent.getTs() : new Date().valueOf();
-          console.log(
-            `${this._consoleTag} Reaction removed: ${mEvent ? mEvent.getId() : redacts}`,
-            ts,
-          );
+          const ts = rEvent.getTs();
+          rEvent.forceRedaction();
+          console.log(`${this._consoleTag} Reaction removed: ${redacts}`, ts);
           this.reactionTimelineTs[`${relateToId}:${redacts}`] = ts;
+          this.emit(cons.events.roomTimeline.EVENT_REDACTED, rEvent);
         }
       }
     }
@@ -709,12 +742,14 @@ class RoomTimeline extends EventEmitter {
     return this._deletingEventById(event.getContent()?.redacts);
   }
 
-  _deletingEventById(redacts, event = null) {
+  _deletingEventById(redacts) {
     const rEvent = this.deleteFromTimeline(redacts);
-    this._deletingEventPlaces(redacts);
+    this._deletingEventPlaces(redacts, rEvent);
     if (rEvent) {
       this._disablingEventPlaces(rEvent);
-      this.emit(cons.events.roomTimeline.EVENT_REDACTED, rEvent, event);
+      rEvent.forceRedaction();
+      console.log(`${this._consoleTag} Deleting event: ${rEvent.getId()}`, rEvent.getTs());
+      this.emit(cons.events.roomTimeline.EVENT_REDACTED, rEvent);
     }
   }
 
@@ -915,6 +950,7 @@ class RoomTimeline extends EventEmitter {
 
       this._disableYdoc();
 
+      storageManager.off('_eventUpdated', this._onEventsUpdated);
       storageManager.off('timelineSyncComplete', this._syncComplete);
       storageManager.off('timelineSyncNext', this._syncComplete);
       storageManager.off('dbEventCachePreparing', this._onYourMessage);

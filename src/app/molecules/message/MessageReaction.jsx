@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer } from 'react';
+import React, { useEffect, useReducer, useState } from 'react';
 import PropTypes from 'prop-types';
 import muteUserManager from '@src/util/libs/muteUserManager';
 
@@ -26,14 +26,18 @@ import IconButton from '../../atoms/button/IconButton';
 import tinyFixScrollChat from '../media/mediaFix';
 
 function toggleEmoji(roomId, eventId, emojiKey, shortcode, roomTimeline) {
-  const myAlreadyReactEvent = getMyEmojiEvent(emojiKey, eventId, roomTimeline);
-  if (myAlreadyReactEvent) {
-    const rId = myAlreadyReactEvent.getId();
-    if (rId.startsWith('~')) return;
-    storageManager.redactEvent(roomId, rId);
-    return;
-  }
-  sendReaction(roomId, eventId, emojiKey, shortcode);
+  return new Promise((resolve, reject) => {
+    const myAlreadyReactEvent = getMyEmojiEvent(emojiKey, eventId, roomTimeline);
+    if (myAlreadyReactEvent) {
+      const rId = myAlreadyReactEvent.getId();
+      if (rId.startsWith('~')) return;
+      console.log(`[reaction-sender] [${roomId}] Redact the event: ${rId}`);
+      storageManager.redactEvent(roomId, myAlreadyReactEvent).then(resolve).catch(reject);
+      return;
+    }
+    console.log(`[reaction-sender] [${roomId}] Sending the event: ${eventId}`);
+    sendReaction(roomId, eventId, emojiKey, shortcode).then(resolve).catch(reject);
+  });
 }
 
 // Get Emoji
@@ -52,6 +56,18 @@ function getMyEmojiEvent(emojiKey, eventId, roomTimeline) {
   return rEvent;
 }
 
+// Reaction script
+const reactionScript = {
+  resolve: (data, setIsReaction) => {
+    if (typeof setIsReaction === 'function') setIsReaction(false);
+  },
+  reject: (err, setIsReaction) => {
+    console.error(err);
+    alert(err.message, 'Reaction button error');
+    if (typeof setIsReaction === 'function') setIsReaction(false);
+  },
+};
+
 // Pick Emoji Modal
 const reactionLimit = 20;
 export function pickEmoji(
@@ -62,6 +78,7 @@ export function pickEmoji(
   extraX = 0,
   extraX2 = 0,
   reacts = null,
+  setIsReaction = null,
 ) {
   // Get Cords
   let reactsLength = Array.isArray(reacts) ? reacts.length : null;
@@ -86,7 +103,10 @@ export function pickEmoji(
   openEmojiBoard(roomId, cords, 'emoji', (emoji) => {
     if (reactsLength === null || reactsLength < reactionLimit) {
       if (reactsLength !== null) reactsLength++;
-      toggleEmoji(roomId, eventId, emoji.mxc ?? emoji.unicode, emoji.shortcodes[0], roomTimeline);
+      if (typeof setIsReaction === 'function') setIsReaction(true);
+      toggleEmoji(roomId, eventId, emoji.mxc ?? emoji.unicode, emoji.shortcodes[0], roomTimeline)
+        .then((data) => reactionScript.resolve(data, setIsReaction))
+        .catch((err) => reactionScript.reject(err, setIsReaction));
     } else {
       e.target.click();
     }
@@ -185,6 +205,7 @@ MessageReaction.propTypes = {
 
 function MessageReactionGroup({ roomTimeline, mEvent }) {
   const [, forceUpdate] = useReducer((count) => count + 1, 0);
+  const [isReacting, setIsReaction] = useState(false);
 
   const { roomId, room, reactionTimeline } = roomTimeline;
   const mx = initMatrix.matrixClient;
@@ -216,7 +237,10 @@ function MessageReactionGroup({ roomTimeline, mEvent }) {
           users={reacts.data[key].users}
           isActive={reacts.data[key].isActive}
           onClick={() => {
-            toggleEmoji(roomId, mEvent.getId(), key, reacts.data[key].shortcode, roomTimeline);
+            setIsReaction(true);
+            toggleEmoji(roomId, mEvent.getId(), key, reacts.data[key].shortcode, roomTimeline)
+              .then((data) => reactionScript.resolve(data, setIsReaction))
+              .catch((err) => reactionScript.reject(err, setIsReaction));
           }}
         />
       ))}
@@ -226,7 +250,7 @@ function MessageReactionGroup({ roomTimeline, mEvent }) {
           className="ms-2 btn-sm reaction-message"
           onClick={(e) => {
             if (reacts.order.length < reactionLimit) {
-              pickEmoji(e, roomId, mEvent.getId(), roomTimeline, -430, 0, reacts);
+              pickEmoji(e, roomId, mEvent.getId(), roomTimeline, -430, 0, reacts, setIsReaction);
             } else {
               toast(
                 'Your reaction was not added because there are too many reactions on this message.',

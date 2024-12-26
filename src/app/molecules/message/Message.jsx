@@ -504,7 +504,7 @@ MessageBody.propTypes = {
 };
 
 // Message Edit
-function MessageEdit({ body, onSave, onCancel, refRoomInput, roomId, eventId }) {
+function MessageEdit({ body, onSave, onCancel, refRoomInput, roomId, mEvent }) {
   const editInputRef = useRef(null);
 
   useEffect(() => {
@@ -522,7 +522,7 @@ function MessageEdit({ body, onSave, onCancel, refRoomInput, roomId, eventId }) 
     );
 
     if (!isConfirmed) return;
-    storageManager.redactEvent(roomId, eventId);
+    storageManager.redactEvent(roomId, mEvent);
   };
 
   const handleKeyDown = (e) => {
@@ -738,7 +738,7 @@ const MessageOptions = React.memo(
         {(canIRedact || senderId === mx.getUserId()) && (
           <IconButton
             className="need-shift"
-            onClick={() => storageManager.redactEvent(roomId, mEvent.getId())}
+            onClick={() => storageManager.redactEvent(roomId, mEvent)}
             fa="fa-solid fa-trash-can btn-text-danger"
             size="normal"
             tooltip="Delete"
@@ -967,7 +967,7 @@ const MessageOptions = React.memo(
                         'danger',
                       );
                       if (!isConfirmed) return;
-                      storageManager.redactEvent(roomId, mEvent.getId());
+                      storageManager.redactEvent(roomId, mEvent);
                     }}
                   >
                     Delete
@@ -1425,7 +1425,7 @@ function Message({
   const editItemBase = isEdit && (
     <MessageEdit
       roomId={roomId}
-      eventId={mEvent.getId()}
+      mEvent={mEvent}
       refRoomInput={refRoomInput}
       body={
         customHTML

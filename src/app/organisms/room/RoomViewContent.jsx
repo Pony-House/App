@@ -1,4 +1,11 @@
-import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useCallback,
+  useRef,
+  useReducer,
+} from 'react';
 import PropTypes from 'prop-types';
 import $ from 'jquery';
 
@@ -281,6 +288,7 @@ function useHandleScroll(
 function useEventArrive(roomTimeline, readUptoEvtStore, timelineScrollRef, eventLimitRef) {
   const myUserId = initMatrix.matrixClient.getUserId();
   const [newEvent, setEvent] = useState(null);
+  const [, forceUpdate] = useReducer((count) => count + 1, 0);
 
   useEffect(() => {
     const timelineScroll = timelineScrollRef.current;
@@ -329,6 +337,7 @@ function useEventArrive(roomTimeline, readUptoEvtStore, timelineScrollRef, event
           limit.setFrom(tLength - limit.maxEvents);
           trySendReadReceipt(event);
           setEvent(event);
+          forceUpdate();
           return;
         }
 
@@ -336,6 +345,7 @@ function useEventArrive(roomTimeline, readUptoEvtStore, timelineScrollRef, event
           event.getType() === 'm.reaction' || event.getRelation()?.rel_type === 'm.replace';
         if (isRelates) {
           setEvent(event);
+          forceUpdate();
           return;
         }
 
@@ -343,10 +353,14 @@ function useEventArrive(roomTimeline, readUptoEvtStore, timelineScrollRef, event
           // This stateUpdate will help to put the
           // loading msg placeholder at bottom
           setEvent(event);
+          forceUpdate();
         }
       };
 
-      const handleEventRedact = (event) => setEvent(event);
+      const handleEventRedact = (event) => {
+        setEvent(event);
+        forceUpdate();
+      };
 
       roomTimeline.on(cons.events.roomTimeline.EVENT, handleEvent);
       roomTimeline.on(cons.events.roomTimeline.EVENT_REDACTED, handleEventRedact);

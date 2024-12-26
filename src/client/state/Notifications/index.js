@@ -27,10 +27,7 @@ import { getAccountStatus } from '../../../app/organisms/navigation/ProfileAvata
 import favIconManager from '../../../util/libs/favicon';
 import { getPrivacyRefuseRoom } from '../../../app/organisms/navigation/Sidebar/InviteSidebar';
 import waitDecrypt from './waitDecrypt';
-import TinyEventChecker from './validator';
 // import { insertEvent } from '../eventsDelay';
-
-const tinyCheckEvent = new TinyEventChecker();
 
 function isNotifEvent(mEvent) {
   const eType = mEvent.getType();

@@ -316,6 +316,7 @@ class LocalStorageEvent extends EventEmitter {
         ? this.event?.thread_id
         : null;
 
+    this._forceRedaction = false;
     this.status = this.event?.e_status || null;
     this.sender = this.room ? this.room.getMember(this.event.sender) : null;
     this.replyEventId = this.getWireContent()['m.relates_to']?.['m.in_reply_to']?.event_id;
@@ -477,7 +478,8 @@ class LocalStorageEvent extends EventEmitter {
   isNotRedactedInDb = () =>
     (this.getUnsigned().redacted_because && !this.event?.redaction) || false;
   isRedactedDbOnly = () => (!this.getUnsigned().redacted_because && this.event?.redaction) || false;
-  isRedacted = () => this.getUnsigned().redacted_because || this.event?.redaction || null;
+  isRedacted = () =>
+    this.getUnsigned().redacted_because || this.event?.redaction || this._forceRedaction || null;
   isRedaction = () => this.event?.type === 'm.room.redaction' || false;
   isSending = () => this.status !== 'sent' && !!this.status;
 
@@ -488,6 +490,11 @@ class LocalStorageEvent extends EventEmitter {
     objType(this.event?.replace_to, 'object')
       ? true
       : false;
+
+  forceRedaction = () => {
+    this._forceRedaction = true;
+    this.event.redaction = true;
+  };
 }
 
 class StorageManager extends EventEmitter {
@@ -1852,7 +1859,7 @@ class StorageManager extends EventEmitter {
     });
   }
 
-  async _syncSendEvent(eventId, roomId, threadId, key) {
+  async _syncSendEvent(eventId, roomId, threadId, key, originalEvent, type) {
     const mx = initMatrix.matrixClient;
     const room = mx.getRoom(roomId);
     if (room) {
@@ -1860,9 +1867,20 @@ class StorageManager extends EventEmitter {
       if (mEvent) this.addToTimeline(mEvent);
       this._syncDeleteSendEvent(roomId, threadId, key, 'dbEventCacheReady', 'SENT');
     }
+
+    if (originalEvent)
+      this._syncDeleteSendEvent(
+        roomId,
+        threadId,
+        key,
+        'dbEventCacheReady',
+        'SENT',
+        originalEvent,
+        type,
+      );
   }
 
-  _syncDeleteSendEvent(roomId, threadId, key, emitName, emitData) {
+  _syncDeleteSendEvent(roomId, threadId, key, emitName, emitData, originalEvent, type) {
     if (this._sendingEventCache[key]) {
       this.emit(
         emitName,
@@ -1878,6 +1896,7 @@ class StorageManager extends EventEmitter {
       this._sendingEventCache[key].emit(MatrixEventEvent.Status, emitData);
       delete this._sendingEventCache[key];
     }
+    if (originalEvent) this.emit('_eventUpdated', type, originalEvent, roomId, threadId, key);
   }
 
   _syncPrepareSendEvent(roomId, threadId, key, eventName, content) {
@@ -1905,15 +1924,22 @@ class StorageManager extends EventEmitter {
     );
   }
 
-  async redactEvent(roomId, eventId, reason) {
+  async redactEvent(roomId, mEvent, reason) {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
       const key = genKey();
+      console.log(`[redact-sender] [${roomId}] Redact the event: ${mEvent.getId()}`);
+
       initMatrix.matrixClient
-        .redactEvent(roomId, eventId, key, typeof reason === 'undefined' ? undefined : { reason })
+        .redactEvent(
+          roomId,
+          mEvent.getId(),
+          key,
+          typeof reason === 'undefined' ? undefined : { reason },
+        )
         .then((msgData) =>
           tinyThis
-            ._syncSendEvent(msgData?.event_id, roomId, undefined, key)
+            ._syncSendEvent(msgData?.event_id, roomId, undefined, key, mEvent, 'redact')
             .then(() => resolve(msgData))
             .catch(reject),
         )
