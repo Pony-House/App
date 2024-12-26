@@ -14,6 +14,7 @@ import { getOsSettings } from './util/libs/osSettings';
 import ChatRoom from './app/embed/ChatRoom';
 import urlParams from './util/libs/urlParams';
 import i18 from './util/libs/locale.js';
+import moment from './util/libs/momentjs.js';
 
 global.Buffer = Buffer;
 // global.Buffer = global.Buffer || Buffer;
