@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import $ from 'jquery';
 
+import tinyConsole from '@src/util/libs/console';
 import storageManager from '@src/util/libs/Localstorage';
 import RatioScreen from '@src/app/atoms/video/RatioScreen';
 
@@ -172,7 +173,7 @@ function VoiceVideoSection() {
         },
         (err) => {
           testWebcamButton.removeClass('disabled');
-          console.error(err);
+          tinyConsole.error(err);
           alert(err.message, 'Webcam Stream Error');
         },
       );
@@ -241,13 +242,13 @@ function VoiceVideoSection() {
                 testMicroButton.addClass('btn-outline-primary');
                 testMicroButton.removeClass('disabled');
 
-                console.error(err);
+                tinyConsole.error(err);
                 alert(err.message, 'Microphone Stream Error');
               },
             );
           })
           .catch((err) => {
-            console.error(err);
+            tinyConsole.error(err);
             alert(err.message, 'Stop Microphone Error');
           });
       }
@@ -262,7 +263,7 @@ function VoiceVideoSection() {
             testMicroButton.addClass('btn-outline-primary');
           })
           .catch((err) => {
-            console.error(err);
+            tinyConsole.error(err);
             alert(err.message, 'Stop Microphone Error');
           });
       }
@@ -322,7 +323,7 @@ function VoiceVideoSection() {
           setDevicesItem(devices2);
         })
         .catch((err) => {
-          console.error(err);
+          tinyConsole.error(err);
           alert(err.message, 'List Devices Error');
         });
     } else {

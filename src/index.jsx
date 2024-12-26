@@ -7,7 +7,8 @@ import './scss/theme/black/base.scss';
 
 import './scss/default.scss';
 
+import tinyConsole from '@src/util/libs/console';
 import StartApp from './start';
 
-console.log('[index] File detected! Starting app!');
+tinyConsole.log('[index] File detected! Starting app!');
 StartApp('vite');

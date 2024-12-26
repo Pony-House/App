@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import $ from 'jquery';
 
 import { RoomStateEvent } from 'matrix-js-sdk';
+import tinyConsole from '@src/util/libs/console';
 import { twemojifyReact } from '../../../util/twemojify';
 
 import initMatrix from '../../../client/initMatrix';
@@ -115,7 +116,7 @@ function SpaceManageItem({
         spaceManager.removeClass('joining-room');
       })
       .catch((err) => {
-        console.error(err);
+        tinyConsole.error(err);
         toast(err.message);
       });
 

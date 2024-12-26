@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import $ from 'jquery';
 
+import tinyConsole from '@src/util/libs/console';
 import { jQueryState } from '@src/util/libs/jquery';
 import blobUrlManager from '@src/util/libs/blobUrlManager';
 import initMatrix from '@src/client/initMatrix';
@@ -14,7 +15,7 @@ import matrixAppearance, {
 import Tooltip from '../tooltip/Tooltip';
 
 const showErrorMessage = (err) => {
-  if (__ENV_APP__.IMG.SHOW_ERROR || __ENV_APP__.MODE === 'development') console.error(err);
+  if (__ENV_APP__.IMG.SHOW_ERROR || __ENV_APP__.MODE === 'development') tinyConsole.error(err);
 };
 
 const getTinyUrl = (mxcUrl, src) => {

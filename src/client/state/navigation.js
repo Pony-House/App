@@ -3,6 +3,7 @@ import $ from 'jquery';
 
 import { objType } from 'for-promise/utils/lib.mjs';
 
+import tinyConsole from '@src/util/libs/console';
 import favIconManager from '@src/util/libs/favicon';
 import appDispatcher from '../dispatcher';
 import cons from './cons';
@@ -88,7 +89,7 @@ class Navigation extends EventEmitter {
     if (!parents) return;
     if (parents.has(this.selectedSpaceId)) {
       if (!this.selectedSpaceId) {
-        console.warn('Called _mapRoomToSpace but no selected space');
+        tinyConsole.warn('Called _mapRoomToSpace but no selected space');
         return;
       }
 

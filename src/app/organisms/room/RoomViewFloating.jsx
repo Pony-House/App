@@ -3,6 +3,8 @@ import PropTypes from 'prop-types';
 import $ from 'jquery';
 import { RoomMemberEvent } from 'matrix-js-sdk';
 
+import tinyConsole from '@src/util/libs/console';
+
 import initMatrix from '../../../client/initMatrix';
 import cons from '../../../client/state/cons';
 import { markAsRead } from '../../../client/action/notifications';
@@ -101,7 +103,7 @@ function RoomViewFloating({ roomId, roomTimeline, refRoomInput, refcmdInput }) {
       roomTimeline
         .paginateTimeline(1)
         .then(() => setIsAtBottom(true))
-        .catch((err) => console.error(err));
+        .catch((err) => tinyConsole.error(err));
     }
   };
 

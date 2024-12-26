@@ -6,6 +6,8 @@ import { objType } from 'for-promise/utils/lib.mjs';
 import { compareVersions } from 'compare-versions';
 
 import moment from '@src/util/libs/momentjs';
+
+import tinyConsole from '@src/util/libs/console';
 import { fetchFn } from '@src/client/initMatrix';
 import cons from '@src/client/state/cons';
 
@@ -509,7 +511,7 @@ export const checkVersions = () =>
         response
           .json()
           .then((data) => {
-            console.log('[version-data]', data);
+            tinyConsole.log('[version-data]', data);
             if (Array.isArray(data) && data.length > 0) {
               resolve({
                 data, // Data Viewer

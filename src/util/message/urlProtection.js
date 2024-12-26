@@ -2,6 +2,8 @@ import $ from 'jquery';
 import { Browser } from '@capacitor/browser';
 import { objType } from 'for-promise/utils/lib.mjs';
 
+import tinyConsole from '@src/util/libs/console';
+
 import { btModal } from '../tools';
 import tinyAPI from '../mods';
 import convertProtocols from '../libs/convertProtocols';
@@ -48,7 +50,7 @@ export default async (url, vanillaUrl) => {
       );
     } catch (err) {
       scammerCache = null;
-      console.error(err);
+      tinyConsole.error(err);
     }
 
     const isScammer = objType(scammerCache, 'object') && scammerCache.isScammer;
@@ -113,7 +115,7 @@ export default async (url, vanillaUrl) => {
                   setLoadingPage(false);
                 })
                 .catch((err) => {
-                  console.error(err);
+                  tinyConsole.error(err);
                   alert(err.message, 'Open Url Error 1');
                   tinyModal.hide();
                   setLoadingPage(false);
@@ -129,13 +131,13 @@ export default async (url, vanillaUrl) => {
           setLoadingPage(false);
         })
         .catch((err) => {
-          console.error(err);
+          tinyConsole.error(err);
           alert(err.message, 'Open Url Error 2');
           setLoadingPage(false);
         });
     }
   } catch (err) {
     alert(err.message, 'Error - Open External url');
-    console.error(err);
+    tinyConsole.error(err);
   }
 };

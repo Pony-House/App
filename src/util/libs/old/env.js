@@ -5,6 +5,9 @@
 import EventEmitter from 'events';
 import moment from 'moment-timezone';
 import { objType } from 'for-promise/utils/lib.mjs';
+
+import tinyConsole from '@src/util/libs/console';
+
 import storageManager from '../Localstorage';
 
 // Emitter
@@ -113,7 +116,7 @@ class EnvAPI extends EventEmitter {
 
         this.emit(folder, value);
       } else {
-        console.error('ENV value name length is greater than the limit! Limit: 20');
+        tinyConsole.error('ENV value name length is greater than the limit! Limit: 20');
       }
     }
   }

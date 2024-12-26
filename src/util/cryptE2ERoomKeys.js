@@ -1,3 +1,5 @@
+import tinyConsole from '@src/util/libs/console';
+
 // https://github.com/matrix-org/matrix-react-sdk/blob/e78a1adb6f1af2ea425b0bae9034fb7344a4b2e8/src/utils/MegolmExportEncryption.js
 import { isMobile } from './libs/mobile';
 
@@ -14,7 +16,7 @@ const subtleCrypto = window.crypto.subtle || window.crypto.webkitSubtle;
 function friendlyError(msg, friendlyText) {
   const e = new Error(msg);
   e.friendlyText = friendlyText;
-  console.error(e);
+  tinyConsole.error(e);
   return e;
 }
 
@@ -62,7 +64,7 @@ async function deriveKeys(salt, iterations, password) {
   }
 
   const now = new Date();
-  console.log(`E2e import/export: deriveKeys took ${now - start}ms`);
+  tinyConsole.log(`E2e import/export: deriveKeys took ${now - start}ms`);
 
   const aesKey = keybits.slice(0, 32);
   const hmacKey = keybits.slice(32);

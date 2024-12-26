@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import $ from 'jquery';
 
+import tinyConsole from '@src/util/libs/console';
 import { openUrl } from '@src/util/message/urlProtection';
 import mobileEvents, { isMobile } from '@src/util/libs/mobile';
 
@@ -96,7 +97,7 @@ export const versionChecker = () =>
         }
       })
       .catch((err) => {
-        console.error(err);
+        tinyConsole.error(err);
         alert(err.message, 'Check Versions Error');
       });
   });
@@ -274,11 +275,11 @@ function Client({ isDevToolsOpen = false }) {
                         try {
                           tinyModal.hide();
                         } catch (err) {
-                          console.error(err);
+                          tinyConsole.error(err);
                         }
                       })
                       .catch((err) => {
-                        console.error(err);
+                        tinyConsole.error(err);
                         alert(err.message, 'Enable notifications - error');
                         tinyModal.hide();
                       });
@@ -288,11 +289,11 @@ function Client({ isDevToolsOpen = false }) {
                         try {
                           tinyModal.hide();
                         } catch (err) {
-                          console.error(err);
+                          tinyConsole.error(err);
                         }
                       })
                       .catch((err) => {
-                        console.error(err);
+                        tinyConsole.error(err);
                         alert(err.message, 'Enable notifications - error');
                         tinyModal.hide();
                       });
@@ -333,7 +334,7 @@ function Client({ isDevToolsOpen = false }) {
           setStartWorked(tinyResult.userId !== null);
         })
         .catch((err) => {
-          console.error(err);
+          tinyConsole.error(err);
           if (typeof err.message === 'string')
             setErrorMessage(`${err.message}${err.code ? ` CODE: ${err.code}` : ''}`);
           else setErrorMessage(`Unknown Error ${err.code ? err.code : '???'}`);

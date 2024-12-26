@@ -9,6 +9,8 @@ import { objType } from 'for-promise/utils/lib.mjs';
 
 import { Network as MobileNetwork } from '@capacitor/network';
 
+import tinyConsole from '@src/util/libs/console';
+
 import { getAppearance } from '@src/util/libs/appearance';
 import settings from '@src/client/state/settings';
 import { AvatarJquery } from '@src/app/atoms/avatar/Avatar';
@@ -51,7 +53,7 @@ function useSystemState() {
   useEffect(() => {
     // State Check
     const handleSystemState = (state) => {
-      console.log(`[connection] ${state}`);
+      tinyConsole.log(`[connection] ${state}`);
       if (!isRefreshing) {
         if (state === 'ERROR' || state === 'RECONNECTING' || state === 'STOPPED') {
           const tinyStatus = { status: 'Connection lost!', value: state };
@@ -84,7 +86,7 @@ function useSystemState() {
     // Mobile Checker
     const mobileChecker = (status) => {
       // 'wifi' | 'cellular' | 'none' | 'unknown'
-      console.log(`[mobile-connection] ${status}`);
+      tinyConsole.log(`[mobile-connection] ${status}`);
       setMobileState({
         status,
       });

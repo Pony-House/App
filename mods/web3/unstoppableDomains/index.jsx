@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import $ from 'jquery';
 
+import tinyConsole from '@src/util/libs/console';
 import tinyAPI from '@src/util/mods';
 import initMatrix from '@src/client/initMatrix';
 import copyText from '@src/app/organisms/profile-viewer/copyText';
@@ -49,7 +50,7 @@ function UnstoppableDomainsTab({ userId, accountContent }) {
   const tinyError = (err) => {
     if (err) {
       toast(err.message);
-      console.error(err);
+      tinyConsole.error(err);
       setIsError(true);
     } else {
       setIsEmpty(true);

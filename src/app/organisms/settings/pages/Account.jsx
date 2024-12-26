@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import $ from 'jquery';
 
 import { objType } from 'for-promise/utils/lib.mjs';
+import tinyConsole from '@src/util/libs/console';
 
 import userPid from '@src/util/libs/userPid';
 import { registerValidator } from '@src/util/register';
@@ -90,7 +91,7 @@ function AccountSection() {
           setLoadingEmails(false);
         })
         .catch((err) => {
-          console.error(err);
+          tinyConsole.error(err);
           alert(err.message, 'Get User Emails Error');
           setEmails([]);
           setLoadingEmails(false);
@@ -180,7 +181,7 @@ function AccountSection() {
                       const sessionError = (err) => {
                         setCurrentPassword('');
                         setLoadingPage(false);
-                        console.error(err);
+                        tinyConsole.error(err);
                         alert(err.message, 'Session Verification Error');
                       };
 
@@ -323,7 +324,7 @@ function AccountSection() {
           // Error
           .catch((err) => {
             setLoadingPage(false);
-            console.error(err);
+            tinyConsole.error(err);
             alert(err.message, 'New Account Email Error');
           });
       }
@@ -364,7 +365,7 @@ function AccountSection() {
                       setLoadingPage(false);
                     })
                     .catch((err) => {
-                      console.error(err);
+                      tinyConsole.error(err);
                       alert(err.message, 'Remove ThreePid Error');
                       setLoadingPage(false);
                     });
@@ -543,7 +544,7 @@ function AccountSection() {
                               alert(`You successfully changed your password!`, 'Change Password');
                             })
                             .catch((err) => {
-                              console.error(err);
+                              tinyConsole.error(err);
                               setNewPassword2('');
                               alert(err.message, 'Change Password Error');
                             });
@@ -674,7 +675,7 @@ function AccountSection() {
                             newPhone,
                             newPhoneCountry !== null ? newPhoneCountry : undefined,
                           );
-                          console.log('[phone-number]', phoneNumber);
+                          tinyConsole.log('[phone-number]', phoneNumber);
                           requestTokenProgress(
                             // Text
                             'phone number',

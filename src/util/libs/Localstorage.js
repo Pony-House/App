@@ -14,6 +14,8 @@ import { generateApiKey } from 'generate-api-key';
 
 import { objType } from 'for-promise/utils/lib.mjs';
 
+import tinyConsole from '@src/util/libs/console';
+
 import initMatrix from '@src/client/initMatrix';
 import { decryptAllEventsOfTimeline } from '@src/client/state/Timeline/functions';
 import cons from '@src/client/state/cons';
@@ -515,18 +517,18 @@ class StorageManager extends EventEmitter {
 
     this._timelineSyncCache = this.getJson('ponyHouse-timeline-sync', 'obj');
     this._lastTimelineSyncCache = clone(this._timelineSyncCache) || {};
-    console.log(`[room-db-sync] [sync] Data loaded!`, this._lastTimelineSyncCache);
+    tinyConsole.log(`[room-db-sync] [sync] Data loaded!`, this._lastTimelineSyncCache);
 
     this._timelineLastEvent = this.getJson('ponyHouse-timeline-le-sync', 'obj');
     this._lastTimelineLastEvent = clone(this._timelineLastEvent) || {};
-    console.log(`[room-db-sync] [sync] Data loaded!`, this._lastTimelineLastEvent);
+    tinyConsole.log(`[room-db-sync] [sync] Data loaded!`, this._lastTimelineLastEvent);
 
     this._sendingEventCache = {};
     this._eventsLoadWaiting = this.getJson('ponyHouse-storage-loading', 'obj');
     this._lastEventsLoadWaiting = clone(this._eventsLoadWaiting) || {};
     this._eventsLoadWaitingUsing = {};
 
-    console.log(`[room-db-sync] [re-add] Data loaded!`, this._lastEventsLoadWaiting);
+    tinyConsole.log(`[room-db-sync] [re-add] Data loaded!`, this._lastEventsLoadWaiting);
 
     // new Worker(new URL("worker.js", import.meta.url));
     this.dbManager = new TinyDbManager();
@@ -914,7 +916,7 @@ class StorageManager extends EventEmitter {
 
       // Error
       if (err) {
-        console.error(err);
+        tinyConsole.error(err);
         alert(err.message, 'Timeline sync error!');
 
         if (!singleTime && typeof tinyThis._syncTimelineCache.eventsAdded[valueId] === 'number')
@@ -942,7 +944,7 @@ class StorageManager extends EventEmitter {
         tinyThis._syncTimelineCache.busy--;
         tinyThis._sendSyncStatus(roomId, threadId);
 
-        console.log(`[room-db-sync] [${valueId}] All complete!`);
+        tinyConsole.log(`[room-db-sync] [${valueId}] All complete!`);
         tinyThis._syncTimelineComplete(roomId, threadId, valueId);
       }
     };
@@ -955,7 +957,7 @@ class StorageManager extends EventEmitter {
         const threadId = thread ? thread?.id : null;
         const valueId = `${roomId}${threadId ? `:${threadId}` : ''}`;
 
-        console.log(`[room-db-sync] [${valueId}] Waiting...`);
+        tinyConsole.log(`[room-db-sync] [${valueId}] Waiting...`);
 
         // Decrypt time
         if (room.hasEncryptionStateEvent())
@@ -970,12 +972,12 @@ class StorageManager extends EventEmitter {
 
         // Check others events waiting for sync time
         if (!this._eventsLoadWaitingUsing[valueId]) {
-          console.log(`[room-db-sync] [${valueId}] [re-add] Reading data...`);
+          tinyConsole.log(`[room-db-sync] [${valueId}] [re-add] Reading data...`);
           if (
             Array.isArray(this._lastEventsLoadWaiting[valueId]) &&
             this._lastEventsLoadWaiting[valueId].length > 0
           ) {
-            console.log(`[room-db-sync] [${valueId}] [re-add] Re-add progress detected!`);
+            tinyConsole.log(`[room-db-sync] [${valueId}] [re-add] Re-add progress detected!`);
             this._eventsLoadWaitingUsing[valueId] = true;
             this.syncTimelineRecoverEvent(room, threadId, tm);
           }
@@ -1045,7 +1047,7 @@ class StorageManager extends EventEmitter {
         let lastTimelineToken = null;
 
         // Needs add data
-        console.log(
+        tinyConsole.log(
           `[room-db-sync] [${valueId}] This room full sync is ${isComplete ? 'complete' : 'incomplete'}${canLastCheckPoint ? ' and need sync last events received' : ''}...`,
         );
         if (!isComplete || canLastCheckPoint) {
@@ -1059,7 +1061,7 @@ class StorageManager extends EventEmitter {
               this._syncTimelineCache.eventsAdded[valueId] = 0;
 
             // Start the progress
-            console.log(`[room-db-sync] [${valueId}] Adding new events...`);
+            tinyConsole.log(`[room-db-sync] [${valueId}] Adding new events...`);
             let needsRemoveLastSync = false;
             for (const item in events) {
               // Get event id and check if this is a new event
@@ -1104,7 +1106,9 @@ class StorageManager extends EventEmitter {
                     needsRemoveLastSync = true;
 
                   updateTmLastEventDetector();
-                  console.log(`[room-db-sync] [${valueId}] The last events part is complete now!`);
+                  tinyConsole.log(
+                    `[room-db-sync] [${valueId}] The last events part is complete now!`,
+                  );
                 }
 
                 // New event added++
@@ -1115,7 +1119,7 @@ class StorageManager extends EventEmitter {
             // Wait the full timeline sync from the database
             this._sendSyncStatus(roomId, threadId);
             await this.waitAddTimeline();
-            console.log(`[room-db-sync] [${valueId}] ${eventsAdded} new events added!`);
+            tinyConsole.log(`[room-db-sync] [${valueId}] ${eventsAdded} new events added!`);
             if (needsRemoveLastSync) {
               if (this._timelineLastEvent[valueId].id === this._lastTimelineLastEvent[valueId].id) {
                 delete this._timelineLastEvent[valueId];
@@ -1133,9 +1137,11 @@ class StorageManager extends EventEmitter {
               // Complete
               this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
             }
-          } else console.log(`[room-db-sync] [${valueId}] No data found to save.`);
+          } else tinyConsole.log(`[room-db-sync] [${valueId}] No data found to save.`);
         } else
-          console.log(`[room-db-sync] [${valueId}] Data load complete! Skipping data saving...`);
+          tinyConsole.log(
+            `[room-db-sync] [${valueId}] Data load complete! Skipping data saving...`,
+          );
 
         // To complete data scripts (New function created here)
         const updateTinyData = () => {
@@ -1152,7 +1158,7 @@ class StorageManager extends EventEmitter {
 
         // Mission complete
         const tinyComplete = (isNext, msg = 'Complete!', newTm = null) => {
-          console.log(`[room-db-sync] [${valueId}] ${msg}`);
+          tinyConsole.log(`[room-db-sync] [${valueId}] ${msg}`);
           loadComplete(roomId, threadId, updateTinyData, isNext, newTm);
         };
 
@@ -1163,19 +1169,19 @@ class StorageManager extends EventEmitter {
             (!isComplete && nextTimelineToken) ||
             (canLastCheckPoint && this._lastTimelineLastEvent[valueId])
           ) {
-            console.log(
+            tinyConsole.log(
               `[room-db-sync] [${valueId}] Preparing next step...\nfirstTime ${String(firstTime)}\ncanLastCheckPoint ${String(canLastCheckPoint)}\nlastTimelineToken ${String(lastTimelineToken)}`,
             );
 
             // Next page
-            console.log(`[room-db-sync] [${valueId}] Getting next timeline page...`);
+            tinyConsole.log(`[room-db-sync] [${valueId}] Getting next timeline page...`);
             await mx.paginateEventTimeline(tm, {
               backwards: Direction.Forward,
               limit: __ENV_APP__.TIMELINE_EVENTS_PER_TIME,
             });
 
             // Delete old cache
-            console.log(`[room-db-sync] [${valueId}] New paginate page loaded!`);
+            tinyConsole.log(`[room-db-sync] [${valueId}] New paginate page loaded!`);
             if (this._lastTimelineSyncCache[valueId]) delete this._lastTimelineSyncCache[valueId];
 
             // Done!
@@ -1192,7 +1198,7 @@ class StorageManager extends EventEmitter {
       // Error
       else throw new Error(`[room-db-sync] No room found to sync in the indexedDb!`);
     } catch (err) {
-      console.error(err);
+      tinyConsole.error(err);
       loadComplete(null, null, null, false, null, err);
     }
   }
@@ -1210,7 +1216,7 @@ class StorageManager extends EventEmitter {
       this._lastEventsLoadWaiting[valueId].length > 0;
 
     // Starting...
-    console.log(`[room-db-sync] [${valueId}] [re-add] Preparing to re-add events...`);
+    tinyConsole.log(`[room-db-sync] [${valueId}] [re-add] Preparing to re-add events...`);
     if (checkTinyArray()) {
       try {
         // Start events
@@ -1223,10 +1229,10 @@ class StorageManager extends EventEmitter {
 
         // Start data insert
         if (checkTinyArray()) {
-          console.log(`[room-db-sync] [${valueId}] [re-add] Preparing a little more...`);
+          tinyConsole.log(`[room-db-sync] [${valueId}] [re-add] Preparing a little more...`);
           if (checkTinyArray()) {
-            console.log(`[room-db-sync] [${valueId}] [re-add] Preparing readding id...`);
-            console.log(`[room-db-sync] [${valueId}] [re-add]`, eTimeline);
+            tinyConsole.log(`[room-db-sync] [${valueId}] [re-add] Preparing readding id...`);
+            tinyConsole.log(`[room-db-sync] [${valueId}] [re-add]`, eTimeline);
             // Insert new events
             if (checkTinyArray()) {
               for (const item in this._lastEventsLoadWaiting[valueId]) {
@@ -1249,7 +1255,10 @@ class StorageManager extends EventEmitter {
                 await executeDecryptAllEventsOfTimeline(eTimeline, room.roomId);
 
               const events = eTimeline.getEvents();
-              console.log(`[room-db-sync] [${valueId}] [re-add] Readding new events...`, events);
+              tinyConsole.log(
+                `[room-db-sync] [${valueId}] [re-add] Readding new events...`,
+                events,
+              );
               if (checkTinyArray()) {
                 for (const item in events) {
                   const eventIdp = events[item].getId();
@@ -1263,13 +1272,13 @@ class StorageManager extends EventEmitter {
                 delete this._lastEventsLoadWaiting[valueId];
                 this.setJson('ponyHouse-storage-loading', this._eventsLoadWaiting);
 
-                console.log(`[room-db-sync] [${valueId}] [re-add] New events readded!`);
+                tinyConsole.log(`[room-db-sync] [${valueId}] [re-add] New events readded!`);
               }
             }
           }
         }
       } catch (err) {
-        console.error(err);
+        tinyConsole.error(err);
         alert(err.message, 'Timeline Recover event failed');
       }
     }
@@ -1341,12 +1350,13 @@ class StorageManager extends EventEmitter {
 
       if (tinyRoom && !tmLastEventUsed)
         this.refreshLiveTimeline(tinyRoom, threadId).catch((err) =>
-          console.error(err),
+          tinyConsole.error(err),
         );
     */
 
     // 100% complete message
-    if (this._syncTimelineCache.busy < 1) console.log(`[room-db-sync] Database checker complete!`);
+    if (this._syncTimelineCache.busy < 1)
+      tinyConsole.log(`[room-db-sync] Database checker complete!`);
 
     // Reset
     this.emit('timelineSyncComplete', roomId, threadId);
@@ -1409,7 +1419,7 @@ class StorageManager extends EventEmitter {
         this._syncTimelineCache.data.unshift(newData);
       } else this._syncTimelineCache.data.push(newData);
 
-      console.log(
+      tinyConsole.log(
         `[room-db-sync] [${newData.roomId}${newData.threadId ? `:${newData.threadId}` : ''}] Preparing to sync the room...`,
       );
 
@@ -1736,19 +1746,19 @@ class StorageManager extends EventEmitter {
   }
 
   _addToTimelineRun(event, resolve, reject) {
-    // console.log(`[room-db-sync] Adding new event "${event.getId()}"...`);
+    // tinyConsole.log(`[room-db-sync] Adding new event "${event.getId()}"...`);
     const tinyThis = this;
     const tinyReject = (err) => {
-      console.error(`[room-db-sync] Error in the event "${event.getId()}"!`);
-      console.error('[indexed-db] ERROR SAVING TIMELINE DATA!');
-      console.error(err);
+      tinyConsole.error(`[room-db-sync] Error in the event "${event.getId()}"!`);
+      tinyConsole.error('[indexed-db] ERROR SAVING TIMELINE DATA!');
+      tinyConsole.error(err);
       tinyThis.emit('dbTimeline-Error', err);
       reject(err);
     };
 
     const tinyComplete = async (result) => {
       await tinyThis.dbManager._setIsThread(event);
-      // console.log(`[room-db-sync] Event "${event.getId()}" added!`);
+      // tinyConsole.log(`[room-db-sync] Event "${event.getId()}" added!`);
       resolve(result);
     };
 
@@ -1917,7 +1927,7 @@ class StorageManager extends EventEmitter {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
       const key = genKey();
-      console.log(`[redact-sender] [${roomId}] Redact the event: ${mEvent.getId()}`);
+      tinyConsole.log(`[redact-sender] [${roomId}] Redact the event: ${mEvent.getId()}`);
 
       initMatrix.matrixClient
         .redactEvent(

@@ -1,5 +1,7 @@
 import React, { useEffect, useReducer, useState } from 'react';
 import PropTypes from 'prop-types';
+
+import tinyConsole from '@src/util/libs/console';
 import muteUserManager from '@src/util/libs/muteUserManager';
 
 import {
@@ -31,11 +33,11 @@ function toggleEmoji(roomId, eventId, emojiKey, shortcode, roomTimeline) {
     if (myAlreadyReactEvent) {
       const rId = myAlreadyReactEvent.getId();
       if (rId.startsWith('~')) return;
-      console.log(`[reaction-sender] [${roomId}] Redact the event: ${rId}`);
+      tinyConsole.log(`[reaction-sender] [${roomId}] Redact the event: ${rId}`);
       storageManager.redactEvent(roomId, myAlreadyReactEvent).then(resolve).catch(reject);
       return;
     }
-    console.log(`[reaction-sender] [${roomId}] Sending the event: ${eventId}`);
+    tinyConsole.log(`[reaction-sender] [${roomId}] Sending the event: ${eventId}`);
     sendReaction(roomId, eventId, emojiKey, shortcode).then(resolve).catch(reject);
   });
 }
@@ -62,7 +64,7 @@ const reactionScript = {
     if (typeof setIsReaction === 'function') setIsReaction(false);
   },
   reject: (err, setIsReaction) => {
-    console.error(err);
+    tinyConsole.error(err);
     alert(err.message, 'Reaction button error');
     if (typeof setIsReaction === 'function') setIsReaction(false);
   },

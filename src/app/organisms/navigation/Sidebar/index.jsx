@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Crypto } from 'matrix-js-sdk';
 
+import tinyConsole from '@src/util/libs/console';
+
 import settings from '@src/client/state/settings';
 import initMatrix from '@src/client/initMatrix';
 
@@ -60,7 +62,7 @@ function CrossSigninAlert({ isIconsColored }) {
         crypto.off(Crypto.CryptoEvent.VerificationRequestReceived, updateList);
       };
     } catch (err) {
-      console.error(err);
+      tinyConsole.error(err);
     }
   });
 

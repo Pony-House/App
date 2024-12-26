@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import { objType } from 'for-promise/utils/lib.mjs';
 
+import tinyConsole from '@src/util/libs/console';
+
 import threadsList from '@src/util/libs/thread';
 import { RoomStateEvent, UserEvent } from 'matrix-js-sdk';
 
@@ -135,7 +137,7 @@ const Selector = React.forwardRef(
 
     // Options
     if (!room) {
-      console.warn(`Selector: Room ${roomId} not found`);
+      tinyConsole.warn(`Selector: Room ${roomId} not found`);
       return null;
     }
 

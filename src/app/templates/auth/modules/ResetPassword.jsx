@@ -2,6 +2,8 @@ import React, { useState, useRef } from 'react';
 
 import { Formik } from 'formik';
 import PropTypes from 'prop-types';
+
+import tinyConsole from '@src/util/libs/console';
 import Checkbox from '@src/app/atoms/button/Checkbox';
 import hsWellKnown from '@src/util/libs/HsWellKnown';
 
@@ -64,7 +66,7 @@ function ResetPassword() {
       )
       .then(() => setStep('reset_complete'))
       .catch((err) => {
-        console.error(err);
+        tinyConsole.error(err);
         actions.setErrors({
           other: err.message,
         });
@@ -102,7 +104,7 @@ function ResetPassword() {
         setSubmitData(data);
       })
       .catch((err) => {
-        console.error(err);
+        tinyConsole.error(err);
         actions.setErrors({
           other: err.message,
         });
@@ -195,7 +197,7 @@ function ResetPassword() {
                 })
                 .catch((err) => {
                   setLoadingPage(false);
-                  console.error(err);
+                  tinyConsole.error(err);
                   alert(err.message, 'Password Reset Error');
                 });
             }}

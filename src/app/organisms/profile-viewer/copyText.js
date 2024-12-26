@@ -1,5 +1,6 @@
 import $ from 'jquery';
 
+import tinyConsole from '@src/util/libs/console';
 import tinyClipboard from '@src/util/libs/Clipboard';
 import { toast } from '../../../util/tools';
 
@@ -13,7 +14,7 @@ export default function copyText(event, text) {
       toast(text);
     }
   } catch (err) {
-    console.error(err);
+    tinyConsole.error(err);
     alert(err.message, 'CopyText Error');
   }
 }

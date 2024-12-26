@@ -1,9 +1,11 @@
 import $ from 'jquery';
+import tinyConsole from '@src/util/libs/console';
+
 import { toggleActionLocal } from '../app/organisms/settings/Api';
 import storageManager from './libs/Localstorage';
 
 // Console Values
-const prefixConsole = (text, type = 'log') => console[type](`[audioRec.js] ${text}`);
+const prefixConsole = (text, type = 'log') => tinyConsole[type](`[audioRec.js] ${text}`);
 
 // Cache
 const tinyCache = {
@@ -329,11 +331,11 @@ function stopAudioRecording() {
       switch (error.name) {
         case 'InvalidStateError': // error from the MediaRecorder.stop
           prefixConsole('An InvalidStateError has occured.', 'error');
-          console.error(error);
+          tinyConsole.error(error);
           break;
         default:
           prefixConsole(`An error occured with the error name ${error.name}`, 'error');
-          console.error(error);
+          tinyConsole.error(error);
       }
     });
 }
@@ -434,42 +436,42 @@ function startAudioRecording() {
       switch (error.name) {
         case 'AbortError': // error from navigator.mediaDevices.getUserMedia
           prefixConsole('An AbortError has occured.', 'error');
-          console.error(error);
+          tinyConsole.error(error);
           break;
         case 'NotAllowedError': // error from navigator.mediaDevices.getUserMedia
           prefixConsole(
             'A NotAllowedError has occured. User might have denied permission.',
             'error',
           );
-          console.error(error);
+          tinyConsole.error(error);
           break;
         case 'NotFoundError': // error from navigator.mediaDevices.getUserMedia
           prefixConsole('A NotFoundError has occured.', 'error');
-          console.error(error);
+          tinyConsole.error(error);
           break;
         case 'NotReadableError': // error from navigator.mediaDevices.getUserMedia
           prefixConsole('A NotReadableError has occured.', 'error');
-          console.error(error);
+          tinyConsole.error(error);
           break;
         case 'SecurityError': // error from navigator.mediaDevices.getUserMedia or from the MediaRecorder.start
           prefixConsole('A SecurityError has occured.', 'error');
-          console.error(error);
+          tinyConsole.error(error);
           break;
         case 'TypeError': // error from navigator.mediaDevices.getUserMedia
           prefixConsole('A TypeError has occured.', 'error');
-          console.error(error);
+          tinyConsole.error(error);
           break;
         case 'InvalidStateError': // error from the MediaRecorder.start
           prefixConsole('An InvalidStateError has occured.', 'error');
-          console.error(error);
+          tinyConsole.error(error);
           break;
         case 'UnknownError': // error from the MediaRecorder.start
           prefixConsole('An UnknownError has occured.', 'error');
-          console.error(error);
+          tinyConsole.error(error);
           break;
         default:
           prefixConsole(`An error occured with the error name ${error.name}`, 'error');
-          console.error(error);
+          tinyConsole.error(error);
       }
     });
 }

@@ -3,6 +3,8 @@
 */
 
 import EventEmitter from 'events';
+import tinyConsole from '@src/util/libs/console';
+
 import storageManager from './Localstorage';
 
 const ENV_NAME_LIMIT = 50;
@@ -125,7 +127,9 @@ class EnvAPI extends EventEmitter {
 
         this.emit(folder, value);
       } else {
-        console.error(`ENV value name length is greater than the limit! Limit: ${ENV_NAME_LIMIT}`);
+        tinyConsole.error(
+          `ENV value name length is greater than the limit! Limit: ${ENV_NAME_LIMIT}`,
+        );
       }
     }
   }

@@ -3,6 +3,8 @@ import { countObj } from 'for-promise/utils/lib.mjs';
 import JSZip from 'jszip';
 import FileSaver from 'file-saver';
 
+import tinyConsole from '@src/util/libs/console';
+
 import initMatrix from '@src/client/initMatrix';
 import { setLoadingPage } from '@src/app/templates/client/Loading';
 import moment from '../momentjs';
@@ -197,7 +199,7 @@ export function emojiExport(data, images) {
                 setLoadingPage(false);
               })
               .catch((err) => {
-                console.error(err);
+                tinyConsole.error(err);
                 alert(err.message, 'Emoji Export Save Error');
                 setLoadingPage(false);
               });
@@ -217,7 +219,7 @@ export function emojiExport(data, images) {
                 });
               })
               .catch((err) => {
-                console.error(err);
+                tinyConsole.error(err);
                 zip.file(
                   `avatar_error.json`,
                   JSON.stringify({
@@ -259,7 +261,7 @@ export function emojiExport(data, images) {
             });
           })
           .catch((err) => {
-            console.error(err);
+            tinyConsole.error(err);
             errorFolder.file(
               `${filename}.json`,
               JSON.stringify({
@@ -275,7 +277,7 @@ export function emojiExport(data, images) {
           });
       });
     } catch (err) {
-      console.error(err);
+      tinyConsole.error(err);
       alert(err.message, 'Emoji Export Error');
       setLoadingPage(false);
     }

@@ -4,6 +4,8 @@ import md5 from 'md5';
 
 import { objType } from 'for-promise/utils/lib.mjs';
 
+import tinyConsole from '@src/util/libs/console';
+
 class BlobUrlManager extends EventEmitter {
   // Constructor
   constructor() {
@@ -236,10 +238,10 @@ class BlobUrlManager extends EventEmitter {
 
             // Glitch 2
             else {
-              console.error(
+              tinyConsole.error(
                 `[blob-manager] Url hash of "${String(hash)}" not found in the group id "${String(groupId)}".\nHash value: ${String(tinyUrl)}`,
               );
-              console.error(
+              tinyConsole.error(
                 `[blob-manager] The blob cache is corrupted, but the system will continue to function to avoid crashes.`,
               );
               delete this.groups[groupId];
@@ -249,10 +251,10 @@ class BlobUrlManager extends EventEmitter {
 
           // Glitch 1
           else {
-            console.error(
+            tinyConsole.error(
               `[blob-manager] Hash value "${String(hash)}" not found in the group id "${String(groupId)}".`,
             );
-            console.error(
+            tinyConsole.error(
               `[blob-manager] The blob cache is corrupted, but the system will continue to function to avoid crashes.`,
             );
             delete this.groups[groupId];
@@ -265,8 +267,8 @@ class BlobUrlManager extends EventEmitter {
     } catch (err) {
       // Fail
       executed = false;
-      console.error(err);
-      console.error(
+      tinyConsole.error(err);
+      tinyConsole.error(
         `[blob-manager] The blob cache is corrupted, but the system will continue to function to avoid crashes.`,
       );
     }

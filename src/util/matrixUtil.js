@@ -1,4 +1,6 @@
 import { EventTimeline } from 'matrix-js-sdk';
+import tinyConsole from '@src/util/libs/console';
+
 import { openProfileViewer, openRoomViewer } from '@src/client/action/navigation';
 import initMatrix, { fetchFn } from '../client/initMatrix';
 import matrixAppearance from './libs/appearance';
@@ -231,7 +233,7 @@ export async function isCrossVerified(deviceId) {
       (deviceTrust.crossSigningVerified || deviceTrust.signedByOwner || deviceTrust.localVerified)
     );
   } catch (err) {
-    console.error(err);
+    tinyConsole.error(err);
     // device does not support encryption
     return null;
   }
@@ -248,8 +250,8 @@ export function getDefaultSSKey() {
   try {
     return mx.getAccountData('m.secret_storage.default_key').getContent().key;
   } catch (err) {
-    console.log('No getDefaultSSKey');
-    console.error(err);
+    tinyConsole.log('No getDefaultSSKey');
+    tinyConsole.error(err);
     return undefined;
   }
 }
@@ -259,8 +261,8 @@ export function getSSKeyInfo(key) {
   try {
     return mx.getAccountData(`m.secret_storage.key.${key}`).getContent();
   } catch (err) {
-    console.log(`No getSSKeyInfo ${key}`);
-    console.error(err);
+    tinyConsole.log(`No getSSKeyInfo ${key}`);
+    tinyConsole.error(err);
     return undefined;
   }
 }
@@ -285,7 +287,7 @@ export async function hasDevices(userId) {
       (userDevices) => Object.keys(userDevices).length > 0,
     );
   } catch (e) {
-    console.error(`[matrix] Error determining if it's possible to encrypt to all users: `, e);
+    tinyConsole.error(`[matrix] Error determining if it's possible to encrypt to all users: `, e);
     return false;
   }
 }
@@ -296,7 +298,7 @@ export async function hasDevice(userId, deviceId) {
     if (typeof deviceId !== 'undefined') return usersDeviceMap.get(userId).get(deviceId);
     else return usersDeviceMap.get(userId);
   } catch (e) {
-    console.error(`[matrix] Error determining if it's possible to encrypt to all users: `, e);
+    tinyConsole.error(`[matrix] Error determining if it's possible to encrypt to all users: `, e);
     return null;
   }
 }

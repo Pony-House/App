@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import tinyConsole from '@src/util/libs/console';
 
 import { softwareVersions } from '@src/versions';
 import { fetchFn } from '@src/client/initMatrix';
@@ -70,7 +71,7 @@ function Changelog() {
           })
           .catch((err) => {
             alert(err.message, 'Changelog Error');
-            console.error(err);
+            tinyConsole.error(err);
             setLoading(false);
             setContent('NULL');
           });

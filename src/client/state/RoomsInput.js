@@ -6,6 +6,8 @@ import ExifReader from 'exifreader';
 
 import { objType } from 'for-promise/utils/lib.mjs';
 
+import tinyConsole from '@src/util/libs/console';
+
 import storageManager from '@src/util/libs/Localstorage';
 import blobUrlManager, { blobToBase64 } from '@src/util/libs/blobUrlManager';
 import { isMobile } from '@src/util/libs/mobile';
@@ -397,7 +399,7 @@ class RoomsInput extends EventEmitter {
       info.thumbnail_info = { ...info };
       info.thumbnail_url = url;
     } catch (err) {
-      console.error(err);
+      tinyConsole.error(err);
       // send sticker without info
     }
 
@@ -467,7 +469,7 @@ class RoomsInput extends EventEmitter {
           info.thumbnail_url = thumbnailUploadData.url;
         }
       } catch (e) {
-        console.error(e);
+        tinyConsole.error(e);
         alert(e.message, 'Load Video Error');
         this.emit(cons.events.roomsInput.FILE_UPLOAD_CANCELED, roomId, threadId);
         return;
@@ -487,7 +489,7 @@ class RoomsInput extends EventEmitter {
       });
       this.emit(cons.events.roomsInput.FILE_UPLOADED, roomId, threadId);
     } catch (e) {
-      console.error(e);
+      tinyConsole.error(e);
       alert(e.message, 'Upload File Error');
       this.emit(cons.events.roomsInput.FILE_UPLOAD_CANCELED, roomId, threadId);
       return;

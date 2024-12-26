@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { objType } from 'for-promise/utils/lib.mjs';
+import tinyConsole from '@src/util/libs/console';
+
 import settings from '@src/client/state/settings';
 import { canSupport, dfAvatarSize } from '@src/util/matrixUtil';
 
@@ -109,7 +111,7 @@ function RoomViewHeader({ roomId, threadId, roomAlias, roomItem, disableActions 
   }, [roomId]);
 
   if (!room) {
-    console.warn(`RoomViewHeader: Room ${roomId} not found`);
+    tinyConsole.warn(`RoomViewHeader: Room ${roomId} not found`);
     return null;
   }
 

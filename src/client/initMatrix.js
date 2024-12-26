@@ -3,6 +3,7 @@ import * as sdk from 'matrix-js-sdk';
 
 import Olm from '@matrix-org/olm';
 
+import tinyConsole from '@src/util/libs/console';
 import { clearFetchPwaCache } from '@src/util/pwa/installer';
 import storageManager from '@src/util/libs/Localstorage';
 import MxcUrl from '@src/util/libs/MxcUrl';
@@ -97,7 +98,7 @@ class InitMatrix extends EventEmitter {
       if (!isPersisted)
         await storageManager.requestStoragePersisted().catch((err) => {
           alert(err.message, 'Error Storage Persisted');
-          console.error(err);
+          tinyConsole.error(err);
         });
 
       startTimestamp();
@@ -145,6 +146,7 @@ class InitMatrix extends EventEmitter {
       this.matrixClient = sdk.createClient(clientOps);
       this.mxcUrl = new MxcUrl(this.matrixClient);
       if (storageManager.getBool(cons.secretKey.IS_GUEST)) this.setGuest(true);
+      tinyConsole.install(this.matrixClient.logger);
 
       emojiEditor.start();
       attemptDecryption.start();
@@ -160,10 +162,10 @@ class InitMatrix extends EventEmitter {
       await indexedDBStore.startup();
 
       if (!__ENV_APP__.RUST_CRYPTO_MODE) {
-        console.log('[matrix-js-sdk] Using initCrypto.');
+        tinyConsole.log('[matrix-js-sdk] Using initCrypto.');
         await this.matrixClient.initCrypto();
       } else {
-        console.log('[matrix-js-sdk] Using initRustCrypto.');
+        tinyConsole.log('[matrix-js-sdk] Using initRustCrypto.');
         await this.matrixClient.initRustCrypto();
       }
 
@@ -186,7 +188,7 @@ class InitMatrix extends EventEmitter {
       return { ready: true };
     } catch (err) {
       alert(err.message, 'Client Start Error');
-      console.error(err);
+      tinyConsole.error(err);
       return { ready: false, err };
     }
   }
@@ -194,14 +196,14 @@ class InitMatrix extends EventEmitter {
   setupSync() {
     const sync = {
       NULL: () => {
-        console.log(`NULL state`);
+        tinyConsole.log(`NULL state`);
       },
       SYNCING: () => {
-        console.log(`SYNCING state`);
+        tinyConsole.log(`SYNCING state`);
       },
       PREPARED: (prevState) => {
-        console.log(`PREPARED state`);
-        console.log(`Previous state: `, prevState);
+        tinyConsole.log(`PREPARED state`);
+        tinyConsole.log(`Previous state: `, prevState);
         if (__ENV_APP__.MODE === 'development') {
           global.initMatrix = this;
         }
@@ -229,16 +231,16 @@ class InitMatrix extends EventEmitter {
         }
       },
       RECONNECTING: () => {
-        console.log(`RECONNECTING state`);
+        tinyConsole.log(`RECONNECTING state`);
       },
       CATCHUP: () => {
-        console.log(`CATCHUP state`);
+        tinyConsole.log(`CATCHUP state`);
       },
       ERROR: () => {
-        console.log(`ERROR state`);
+        tinyConsole.log(`ERROR state`);
       },
       STOPPED: () => {
-        console.log(`STOPPED state`);
+        tinyConsole.log(`STOPPED state`);
       },
     };
     this.matrixClient.on(sdk.ClientEvent.Sync, (state, prevState) => sync[state](prevState));

@@ -4,6 +4,7 @@ import { ClientEvent, NotificationCountType, RoomEvent } from 'matrix-js-sdk';
 import EventEmitter from 'events';
 import { objType } from 'for-promise/utils/lib.mjs';
 
+import tinyConsole from '@src/util/libs/console';
 import storageManager from '@src/util/libs/Localstorage';
 
 import { isMobile } from '@src/util/libs/mobile';
@@ -324,7 +325,7 @@ class Notifications extends EventEmitter {
         }
       }
     } catch (err) {
-      console.error(err);
+      tinyConsole.error(err);
     }
   }
 
@@ -485,13 +486,13 @@ class Notifications extends EventEmitter {
         const lastTimelineEvent = liveEvents[liveEvents.length - 1];
         if (lastTimelineEvent && lastTimelineEvent.getId() !== mEvent.getId()) {
           stopNotification = true;
-          // console.log(`[matrix-noti] Event blocked by last id validator: ${mEvent.getId()}`);
+          // tinyConsole.log(`[matrix-noti] Event blocked by last id validator: ${mEvent.getId()}`);
         }
 
         // Sender check
         if (!stopNotification && mEvent.getSender() === this.matrixClient.getUserId()) {
           stopNotification = true;
-          // console.log(`[matrix-noti] Event blocked by is same user: ${mEvent.getId()}`);
+          // tinyConsole.log(`[matrix-noti] Event blocked by is same user: ${mEvent.getId()}`);
         }
 
         // Prepare values
@@ -524,7 +525,7 @@ class Notifications extends EventEmitter {
               highlight ?? 0,
             );
             stopNotification = true;
-            console.log(`[matrix-noti] Event blocked by mute: ${mEvent.getId()}`);
+            tinyConsole.log(`[matrix-noti] Event blocked by mute: ${mEvent.getId()}`);
           }
 
           // Continue
@@ -543,7 +544,7 @@ class Notifications extends EventEmitter {
           // Nothing
           if (mEvent.thread && total < 1 && highlight < 1) {
             stopNotification = true;
-            console.log(`[matrix-noti] Event blocked by no counter: ${mEvent.getId()}`);
+            tinyConsole.log(`[matrix-noti] Event blocked by no counter: ${mEvent.getId()}`);
           }
         }
       }

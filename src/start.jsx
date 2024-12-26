@@ -4,6 +4,7 @@ import clone from 'clone';
 import { Buffer } from 'buffer';
 import { startCustomThemes } from '@mods';
 
+import tinyConsole from '@src/util/libs/console';
 import startQuery from './util/libs/jquery';
 
 import { startSettings } from './client/state/settings';
@@ -20,7 +21,7 @@ global.Buffer = Buffer;
 // global.Buffer = global.Buffer || Buffer;
 function StartApp(appProtocol) {
   global.getEnvApp = () => clone(__ENV_APP__);
-  console.log(`[app] Starting...`);
+  tinyConsole.log(`[app] Starting...`);
 
   moment.locale(i18.getLocale());
   const pageType = urlParams.get('type');
@@ -42,7 +43,7 @@ function StartApp(appProtocol) {
     typeof pageId === 'string' &&
     pageId.length > 0
   ) {
-    console.log(`[app] Chatroom mode.`);
+    tinyConsole.log(`[app] Chatroom mode.`);
     if (pageType === 'chatroom') {
       const hs = urlParams.get('hs');
       return root.render(
@@ -60,7 +61,7 @@ function StartApp(appProtocol) {
     return root.render('');
   }
 
-  console.log(`[app] Starting app using the protocol "${appProtocol}" mode.`);
+  tinyConsole.log(`[app] Starting app using the protocol "${appProtocol}" mode.`);
   if (osSettings.startMinimized && typeof global.electronWindow.setIsVisible === 'function') {
     global.electronWindow.setIsVisible(false);
   }

@@ -1,6 +1,8 @@
 import EventEmitter from 'events';
 import { objType } from 'for-promise/utils/lib.mjs';
 
+import tinyConsole from '@src/util/libs/console';
+
 import storageManager from './Localstorage';
 import localeNames from '@mods/locale/names';
 import localeCodes from '@mods/locale/codes';
@@ -51,7 +53,7 @@ class TinyLocale extends EventEmitter {
       for (const item in data) {
         if (typeof data[item] === 'string') valuesCache[locale][item] = data[item];
         else
-          console.error(
+          tinyConsole.error(
             new Error(`Invalid locale data in the language "${locale}"!\n${String(data)}`),
           );
       }

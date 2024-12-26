@@ -1,3 +1,5 @@
+import tinyConsole from '@src/util/libs/console';
+
 const micVolumeFilter = (tinyVideoVolumeUse) =>
   Number(
     !Number.isNaN(tinyVideoVolumeUse) && Number.isFinite(tinyVideoVolumeUse)
@@ -51,7 +53,7 @@ VolumeMeter.prototype.connectToSource = function (stream, hearVoice, callback) {
       callback(null);
     }
   } catch (err) {
-    console.error(err);
+    tinyConsole.error(err);
     alert(err.message, 'Volume Meter Connect to Source Error');
   }
 };

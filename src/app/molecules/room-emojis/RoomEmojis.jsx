@@ -2,6 +2,7 @@ import React, { useReducer, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { RoomStateEvent } from 'matrix-js-sdk';
 
+import tinyConsole from '@src/util/libs/console';
 import { getEmojiImport, supportedEmojiImportFiles } from '@src/util/libs/emoji/emojiUtil';
 import EmojiEvents from '@src/util/libs/emoji/EmojiEvents';
 import emojiEditor from '@src/util/libs/emoji/EmojiEditor';
@@ -41,7 +42,7 @@ function useRoomPacks(room) {
 
   const createPack = async (name) => {
     const result = await emojiEditor.createPack(room.roomId, name).catch((err) => {
-      console.error(err);
+      tinyConsole.error(err);
       alert(err.message, 'Create Pack Error');
     });
     updateEmojiList(room.roomId);
@@ -51,7 +52,7 @@ function useRoomPacks(room) {
   const deletePack = async (stateKey) => {
     setLoadingPage('Deleting image pack...');
     await emojiEditor.deletePack(room.roomId, stateKey).catch((err) => {
-      console.error(err);
+      tinyConsole.error(err);
       alert(err.message, 'Create Pack Error');
     });
     updateEmojiList(room.roomId);
@@ -86,7 +87,7 @@ function RoomEmojis({ roomId }) {
     createPackBase(nameInput.value.trim(), nameInput)
       .then(() => setLoadingPage(false))
       .catch((err) => {
-        console.error(err);
+        tinyConsole.error(err);
         alert(err.message, 'Image pack creation error');
         setLoadingPage(false);
       });
@@ -97,7 +98,7 @@ function RoomEmojis({ roomId }) {
     if (zipFile === null) return;
     const errorFile = (err) => {
       alert(err.message, 'Import Emojis Error');
-      console.error(err);
+      tinyConsole.error(err);
       setLoadingPage(false);
     };
 

@@ -1,3 +1,4 @@
+import tinyConsole from '@src/util/libs/console';
 import { avatarInitials, cssVar } from '../../../util/common';
 
 // renders the avatar and returns it as an URL
@@ -49,7 +50,7 @@ export default async function renderAvatar({ text, bgColor, imageSrc, size, bord
 
     return canvas.toDataURL();
   } catch (e) {
-    console.error(e);
+    tinyConsole.error(e);
     return imageSrc;
   }
 }

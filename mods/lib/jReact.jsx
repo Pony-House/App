@@ -1,6 +1,8 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import $ from 'jquery';
 
+import tinyConsole from '@src/util/libs/console';
+
 export default function jReact(dom, config = {}) {
   let result = null;
 
@@ -8,7 +10,7 @@ export default function jReact(dom, config = {}) {
     result = renderToStaticMarkup(dom);
   } catch (err) {
     result = null;
-    console.error(err);
+    tinyConsole.error(err);
   }
 
   return $(result, config);

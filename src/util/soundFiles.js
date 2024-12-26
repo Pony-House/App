@@ -1,3 +1,5 @@
+import tinyConsole from '@src/util/libs/console';
+
 class SoundFiles {
   constructor() {
     this.files = {};
@@ -34,7 +36,7 @@ class SoundFiles {
         sound.play();
       }
     } catch (err) {
-      console.error(err);
+      tinyConsole.error(err);
     }
   }
 
@@ -49,7 +51,7 @@ class SoundFiles {
         sound.play();
       }
     } catch (err) {
-      console.error(err);
+      tinyConsole.error(err);
     }
   }
 }

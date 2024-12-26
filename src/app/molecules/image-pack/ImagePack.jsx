@@ -2,6 +2,8 @@ import React, { useState, useReducer, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { ClientEvent } from 'matrix-js-sdk';
 
+import tinyConsole from '@src/util/libs/console';
+
 import {
   emojiExport,
   getEmojiImport,
@@ -71,7 +73,7 @@ function useImagePackHandles(forceUpdate, roomId, stateKey) {
     setLoadingPage(false);
   };
   const tinyError = (err) => {
-    console.error(err);
+    tinyConsole.error(err);
     alert(err.message, 'Emoji Editor Error');
     setLoadingPage(false);
   };
@@ -315,7 +317,7 @@ function ImagePackUser() {
     if (zipFile === null) return;
     const errorFile = (err) => {
       alert(err.message, 'Import Emojis Error');
-      console.error(err);
+      tinyConsole.error(err);
       setLoadingPage(false);
     };
 

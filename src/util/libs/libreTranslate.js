@@ -2,6 +2,8 @@ import EventEmitter from 'events';
 import * as linkify from 'linkifyjs';
 import { objType } from 'for-promise/utils/lib.mjs';
 
+import tinyConsole from '@src/util/libs/console';
+
 import { fetchFn } from '@src/client/initMatrix';
 import i18 from './locale';
 import storageManager from './Localstorage';
@@ -100,14 +102,14 @@ class LibreTranslate extends EventEmitter {
           if (!result.error) {
             return result;
           } else {
-            console.error(result.error);
+            tinyConsole.error(result.error);
             if (typeof result.error === 'string') alert(result.error, 'Libre Translate Error');
           }
         } else if (typeof result === 'string') {
-          console.log('[LibreTranslate] [Unknown]', result);
+          tinyConsole.log('[LibreTranslate] [Unknown]', result);
         }
       } catch (err) {
-        console.error(err);
+        tinyConsole.error(err);
         alert(err.message, 'Libre Translate - Languages Error');
         return null;
       }
@@ -116,7 +118,7 @@ class LibreTranslate extends EventEmitter {
   }
 
   async detect(text, coptions = {}, isDebug = false) {
-    if (isDebug) console.log('[LibreTranslate] [settings]', this.content);
+    if (isDebug) tinyConsole.log('[LibreTranslate] [settings]', this.content);
     if (typeof text === 'string' && this.checkHostUrl()) {
       const body = {
         q: text,
@@ -132,27 +134,27 @@ class LibreTranslate extends EventEmitter {
         headers: { 'Content-Type': 'application/json' },
       };
 
-      if (isDebug) console.log('[LibreTranslate] [url]', url);
-      if (isDebug) console.log('[LibreTranslate] [body]', body);
-      if (isDebug) console.log('[LibreTranslate] [options]', options);
+      if (isDebug) tinyConsole.log('[LibreTranslate] [url]', url);
+      if (isDebug) tinyConsole.log('[LibreTranslate] [body]', body);
+      if (isDebug) tinyConsole.log('[LibreTranslate] [options]', options);
 
       try {
         const res = await fetchFn(url, options);
         const result = await res.json();
-        if (isDebug) console.log('[LibreTranslate] [result]', result);
+        if (isDebug) tinyConsole.log('[LibreTranslate] [result]', result);
 
         if (objType(result, 'object') || Array.isArray(result)) {
           if (!result.error) {
             return result;
           } else {
-            console.error(result.error);
+            tinyConsole.error(result.error);
             if (typeof result.error === 'string') alert(result.error, 'Libre Translate Error');
           }
         } else if (typeof result === 'string') {
-          console.log('[LibreTranslate] [Unknown]', result);
+          tinyConsole.log('[LibreTranslate] [Unknown]', result);
         }
       } catch (err) {
-        console.error(err);
+        tinyConsole.error(err);
         alert(err.message, 'Libre Translate Detector Error');
         return null;
       }
@@ -161,7 +163,7 @@ class LibreTranslate extends EventEmitter {
   }
 
   async translate(text, coptions = {}, isDebug = false) {
-    if (isDebug) console.log('[LibreTranslate] [settings]', this.content);
+    if (isDebug) tinyConsole.log('[LibreTranslate] [settings]', this.content);
     if (typeof text === 'string' && this.checkHostUrl()) {
       const body = {
         q: text,
@@ -187,28 +189,28 @@ class LibreTranslate extends EventEmitter {
         headers: { 'Content-Type': 'application/json' },
       };
 
-      if (isDebug) console.log('[LibreTranslate] [url]', url);
-      if (isDebug) console.log('[LibreTranslate] [body]', body);
-      if (isDebug) console.log('[LibreTranslate] [options]', options);
+      if (isDebug) tinyConsole.log('[LibreTranslate] [url]', url);
+      if (isDebug) tinyConsole.log('[LibreTranslate] [body]', body);
+      if (isDebug) tinyConsole.log('[LibreTranslate] [options]', options);
 
       try {
         const res = await fetchFn(url, options);
         const result = await res.json();
-        if (isDebug) console.log('[LibreTranslate] [result]', result);
+        if (isDebug) tinyConsole.log('[LibreTranslate] [result]', result);
 
         if (objType(result, 'object')) {
           if (!result.error) {
             if (typeof result.translatedText === 'string')
               return !isJson ? result.translatedText : result;
           } else {
-            console.error(result.error);
+            tinyConsole.error(result.error);
             if (typeof result.error === 'string') alert(result.error, 'Libre Translate Error');
           }
         } else if (typeof result === 'string') {
-          console.log('[LibreTranslate] [Unknown]', result);
+          tinyConsole.log('[LibreTranslate] [Unknown]', result);
         }
       } catch (err) {
-        console.error(err);
+        tinyConsole.error(err);
         alert(err.message, 'Libre Translate Error');
         return null;
       }

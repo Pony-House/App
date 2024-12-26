@@ -1,3 +1,5 @@
+import tinyConsole from '@src/util/libs/console';
+
 import initMatrix from '../initMatrix';
 import appDispatcher from '../dispatcher';
 import cons from '../state/cons';
@@ -122,7 +124,7 @@ async function join(roomIdOrAlias, isDM = false, via = undefined) {
     });
     return resultRoom.roomId;
   } catch (e) {
-    console.error(`[matrix] Unable to join room.`);
+    tinyConsole.error(`[matrix] Unable to join room.`);
     throw new Error(e);
   }
 }
@@ -143,7 +145,7 @@ async function leave(roomId) {
       isDM,
     });
   } catch (e) {
-    console.error(`[matrix] Unable to leave room.`);
+    tinyConsole.error(`[matrix] Unable to leave room.`);
     throw new Error(e);
   }
 }

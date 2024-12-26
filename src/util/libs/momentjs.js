@@ -1,6 +1,9 @@
 // Module
 import moment from 'moment-timezone';
 import { objType } from 'for-promise/utils/lib.mjs';
+
+import tinyConsole from '@src/util/libs/console';
+
 import { getAppearance } from './appearance';
 
 export const calendarFormat = [
@@ -21,7 +24,7 @@ export const localeIs12Hours = (tinyLocale) => {
     ).resolvedOptions().hour12;
     return typeof value === 'boolean' ? value : true;
   } catch (err) {
-    console.error(err);
+    tinyConsole.error(err);
     return true;
   }
 };

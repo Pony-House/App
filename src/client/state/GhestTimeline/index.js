@@ -1,8 +1,10 @@
 import EventEmitter from 'events';
 
+import { Direction, MatrixEventEvent, Room, RoomEvent, RoomMemberEvent } from 'matrix-js-sdk';
+
+import tinyConsole from '@src/util/libs/console';
 import storageManager from '@src/util/libs/Localstorage';
 
-import { Direction, MatrixEventEvent, Room, RoomEvent, RoomMemberEvent } from 'matrix-js-sdk';
 import initMatrix from '../../initMatrix';
 import cons from '../cons';
 
@@ -448,7 +450,7 @@ class RoomTimeline extends EventEmitter {
           }, 100);
         }
       } catch (err) {
-        console.error(err);
+        tinyConsole.error(err);
         alert(err.message, 'Listen Recipt Event Error');
       }
 

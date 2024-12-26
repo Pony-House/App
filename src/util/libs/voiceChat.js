@@ -4,6 +4,8 @@ import { CallEvent, createNewMatrixCall } from 'matrix-js-sdk';
 import { CallEventHandlerEvent } from 'matrix-js-sdk/lib/webrtc/callEventHandler';
 
 import { EventEmitter } from 'events';
+
+import tinyConsole from '@src/util/libs/console';
 import storageManager from './Localstorage';
 
 // Emitter
@@ -38,7 +40,7 @@ class MatrixVoiceChat {
 
     // Incoming...
     this.mx.on(CallEventHandlerEvent.Incoming, (c) => {
-      console.log('Call ringing', c);
+      tinyConsole.log('Call ringing', c);
 
       /*
             disableButtons(true, false, false);
@@ -157,7 +159,7 @@ class MatrixVoiceChat {
             */
 
       this.call.on(CallEvent.Hangup, (data) => {
-        console.error('Call hangup', data);
+        tinyConsole.error('Call hangup', data);
 
         /*
                 disableButtons(false, true, true);
@@ -168,7 +170,7 @@ class MatrixVoiceChat {
       });
 
       this.call.on(CallEvent.Error, (err) => {
-        console.error('Call Error', err);
+        tinyConsole.error('Call Error', err);
 
         tinyThis.err = err;
         /*
@@ -183,7 +185,7 @@ class MatrixVoiceChat {
         const localFeed = feeds.find((feed) => feed.isLocal());
         const remoteFeed = feeds.find((feed) => !feed.isLocal());
 
-        console.log('Call feeds_changed', localFeed, remoteFeed, feeds);
+        tinyConsole.log('Call feeds_changed', localFeed, remoteFeed, feeds);
 
         /*
                 const remoteElement = document.getElementById('remote');
@@ -204,38 +206,38 @@ class MatrixVoiceChat {
       });
 
       this.call.on(CallEvent.HoldUnhold, (data) => {
-        console.log('Call hold_unhold', data);
+        tinyConsole.log('Call hold_unhold', data);
         myEmitter.emit(CallEvent.HoldUnhold, data);
       });
 
       this.call.on(CallEvent.LengthChanged, (data) => {
-        console.log('Call length_changed', data);
+        tinyConsole.log('Call length_changed', data);
         myEmitter.emit(CallEvent.LengthChanged, data);
       });
 
       this.call.on(CallEvent.PeerConnectionCreated, (data) => {
-        console.log('Call peer_connection_created', data);
+        tinyConsole.log('Call peer_connection_created', data);
         myEmitter.emit(CallEvent.PeerConnectionCreated, data);
       });
 
       this.call.on(CallEvent.RemoteHoldUnhold, (data) => {
-        console.log('Call remote_hold_unhold', data);
+        tinyConsole.log('Call remote_hold_unhold', data);
         myEmitter.emit(CallEvent.RemoteHoldUnhold, data);
       });
 
       this.call.on(CallEvent.Replaced, (data) => {
-        console.log('Call replaced', data);
+        tinyConsole.log('Call replaced', data);
         myEmitter.emit(CallEvent.Replaced, data);
       });
 
       this.call.on(CallEvent.SendVoipEvent, (data) => {
-        console.log('Call send_voip_event', data);
+        tinyConsole.log('Call send_voip_event', data);
         myEmitter.emit(CallEvent.SendVoipEvent, data);
       });
 
       // https://matrix-org.github.io/matrix-js-sdk/stable/enums/_internal_.CallState.html
       this.call.on(CallEvent.State, (state) => {
-        console.log('Call state', state);
+        tinyConsole.log('Call state', state);
         myEmitter.emit(CallEvent.State, state);
 
         /*
@@ -561,9 +563,9 @@ class MatrixVoiceChat {
 
 /*
     document.getElementById("call").onclick = function () {
-        console.log("Placing call...");
+        tinyConsole.log("Placing call...");
         call = matrixcs.createNewMatrixCall(client, ROOM_ID);
-        console.log("Call => %s", call);
+        tinyConsole.log("Call => %s", call);
         addListeners(call);
         call.placeVideoCall();
         document.getElementById("result").innerHTML = "<p>Placed call.</p>";
@@ -571,15 +573,15 @@ class MatrixVoiceChat {
     };
 
     document.getElementById("hangup").onclick = function () {
-        console.log("Hanging up call...");
-        console.log("Call => %s", call);
+        tinyConsole.log("Hanging up call...");
+        tinyConsole.log("Call => %s", call);
         call.hangup();
         document.getElementById("result").innerHTML = "<p>Hungup call.</p>";
     };
 
     document.getElementById("answer").onclick = function () {
-        console.log("Answering call...");
-        console.log("Call => %s", call);
+        tinyConsole.log("Answering call...");
+        tinyConsole.log("Call => %s", call);
         call.answer();
         disableButtons(true, true, false);
         document.getElementById("result").innerHTML = "<p>Answered call.</p>";

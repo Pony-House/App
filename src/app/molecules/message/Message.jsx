@@ -8,6 +8,8 @@ import { objType } from 'for-promise/utils/lib.mjs';
 import * as linkify from 'linkifyjs';
 import forPromise from 'for-promise';
 
+import tinyConsole from '@src/util/libs/console';
+
 import cons from '@src/client/state/cons';
 import { isMobile } from '@src/util/libs/mobile';
 import muteUserManager from '@src/util/libs/muteUserManager';
@@ -392,7 +394,7 @@ const createMessageData = (
         msgData = msgOptions.custom;
       }
     } catch {
-      console.error(`[matrix] [msg] Malformed custom html: `, body);
+      tinyConsole.error(`[matrix] [msg] Malformed custom html: `, body);
       msgData = !isJquery ? twemojifyReact(body, undefined) : twemojify(body, undefined);
     }
   } else if (!isSystem) {
@@ -611,13 +613,13 @@ const MessageOptions = React.memo(
     const senderId = mEvent.getSender();
     const eventId = mEvent.getId();
     if (!eventId) {
-      console.warn('Message without id', mEvent);
+      tinyConsole.warn('Message without id', mEvent);
       return null;
     }
 
     const myUserId = mx.getUserId();
     if (!myUserId) {
-      console.warn('No user id in MessageOptions, this should not be possible');
+      tinyConsole.warn('No user id in MessageOptions, this should not be possible');
       return null;
     }
 
@@ -671,7 +673,7 @@ const MessageOptions = React.memo(
             : plain(body, roomId, threadId, { kind: 'edit', onlyPlain: true }).plain;
           if (typeof sourceText !== 'string') sourceText = '';
         } catch (err) {
-          console.error(err);
+          tinyConsole.error(err);
           alert(err.message, 'Translate get text error');
           sourceText = '';
         }
@@ -688,7 +690,7 @@ const MessageOptions = React.memo(
             })
             .catch((err) => {
               setLoadingPage(false);
-              console.error(err);
+              tinyConsole.error(err);
               alert(err.message, 'Libre Translate Progress Error');
             });
         } else {
@@ -1077,7 +1079,7 @@ function Message({
 
   mEvent.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
   const onMsgStatus = (status) => {
-    console.log(`[your-message] [status] [${mEvent.getId()}]`, status);
+    tinyConsole.log(`[your-message] [status] [${mEvent.getId()}]`, status);
     setMessageStatus(status);
   };
 
@@ -1113,7 +1115,7 @@ function Message({
 
   if (!eventId) {
     // if the message doesn't have an id then there's nothing to do
-    console.warn('Message without id', mEvent);
+    tinyConsole.warn('Message without id', mEvent);
     return null;
   }
 
@@ -1181,7 +1183,7 @@ function Message({
             }
           }
         } catch (err) {
-          console.error(err);
+          tinyConsole.error(err);
         }
       }
 
@@ -1215,7 +1217,7 @@ function Message({
                     tinyFixScrollChat();
                   } catch (err) {
                     tinyEmbed.data = null;
-                    console.error(err);
+                    tinyConsole.error(err);
                   }
                 } else {
                   tinyEmbed.data = null;

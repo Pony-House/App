@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Crypto } from 'matrix-js-sdk';
 
 import moment, { momentFormat } from '@src/util/libs/momentjs';
+
+import tinyConsole from '@src/util/libs/console';
 import SettingLoading from '@src/app/molecules/setting-loading/SettingLoading';
 
 import initMatrix from '../../../client/initMatrix';
@@ -89,7 +91,7 @@ function DeviceManage() {
           setIsMeVerified(isVerified);
         })
         .catch((err) => {
-          console.error(err);
+          tinyConsole.error(err);
           alert(err.message);
         });
     }
@@ -138,7 +140,7 @@ function DeviceManage() {
         crypto.off(Crypto.CryptoEvent.VerificationRequestReceived, updateList);
       };
     } catch (err) {
-      console.error(err);
+      tinyConsole.error(err);
     }
   });
 

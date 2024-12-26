@@ -4,6 +4,8 @@ import $ from 'jquery';
 
 import { BlurhashCanvas } from 'react-blurhash';
 
+import tinyConsole from '@src/util/libs/console';
+
 import Img from '@src/app/atoms/image/Image';
 import initMatrix from '@src/client/initMatrix';
 import blobUrlManager from '@src/util/libs/blobUrlManager';
@@ -74,7 +76,7 @@ async function getUrl(contentType, fileType, link, type, decryptData, roomId /* 
       });
     }
   } catch (e) {
-    console.error(e);
+    tinyConsole.error(e);
     return link;
   }
 }
@@ -560,7 +562,7 @@ function Video({
                         tinyFixScrollChat();
                       })
                       .catch((err) => {
-                        console.error(err);
+                        tinyConsole.error(err);
                         alert(err.message, 'Video load error!');
                       });
                   }

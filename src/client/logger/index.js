@@ -1,4 +1,6 @@
 import clone from 'clone';
+
+import tinyConsole from '@src/util/libs/console';
 import moment from '@src/util/libs/momentjs';
 
 import { logger as mxLogger } from 'matrix-js-sdk/lib/logger';
@@ -64,7 +66,7 @@ const createLogArgs = (type, args) => {
 
 function playLogData() {
   for (const item in logCache.data) {
-    console[logCache.data[item].level](
+    tinyConsole[logCache.data[item].level](
       `[${moment().format()}] [matrix]`,
       logDatatoString(logCache.data[item].msg),
     );

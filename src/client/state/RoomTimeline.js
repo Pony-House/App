@@ -1,5 +1,7 @@
 import EventEmitter from 'events';
 
+import tinyConsole from '@src/util/libs/console';
+
 import storageManager, { timelineCache } from '@src/util/libs/Localstorage';
 import { getAppearance } from '@src/util/libs/appearance';
 
@@ -83,7 +85,7 @@ class RoomTimeline extends EventEmitter {
     // More data
     this.isOngoingPagination = false;
     this._activeEvents();
-    console.log(`${this._consoleTag} The timeline script is being executed...`);
+    tinyConsole.log(`${this._consoleTag} The timeline script is being executed...`);
 
     // Load Members
     setTimeout(() => this.room.loadMembersIfNeeded());
@@ -106,7 +108,7 @@ class RoomTimeline extends EventEmitter {
   }
 
   _timelineUpdated(eventType, mEvent) {
-    console.log(
+    tinyConsole.log(
       `${this._consoleTag} [${eventType}]${mEvent ? ` [${mEvent.getType()}]` : ''} Timeline updated!`,
     );
   }
@@ -127,9 +129,9 @@ class RoomTimeline extends EventEmitter {
     };
 
     this._startTimeline = async (data, eventId) => {
-      console.log(`${this._consoleTag} Starting timeline`);
+      tinyConsole.log(`${this._consoleTag} Starting timeline`);
       const tinyError = (err) => {
-        console.error(err);
+        tinyConsole.error(err);
         alert(err.message, 'Timeline load error');
       };
 
@@ -193,7 +195,7 @@ class RoomTimeline extends EventEmitter {
 
           tinyThis.initialized = true;
           tinyThis.emit(cons.events.roomTimeline.READY, eventId || null);
-          console.log(`${this._consoleTag} Timeline started`);
+          tinyConsole.log(`${this._consoleTag} Timeline started`);
           tinyThis.firstStart = true;
         } catch (err) {
           tinyError(err);
@@ -211,7 +213,7 @@ class RoomTimeline extends EventEmitter {
       if (!tinyCheckEvent.check(mEvent)) return;
       const tmc = tinyThis.getTimelineCache(mEvent);
       if (!tmc && !mEvent.isRedacted()) return;
-      console.log(`${tinyThis._consoleTag} New message: ${mEvent.getId()}`);
+      tinyConsole.log(`${tinyThis._consoleTag} New message: ${mEvent.getId()}`);
       tmc.pages = await storageManager.getMessagesPagination(
         this._buildPagination({ threadId: mEvent.getThreadId(), roomId: mEvent.getRoomId() }),
       );
@@ -272,7 +274,7 @@ class RoomTimeline extends EventEmitter {
       if (!tinyCheckEvent.check(mEvent)) return;
       const tmc = tinyThis.getTimelineCache(mEvent);
       if (!tmc) return;
-      console.log(`${tinyThis._consoleTag} New timeline event: ${mEvent.getId()}`);
+      tinyConsole.log(`${tinyThis._consoleTag} New timeline event: ${mEvent.getId()}`);
       if (mEvent.getType() !== 'm.room.redaction') tinyThis._insertIntoTimeline(mEvent, tmc);
       else tinyThis._deletingEvent(mEvent);
       return tinyThis._timelineUpdated('timeline-event', mEvent);
@@ -283,7 +285,7 @@ class RoomTimeline extends EventEmitter {
       if (!tinyCheckEvent.checkIds(info.roomId, info.eventId)) return;
       const { eventId, isRedacted, roomId } = info;
       if (!isRedacted || roomId !== this.roomId) return;
-      console.log(`${tinyThis._consoleTag} New redaction: ${eventId}`);
+      tinyConsole.log(`${tinyThis._consoleTag} New redaction: ${eventId}`);
       tinyThis._deletingEventById(eventId);
       return tinyThis._timelineUpdated('redaction');
     };
@@ -293,7 +295,7 @@ class RoomTimeline extends EventEmitter {
       await tinyThis.waitTimeline();
       if (!tinyCheckEvent.checkIds(event.room_id, event.event_id)) return;
       if (!event.room_id !== tinyThis.roomId) return;
-      console.log(`${tinyThis._consoleTag} New thread event: ${event.event_id}`);
+      tinyConsole.log(`${tinyThis._consoleTag} New thread event: ${event.event_id}`);
       const mEvent = this.findEventById(event.event_id);
       if (!mEvent) return;
       await mEvent.insertThread();
@@ -314,7 +316,7 @@ class RoomTimeline extends EventEmitter {
       const eventId = mEvent.getId();
 
       if (type === 'redact') {
-        console.log(`${tinyThis._consoleTag} New redaction from local: ${eventId}`);
+        tinyConsole.log(`${tinyThis._consoleTag} New redaction from local: ${eventId}`);
         tinyThis._deletingEventById(eventId);
         return tinyThis._timelineUpdated('redaction');
       }
@@ -516,7 +518,7 @@ class RoomTimeline extends EventEmitter {
         (typeof this.reactionTimelineTs[tsId] !== 'number' || ts > this.reactionTimelineTs[tsId])
       ) {
         if (mEvents.find((ev) => ev.getId() === mEvent.getId())) return;
-        console.log(`${this._consoleTag} New reaction: ${mEvent.getId()}`, ts);
+        tinyConsole.log(`${this._consoleTag} New reaction: ${mEvent.getId()}`, ts);
         mEvents.push(mEvent);
         this.reactionTimelineTs[tsId] = ts;
         this.emit(cons.events.roomTimeline.EVENT, mEvent);
@@ -536,7 +538,7 @@ class RoomTimeline extends EventEmitter {
         const index = mEvents.find((ev) => ev.getId() === mEvent.getId());
         if (index > -1) {
           mEvent.forceRedaction();
-          console.log(`${this._consoleTag} Reaction removed: ${mEvent.getId()}`, ts);
+          tinyConsole.log(`${this._consoleTag} Reaction removed: ${mEvent.getId()}`, ts);
           mEvents.splice(index, 1);
           if (mEvents.length < 1) this.reactionTimeline.delete(relateToId);
 
@@ -592,7 +594,7 @@ class RoomTimeline extends EventEmitter {
   }
 
   _autoUpdateEvent(thread, mEvent) {
-    // console.log('[timeline] Event room updated!', mEvent);
+    // tinyConsole.log('[timeline] Event room updated!', mEvent);
   }
 
   async _addEventQueue(ignoredReactions = false) {
@@ -663,7 +665,7 @@ class RoomTimeline extends EventEmitter {
           }
         }
       } catch (err) {
-        console.error(err);
+        tinyConsole.error(err);
         alert(err.message, 'Timeline updater error!');
       }
 
@@ -720,7 +722,7 @@ class RoomTimeline extends EventEmitter {
 
           const ts = rEvent.getTs();
           rEvent.forceRedaction();
-          console.log(`${this._consoleTag} Reaction removed: ${redacts}`, ts);
+          tinyConsole.log(`${this._consoleTag} Reaction removed: ${redacts}`, ts);
           this.reactionTimelineTs[`${relateToId}:${redacts}`] = ts;
           this.emit(cons.events.roomTimeline.EVENT_REDACTED, rEvent);
         }
@@ -749,7 +751,7 @@ class RoomTimeline extends EventEmitter {
     if (rEvent) {
       this._disablingEventPlaces(rEvent);
       rEvent.forceRedaction();
-      console.log(`${this._consoleTag} Deleting event: ${rEvent.getId()}`, rEvent.getTs());
+      tinyConsole.log(`${this._consoleTag} Deleting event: ${rEvent.getId()}`, rEvent.getTs());
       this.emit(cons.events.roomTimeline.EVENT_REDACTED, rEvent);
     }
   }

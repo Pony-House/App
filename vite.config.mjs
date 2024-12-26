@@ -141,6 +141,8 @@ export default defineConfig(({ command, mode }) => {
 
     PAG_LIMIT: Number(env.PAG_LIMIT),
 
+    SHOW_LOG: addBooleanToEnv('SHOW_LOG'),
+
     SAVE_ROOM_DB: addBooleanToEnv('SAVE_ROOM_DB'),
     DISCORD_STYLE: addBooleanToEnv('DISCORD_STYLE'),
     SHOW_STICKERS: addBooleanToEnv('SHOW_STICKERS'),

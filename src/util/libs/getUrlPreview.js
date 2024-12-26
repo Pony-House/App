@@ -1,6 +1,8 @@
 import * as linkify from 'linkifyjs';
 import { objType } from 'for-promise/utils/lib.mjs';
 
+import tinyConsole from '@src/util/libs/console';
+
 import initMatrix from '../../client/initMatrix';
 import convertProtocols from './convertProtocols';
 import moment from './momentjs';
@@ -82,7 +84,7 @@ const urlPreviewStore = {
         return storageManager.setJson(localStoragePlace, storage);
       }
     } catch (err) {
-      console.error(err);
+      tinyConsole.error(err);
       return null;
     }
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import clone from 'clone';
 
+import tinyConsole from '@src/util/libs/console';
 import Img from '@src/app/atoms/image/Image';
 import libreTranslate from '@src/util/libs/libreTranslate';
 import SegmentedControls from '@src/app/atoms/segmented-controls/SegmentedControls';
@@ -42,7 +43,7 @@ function LibreTranslateSection() {
           setLoadingLangs(false);
         })
         .catch((err) => {
-          console.error(err);
+          tinyConsole.error(err);
           setLoadingLangs(false);
         });
     }

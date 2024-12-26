@@ -1,4 +1,7 @@
 import { MatrixEvent } from 'matrix-js-sdk';
+
+import tinyConsole from '@src/util/libs/console';
+
 import initMatrix from '../../../client/initMatrix';
 import { countObj, objType } from 'for-promise/utils/lib.mjs';
 // import attemptDecryption from '../attemptDecryption';
@@ -53,7 +56,7 @@ export async function getEventById(room, eventId) {
     if (!tinyCache[room.roomId][eventId].event) {
       const newEvent = await initMatrix.matrixClient.fetchRoomEvent(room.roomId, eventId);
       if (newEvent) {
-        // console.log(await initMatrix.olmDevice.decryptMessage(initMatrix.matrixClient.getDeviceCurve25519Key(), newEvent.content.session_id, newEvent.type, newEvent.content.ciphertext));
+        // tinyConsole.log(await initMatrix.olmDevice.decryptMessage(initMatrix.matrixClient.getDeviceCurve25519Key(), newEvent.content.session_id, newEvent.type, newEvent.content.ciphertext));
         tinyCache[room.roomId][eventId].event = new MatrixEvent({
           origin_server_ts: newEvent.age,
           content: newEvent.content,

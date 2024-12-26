@@ -4,6 +4,7 @@ import FileSaver from 'file-saver';
 import clone from 'clone';
 
 import { objType } from 'for-promise/utils/lib.mjs';
+import tinyConsole from '@src/util/libs/console';
 
 import FileInput, {
   fileInputClick,
@@ -77,7 +78,7 @@ function Web3Section() {
         }
       })
       .catch((err) => {
-        console.error(err);
+        tinyConsole.error(err);
         alert(err.message, 'Web3 File Reader Error');
         setUploadPromise(null);
       });
@@ -182,7 +183,7 @@ function Web3Section() {
                       })
                       .catch((err) => {
                         setLoadingPage(false);
-                        console.error(err);
+                        tinyConsole.error(err);
                         alert(err.message, 'Set User Web3 Account Error');
                       });
                   }}

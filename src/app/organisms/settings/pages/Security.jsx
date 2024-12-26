@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 
+import tinyConsole from '@src/util/libs/console';
 import storageManager from '@src/util/libs/Localstorage';
 import { isMobile } from '@src/util/libs/mobile';
 import initMatrix from '@src/client/initMatrix';
@@ -47,7 +48,7 @@ function SecuritySection() {
             .requestStoragePersisted()
             .then(setStoragePersisted)
             .catch((err) => {
-              console.error(err);
+              tinyConsole.error(err);
               alert(err.message, 'Error Storage Persisted');
             })
         }

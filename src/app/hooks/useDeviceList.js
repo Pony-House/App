@@ -6,6 +6,7 @@ import moment from 'moment-timezone';
 import objectHash from 'object-hash';
 import { objType } from 'for-promise/utils/lib.mjs';
 
+import tinyConsole from '@src/util/libs/console';
 import initMatrix from '../../client/initMatrix';
 
 // Emitter
@@ -106,7 +107,7 @@ export function useDeviceList() {
     // Start update
     const updateDevices = () => {
       const tinyErr = (err) => {
-        console.error(err);
+        tinyConsole.error(err);
         alert(err.message, 'Matrix Devices Error');
       };
 

@@ -3,6 +3,8 @@ import PropTypes from 'prop-types';
 import { Crypto } from 'matrix-js-sdk';
 import { CrossSigningKey, VerificationPhase } from 'matrix-js-sdk/lib/crypto-api';
 
+import tinyConsole from '@src/util/libs/console';
+
 import { twemojifyReact } from '../../../util/twemojify';
 
 import initMatrix from '../../../client/initMatrix';
@@ -59,13 +61,13 @@ function SessionVerificationContent({ data, requestClose, type, title }) {
   const [lastPhase, setLastPhase] = useState(null);
 
   // Set phase progress
-  console.log(
+  tinyConsole.log(
     `[session-verification] Phase ${phase} made by ${request.initiatedByMe ? 'you' : 'other device'} using "${type}" mode.`,
   );
-  console.log(`[session-verification] Request`, request);
+  tinyConsole.log(`[session-verification] Request`, request);
 
-  if (targetDevice) console.log(`[session-verification] Target Device`, targetDevice);
-  if (sas) console.log(`[session-verification] sas data`, sas);
+  if (targetDevice) tinyConsole.log(`[session-verification] Target Device`, targetDevice);
+  if (sas) tinyConsole.log(`[session-verification] sas data`, sas);
 
   // Close request. This is tiny okay now
   const canCancelRequest =
@@ -83,7 +85,9 @@ function SessionVerificationContent({ data, requestClose, type, title }) {
   const insertVerification = (verifier) => {
     // Show the SAS now
     if (type === 'sas') {
-      console.log(`[session-verification] Preparing "show_sas" event to receive the next step...`);
+      tinyConsole.log(
+        `[session-verification] Preparing "show_sas" event to receive the next step...`,
+      );
       const handleVerifier = async (sasData) => {
         verifier.off('show_sas', handleVerifier);
         if (!mountStore.getItem()) return;
@@ -91,14 +95,14 @@ function SessionVerificationContent({ data, requestClose, type, title }) {
       };
       setProcess(false);
       verifier.on('show_sas', handleVerifier);
-      console.log(`[session-verification] The "show_sas" event is ready!`);
+      tinyConsole.log(`[session-verification] The "show_sas" event is ready!`);
     }
   };
 
   const beginVerification = async () => {
-    console.log(`[session-verification] Starting the "beingVerification" progress...`);
+    tinyConsole.log(`[session-verification] Starting the "beingVerification" progress...`);
     if (canCancelRequest) return;
-    console.log(`[session-verification] "beingVerification" started!`);
+    tinyConsole.log(`[session-verification] "beingVerification" started!`);
     // Get crypto and start now
     const crypto = mx.getCrypto();
     try {
@@ -108,7 +112,7 @@ function SessionVerificationContent({ data, requestClose, type, title }) {
         (await isCrossVerified(mx.deviceId)) &&
         (keyId === null || keyId !== CrossSigningKey.SelfSigning)
       ) {
-        console.log(`[session-verification] Accessing your secret storage...`);
+        tinyConsole.log(`[session-verification] Accessing your secret storage...`);
         if (canCancelRequest) return;
         if (!hasPrivateKey(getDefaultSSKey())) {
           const keyData = await accessSecretStorage(title);
@@ -117,35 +121,35 @@ function SessionVerificationContent({ data, requestClose, type, title }) {
             request.cancel();
             return;
           }
-          console.log(`[session-verification] Secret storage is ok!`);
+          tinyConsole.log(`[session-verification] Secret storage is ok!`);
           if (canCancelRequest) return;
         }
         await mx.checkOwnCrossSigningTrust();
         if (canCancelRequest) return;
       }
       // Start loading page
-      console.log(`[session-verification] Beging verification...`);
+      tinyConsole.log(`[session-verification] Beging verification...`);
       setProcess(true);
 
       // Accept new request
       if (phase === VerificationPhase.Ready) {
-        console.log(`[session-verification] Your device is ready to the verification...`);
+        tinyConsole.log(`[session-verification] Your device is ready to the verification...`);
         // Accept request
         await request.accept();
 
         // Start verification
         const verifier = await request.startVerification('m.sas.v1');
-        console.log(`[session-verification] Preparing to send the verification...`);
+        tinyConsole.log(`[session-verification] Preparing to send the verification...`);
         if (canCancelRequest) return;
 
         // Send verification data
         insertVerification(verifier);
-        console.log(`[session-verification] Verification sent!`);
+        tinyConsole.log(`[session-verification] Verification sent!`);
         await startVerification(verifier);
       }
     } catch (err) {
       // Oh no
-      console.error(err);
+      tinyConsole.error(err);
       alert(err.message, `${title} - error`);
 
       // Cancel progress
@@ -165,7 +169,7 @@ function SessionVerificationContent({ data, requestClose, type, title }) {
     if (canCancelRequest) return;
     sas.confirm().catch((err) => {
       alert(err.message, 'SAS Confirm error!');
-      console.error(err);
+      tinyConsole.error(err);
       setProcess(false);
     });
     setProcess(true);
@@ -173,7 +177,7 @@ function SessionVerificationContent({ data, requestClose, type, title }) {
 
   // Checking phases here
   useEffect(() => {
-    console.log(`[session-verification] canCancelRequest ${String(canCancelRequest)}.`);
+    tinyConsole.log(`[session-verification] canCancelRequest ${String(canCancelRequest)}.`);
     if (canCancelRequest) return;
     mountStore.setItem(true);
     if (request === null) return undefined;
@@ -208,19 +212,21 @@ function SessionVerificationContent({ data, requestClose, type, title }) {
       request.otherDeviceId &&
       phase === VerificationPhase.Requested
     ) {
-      console.log(`[session-verification] Preparing to receive the verification...`);
+      tinyConsole.log(`[session-verification] Preparing to receive the verification...`);
       request
         .accept()
         .then(async () => {
-          console.log(`[session-verification] Your device is ready to sync the verification...`);
+          tinyConsole.log(
+            `[session-verification] Your device is ready to sync the verification...`,
+          );
           const verifier = await request.startVerification('m.sas.v1');
-          console.log(`[session-verification] Preparing to sync the verification...`);
+          tinyConsole.log(`[session-verification] Preparing to sync the verification...`);
           insertVerification(verifier);
-          console.log(`[session-verification] Verification synced!`);
+          tinyConsole.log(`[session-verification] Verification synced!`);
           await startVerification(verifier);
         })
         .catch((err) => {
-          console.error(err);
+          tinyConsole.error(err);
           alert(err.message, 'Request device verification error');
           reqCancel();
         });

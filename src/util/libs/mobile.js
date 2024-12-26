@@ -3,6 +3,8 @@ import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import EventEmitter from 'events';
 
+import tinyConsole from '@src/util/libs/console';
+
 // Emitter
 class MobileEvents extends EventEmitter {
   constructor() {
@@ -27,15 +29,15 @@ class MobileEvents extends EventEmitter {
 
       if (__ENV_APP__.MODE === 'development') {
         App.addListener('appStateChange', ({ isActive }) => {
-          console.log('[mobile] App state changed. Is active?', isActive);
+          tinyConsole.log('[mobile] App state changed. Is active?', isActive);
         });
 
         App.addListener('appUrlOpen', (data) => {
-          console.log('[mobile] App opened with URL:', data);
+          tinyConsole.log('[mobile] App opened with URL:', data);
         });
 
         App.addListener('appRestoredResult', (data) => {
-          console.log('[mobile] Restored state:', data);
+          tinyConsole.log('[mobile] Restored state:', data);
         });
       }
     }

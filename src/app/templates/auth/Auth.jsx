@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+
+import tinyConsole from '@src/util/libs/console';
 import WelcomePage from '@mods/WelcomePage';
 import storageManager from '@src/util/libs/Localstorage';
 import urlParams from '@src/util/libs/urlParams';
@@ -37,7 +39,7 @@ function Auth({ isDevToolsOpen = false }) {
             window.location.reload();
             return true;
           } catch (err) {
-            console.error(err);
+            tinyConsole.error(err);
             alert(err.message);
             setLoadingPage(false);
             return false;

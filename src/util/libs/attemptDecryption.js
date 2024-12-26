@@ -1,7 +1,10 @@
-import initMatrix from '@src/client/initMatrix';
 import EventEmitter from 'events';
-import { objType } from 'for-promise/utils/lib.mjs';
 import { MatrixEventEvent } from 'matrix-js-sdk';
+import { objType } from 'for-promise/utils/lib.mjs';
+
+import tinyConsole from '@src/util/libs/console';
+
+import initMatrix from '@src/client/initMatrix';
 import storageManager from './Localstorage';
 
 // Emitter
@@ -34,7 +37,7 @@ class AttemptDecryption extends EventEmitter {
         resolve(result);
       } catch (err) {
         resolve(null);
-        console.error(err);
+        tinyConsole.error(err);
       }
     });
   }

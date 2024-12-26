@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
+import tinyConsole from '@src/util/libs/console';
 import { getWeb3Cfg } from '@mods/web3/ethers/base';
 import TimeFromNow from '@src/app/atoms/time/TimeFromNow';
 import { getUserBalance } from '@mods/web3/ethers/utils';
@@ -25,7 +26,7 @@ export default function EthereumProfileTabItem({ chain, ethereum }) {
           setIsError(true);
           setBalance('?.??');
           setUpdatedAt(0);
-          console.error(new Error('No data found.'));
+          tinyConsole.error(new Error('No data found.'));
         }
         setIsLoading(false);
       })
@@ -33,7 +34,7 @@ export default function EthereumProfileTabItem({ chain, ethereum }) {
         setIsError(true);
         setUpdatedAt(moment());
         setIsLoading(false);
-        console.error(err);
+        tinyConsole.error(err);
       });
   };
 

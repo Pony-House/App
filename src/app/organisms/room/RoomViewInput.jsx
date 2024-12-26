@@ -8,6 +8,7 @@ import moment from '@src/util/libs/momentjs';
 import { ReactEditor } from 'slate-react';
 import { Editor, Transforms } from 'slate';
 
+import tinyConsole from '@src/util/libs/console';
 import Img from '@src/app/atoms/image/Image';
 import FileInput, { fileInputClick, fileInputValue } from '@src/app/molecules/file-input/FileInput';
 
@@ -126,7 +127,7 @@ function RoomViewInput({ roomId, threadId, roomTimeline, viewEvent, refRoomInput
   // Effects
   useEffect(() => {
     // Audio Record
-    const prefixConsole = (text, type = 'log') => console[type](`[chatbox record] ${text}`);
+    const prefixConsole = (text, type = 'log') => tinyConsole[type](`[chatbox record] ${text}`);
     const tinyRec = {
       enabled: false,
       loading: false,
@@ -221,42 +222,42 @@ function RoomViewInput({ roomId, threadId, roomTimeline, viewEvent, refRoomInput
               switch (err.name) {
                 case 'AbortError': // err from navigator.mediaDevices.getUserMedia
                   prefixConsole('An AbortError has occured.', 'error');
-                  console.error(err);
+                  tinyConsole.error(err);
                   break;
                 case 'NotAllowedError': // err from navigator.mediaDevices.getUserMedia
                   prefixConsole(
                     'A NotAllowedError has occured. User might have denied permission.',
                     'error',
                   );
-                  console.error(err);
+                  tinyConsole.error(err);
                   break;
                 case 'NotFoundError': // err from navigator.mediaDevices.getUserMedia
                   prefixConsole('A NotFoundError has occured.', 'error');
-                  console.error(err);
+                  tinyConsole.error(err);
                   break;
                 case 'NotReadableError': // err from navigator.mediaDevices.getUserMedia
                   prefixConsole('A NotReadableError has occured.', 'error');
-                  console.error(err);
+                  tinyConsole.error(err);
                   break;
                 case 'SecurityError': // err from navigator.mediaDevices.getUserMedia or from the MediaRecorder.start
                   prefixConsole('A SecurityError has occured.', 'error');
-                  console.error(err);
+                  tinyConsole.error(err);
                   break;
                 case 'TypeError': // err from navigator.mediaDevices.getUserMedia
                   prefixConsole('A TypeError has occured.', 'error');
-                  console.error(err);
+                  tinyConsole.error(err);
                   break;
                 case 'InvalidStateError': // err from the MediaRecorder.start
                   prefixConsole('An InvalidStateError has occured.', 'error');
-                  console.error(err);
+                  tinyConsole.error(err);
                   break;
                 case 'UnknownError': // err from the MediaRecorder.start
                   prefixConsole('An UnknownError has occured.', 'error');
-                  console.error(err);
+                  tinyConsole.error(err);
                   break;
                 default:
                   prefixConsole(`An err occured with the err name ${err.name}`, 'error');
-                  console.error(err);
+                  tinyConsole.error(err);
               }
 
               tinyRec.enabled = false;
@@ -326,42 +327,42 @@ function RoomViewInput({ roomId, threadId, roomTimeline, viewEvent, refRoomInput
               switch (err.name) {
                 case 'AbortError': // error from navigator.mediaDevices.getUserMedia
                   prefixConsole('An AbortError has occured.', 'error');
-                  console.error(err);
+                  tinyConsole.error(err);
                   break;
                 case 'NotAllowedError': // error from navigator.mediaDevices.getUserMedia
                   prefixConsole(
                     'A NotAllowedError has occured. User might have denied permission.',
                     'error',
                   );
-                  console.error(err);
+                  tinyConsole.error(err);
                   break;
                 case 'NotFoundError': // error from navigator.mediaDevices.getUserMedia
                   prefixConsole('A NotFoundError has occured.', 'error');
-                  console.error(err);
+                  tinyConsole.error(err);
                   break;
                 case 'NotReadableError': // error from navigator.mediaDevices.getUserMedia
                   prefixConsole('A NotReadableError has occured.', 'error');
-                  console.error(err);
+                  tinyConsole.error(err);
                   break;
                 case 'SecurityError': // error from navigator.mediaDevices.getUserMedia or from the MediaRecorder.start
                   prefixConsole('A SecurityError has occured.', 'error');
-                  console.error(err);
+                  tinyConsole.error(err);
                   break;
                 case 'TypeError': // error from navigator.mediaDevices.getUserMedia
                   prefixConsole('A TypeError has occured.', 'error');
-                  console.error(err);
+                  tinyConsole.error(err);
                   break;
                 case 'InvalidStateError': // error from the MediaRecorder.start
                   prefixConsole('An InvalidStateError has occured.', 'error');
-                  console.error(err);
+                  tinyConsole.error(err);
                   break;
                 case 'UnknownError': // error from the MediaRecorder.start
                   prefixConsole('An UnknownError has occured.', 'error');
-                  console.error(err);
+                  tinyConsole.error(err);
                   break;
                 default:
                   prefixConsole(`An error occured with the error name ${err.name}`, 'error');
-                  console.error(err);
+                  tinyConsole.error(err);
               }
 
               tinyRec.enabled = false;
@@ -654,7 +655,7 @@ function RoomViewInput({ roomId, threadId, roomTimeline, viewEvent, refRoomInput
     // Send Input
     if (roomsInput)
       await roomsInput.sendInput(roomId, threadId, opt).catch((err) => {
-        console.error(err);
+        tinyConsole.error(err);
         toast(err.message);
       });
 

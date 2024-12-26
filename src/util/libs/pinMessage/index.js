@@ -2,6 +2,8 @@ import $ from 'jquery';
 import clone from 'clone';
 import { objType } from 'for-promise/utils/lib.mjs';
 
+import tinyConsole from '@src/util/libs/console';
+
 import { AvatarJquery } from '@src/app/atoms/avatar/Avatar';
 
 import initMatrix from '../../../client/initMatrix';
@@ -53,7 +55,7 @@ export function getPinnedMessagesRaw(room, filterLimit = true) {
     }
   } catch (err) {
     // Error
-    console.error(err);
+    tinyConsole.error(err);
     alert(err.message, 'Get Pinned Messages Raw Error');
     result = [];
   }
@@ -83,12 +85,12 @@ export async function getPinnedMessages(room, filterLimit = true) {
           // tinyTimeline.getEvents();
         }
       } catch (err) {
-        console.error(err);
+        tinyConsole.error(err);
       }
     }
   } catch (err) {
     // Error warn
-    console.error(err);
+    tinyConsole.error(err);
     alert(err.message, ' Get Pinned Messages Error');
     return [];
   }
@@ -280,7 +282,7 @@ export function openPinMessageModal(room) {
 
                         setTimeout(() => roomTimeline.loadEventTimeline(eventId), 500);
                       } catch (err) {
-                        console.error(err);
+                        tinyConsole.error(err);
                         alert(err.message);
                       }
                       if (modal) modal.hide();
@@ -306,7 +308,7 @@ export function openPinMessageModal(room) {
             }
           }
         } catch (err) {
-          console.error(err);
+          tinyConsole.error(err);
         }
       }
 

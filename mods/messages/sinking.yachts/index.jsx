@@ -2,6 +2,7 @@ import EventEmitter from 'events';
 import WebSocket from 'ws';
 import clone from 'clone';
 
+import tinyConsole from '@src/util/libs/console';
 import { objType } from 'for-promise/utils/lib.mjs';
 import tinyAPI from '@src/util/mods';
 import { fetchFn } from '@src/client/initMatrix';
@@ -45,12 +46,12 @@ class SinkingApi extends EventEmitter {
             firstTime = false;
             resolve(true);
           }
-          console.log(`${tinyThis._TAG} Socket connected.`);
+          tinyConsole.log(`${tinyThis._TAG} Socket connected.`);
         });
 
         // Close
         tinyThis._ws.on('close', () => {
-          console.log(`${tinyThis._TAG} Socket disconnected.`);
+          tinyConsole.log(`${tinyThis._TAG} Socket disconnected.`);
           tinyThis
             .startSocket(xIdentity, true)
             .then(() => {
@@ -79,7 +80,7 @@ class SinkingApi extends EventEmitter {
               message = JSON.parse(message);
             }
 
-            console.log(tinyThis._TAG, message);
+            tinyConsole.log(tinyThis._TAG, message);
 
             // Check
             if (
@@ -91,7 +92,7 @@ class SinkingApi extends EventEmitter {
               if (message.type === 'add') {
                 for (const item in message.domains) {
                   if (typeof message.domains[item] === 'string') {
-                    console.log(`${tinyThis._TAG} Domain added: ${message.domains[item]}`);
+                    tinyConsole.log(`${tinyThis._TAG} Domain added: ${message.domains[item]}`);
                     const index = tinyThis._cache.indexOf(message.domains[item]);
 
                     if (index < 0) {
@@ -106,7 +107,7 @@ class SinkingApi extends EventEmitter {
               else if (message.type === 'delete') {
                 for (const item in message.domains) {
                   if (typeof message.domains[item] === 'string') {
-                    console.log(`${tinyThis._TAG} Domain deleted: ${message.domains[item]}`);
+                    tinyConsole.log(`${tinyThis._TAG} Domain deleted: ${message.domains[item]}`);
                     const index = tinyThis._cache.indexOf(message.domains[item]);
 
                     if (index > -1) {
@@ -119,7 +120,7 @@ class SinkingApi extends EventEmitter {
             }
           } catch (err) {
             // Error
-            console.error(err);
+            tinyConsole.error(err);
           }
         });
       } else if (!tinyThis._closing || !isRestart)
@@ -239,7 +240,7 @@ export default sinkingApi;
 export function startSinkingYachts() {
   if (__ENV_APP__.ELECTRON_MODE) {
     // Welcome
-    console.log(`${sinkingApi._TAG} Scammers protection mod activated! ${sinkingApi._WEBSITE}`);
+    tinyConsole.log(`${sinkingApi._TAG} Scammers protection mod activated! ${sinkingApi._WEBSITE}`);
 
     // Function
     tinyAPI.on(
@@ -267,7 +268,7 @@ export function startSinkingYachts() {
 
   // Invalid device
   else {
-    console.log(
+    tinyConsole.log(
       `${sinkingApi._TAG} This mod is only compatible with the desktop version. The mod was disabled automatically.`,
     );
   }

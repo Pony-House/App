@@ -1,6 +1,7 @@
 import { NotificationCountType, ReceiptType } from 'matrix-js-sdk';
 import $ from 'jquery';
 
+import tinyConsole from '@src/util/libs/console';
 import favIconManager from '@src/util/libs/favicon';
 
 import initMatrix from '../initMatrix';
@@ -25,7 +26,7 @@ export async function markAsRead(roomId, threadId, forceRead = false) {
 
     const userId = mx.getUserId();
     if (!userId) {
-      console.warn('Tried to markAsRead without a userId');
+      tinyConsole.warn('Tried to markAsRead without a userId');
       return;
     }
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+import tinyConsole from '@src/util/libs/console';
 import Img from '@src/app/atoms/image/Image';
 import Tooltip from '@src/app/atoms/tooltip/Tooltip';
 import MxcUrl from '@src/util/libs/MxcUrl';
@@ -69,7 +70,7 @@ function SSOButtons({ type, identityProviders, baseUrl }) {
               updateLocalStore(access_token, device_id, user_id, baseUrl, true);
               window.location.reload();
             } catch (err) {
-              console.error(err);
+              tinyConsole.error(err);
               alert(err.message);
               setLoadingPage(false);
             }

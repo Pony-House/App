@@ -3,6 +3,8 @@ import moment from 'moment-timezone';
 import EventEmitter from 'events';
 import { objType } from 'for-promise/utils/lib.mjs';
 
+import tinyConsole from '@src/util/libs/console';
+
 import { AvatarJquery } from '@src/app/atoms/avatar/Avatar';
 import { setLoadingPage } from '@src/app/templates/client/Loading';
 import { colorMXID } from '@src/util/colorMXID';
@@ -172,7 +174,7 @@ class ThreadsList extends EventEmitter {
                   events.push(tinyItem);
                 }
               } catch (err) {
-                console.error(err);
+                tinyConsole.error(err);
               }
             }
           }
@@ -278,7 +280,7 @@ export function openThreadsMessageModal(room) {
                         // Go to timeline
                         selectRoom(roomId, undefined, { threadId: eventId, force: true });
                       } catch (err) {
-                        console.error(err);
+                        tinyConsole.error(err);
                         alert(err.message);
                       }
 
@@ -302,7 +304,7 @@ export function openThreadsMessageModal(room) {
               );
             }
           } catch (err) {
-            console.error(err);
+            tinyConsole.error(err);
           }
         }
 
@@ -351,7 +353,7 @@ export function openThreadsMessageModal(room) {
         setLoadingPage(false);
       })
       .catch((err) => {
-        console.error(err);
+        tinyConsole.error(err);
         alert(err.message, 'Open Threads Message Modal Error');
       });
   }

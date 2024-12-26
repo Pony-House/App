@@ -1,5 +1,6 @@
 import { Client } from '@xmtp/xmtp-js';
 import EventEmitter from 'events';
+import tinyConsole from '@src/util/libs/console';
 import { tinyCrypto } from '../ethers/base';
 import envAPI from '@src/util/libs/env';
 import storageManager from '@src/util/libs/Localstorage';
@@ -62,7 +63,7 @@ class Xmtp extends EventEmitter {
         this.ready = true;
       } catch (err) {
         this.ready = false;
-        console.error(err);
+        tinyConsole.error(err);
       }
 
       return this.ready;

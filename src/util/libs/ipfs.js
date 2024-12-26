@@ -1,4 +1,7 @@
 import CIDTool from 'cid-tool';
+
+import tinyConsole from '@src/util/libs/console';
+
 import envAPI from './env';
 import storageManager from './Localstorage';
 
@@ -18,7 +21,7 @@ export function getIpfsCfg(folder, getDefault = true, domainsParse = false) {
       try {
         content.publicGateway = new URL(content.publicGateway);
       } catch (err) {
-        console.error(err);
+        tinyConsole.error(err);
         alert(err.message, 'Public Gateway IPFS Error');
       }
     }
@@ -32,7 +35,7 @@ export function getIpfsCfg(folder, getDefault = true, domainsParse = false) {
       try {
         content.subdomainPublicGateway = new URL(content.subdomainPublicGateway);
       } catch (err) {
-        console.error(err);
+        tinyConsole.error(err);
         alert(err.message, 'SubDomain Public Gateway IPFS Error');
       }
     }
@@ -45,7 +48,7 @@ export function getIpfsCfg(folder, getDefault = true, domainsParse = false) {
       try {
         content.apiIpfs = new URL(content.apiIpfs);
       } catch (err) {
-        console.error(err);
+        tinyConsole.error(err);
         alert(err.message, 'IPFS API Error');
       }
     }
@@ -58,7 +61,7 @@ export function getIpfsCfg(folder, getDefault = true, domainsParse = false) {
       try {
         content.localGateway = new URL(content.localGateway);
       } catch (err) {
-        console.error(err);
+        tinyConsole.error(err);
         alert(err.message, 'Local Gateway IPFS Error');
       }
     }

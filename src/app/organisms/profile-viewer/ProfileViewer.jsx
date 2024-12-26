@@ -6,6 +6,8 @@ import { objType } from 'for-promise/utils/lib.mjs';
 import { RoomMemberEvent, UserEvent } from 'matrix-js-sdk';
 
 import clone from 'clone';
+import tinyConsole from '@src/util/libs/console';
+
 import envAPI from '@src/util/libs/env';
 import { defaultAvatar } from '@src/app/atoms/avatar/defaultAvatar';
 import matrixAppearance from '@src/util/libs/appearance';
@@ -263,7 +265,7 @@ function ProfileFooter({ roomId, userId, onRequestClose }) {
     } catch (err) {
       if (isMountedRef.current === false) return;
       setIsCreatingDM(false);
-      console.error(err);
+      tinyConsole.error(err);
       alert(err.message, 'Creating DM Error');
     }
   };
@@ -585,7 +587,7 @@ function ProfileViewer() {
           setAvatarUrl(newAvatar);
         })
         .catch((err) => {
-          console.error(err);
+          tinyConsole.error(err);
           alert(err.message, 'Get Profile Error');
         });
 

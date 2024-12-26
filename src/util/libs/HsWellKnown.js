@@ -1,6 +1,8 @@
 import EventEmitter from 'events';
 import { objType } from 'for-promise/utils/lib.mjs';
 
+import tinyConsole from '@src/util/libs/console';
+
 import * as auth from '@src/client/action/auth';
 import { getBaseUrl } from '../matrixUtil';
 
@@ -63,7 +65,7 @@ class HsWellKnown extends EventEmitter {
         return finalData;
       })
       .catch((err) => {
-        if (servername) console.error(err);
+        if (servername) tinyConsole.error(err);
         if (tinyThis._searchingHs !== servername) return;
         tinyThis.resetAll();
         if (typeof setProcess === 'function')

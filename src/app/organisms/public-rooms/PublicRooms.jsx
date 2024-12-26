@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
+import tinyConsole from '@src/util/libs/console';
+
 import { dfAvatarSize, getHomeServer } from '@src/util/matrixUtil';
 import Img from '@src/app/atoms/image/Image';
 
@@ -220,7 +222,7 @@ function PublicRooms({ isOpen, searchTerm, onRequestClose }) {
     joiningRooms.add(roomIdOrAlias);
     updateJoiningRooms(new Set(Array.from(joiningRooms)));
     roomActions.join(roomIdOrAlias, false).catch((err) => {
-      console.error(err);
+      tinyConsole.error(err);
       alert(err.message, 'Join Public Room Error');
       joiningRooms.delete(roomIdOrAlias);
       updateJoiningRooms(new Set(Array.from(joiningRooms)));

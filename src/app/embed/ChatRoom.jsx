@@ -8,6 +8,8 @@ import { objType } from 'for-promise/utils/lib.mjs';
 
 import Olm from '@matrix-org/olm';
 
+import tinyConsole from '@src/util/libs/console';
+
 import { isAuthenticated } from '../../client/state/auth';
 import RoomTimeline from '../../client/state/RoomTimeline';
 import initMatrix from '../../client/initMatrix';
@@ -217,8 +219,8 @@ function ChatRoom({ roomId, homeserver = null, joinGuest, refreshTime, theme, us
                 }
               } else {
                 setIsLoading(3);
-                console.error('Invalid room alias data object!');
-                console.log('Room alias data:', aliasData);
+                tinyConsole.error('Invalid room alias data object!');
+                tinyConsole.log('Room alias data:', aliasData);
                 setErrorMessage('Invalid room alias data object!');
                 setErrorCode(500);
               }
@@ -239,7 +241,7 @@ function ChatRoom({ roomId, homeserver = null, joinGuest, refreshTime, theme, us
           .init(true)
           .then(() => getRoom())
           .catch((err) => {
-            console.error(err);
+            tinyConsole.error(err);
             setIsLoading(3);
             setErrorMessage(err.message);
             setErrorCode(err.code);
@@ -251,7 +253,7 @@ function ChatRoom({ roomId, homeserver = null, joinGuest, refreshTime, theme, us
         startGuest()
           .then(() => getRoom())
           .catch((err) => {
-            console.error(err);
+            tinyConsole.error(err);
             setIsLoading(3);
             setErrorMessage(err.message);
             setErrorCode(err.code);
@@ -275,7 +277,7 @@ function ChatRoom({ roomId, homeserver = null, joinGuest, refreshTime, theme, us
           setUseSystemTheme(true);
         }
       } catch (err) {
-        console.error(err);
+        tinyConsole.error(err);
       }
     };
 

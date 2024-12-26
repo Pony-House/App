@@ -3,6 +3,9 @@ import $ from 'jquery';
 import FileSaver from 'file-saver';
 import PhotoSwipeLightbox from 'photoswipe';
 import ExifReader from 'exifreader';
+
+import tinyConsole from '@src/util/libs/console';
+
 import initMatrix from '@src/client/initMatrix';
 
 import { btModal, toast } from './tools';
@@ -121,7 +124,7 @@ export default function imageViewer(data) {
                   table.append(thead);
                   const tbody = $('<tbody>');
 
-                  console.log('[image] [metadata]', newTags);
+                  tinyConsole.log('[image] [metadata]', newTags);
                   const addTags = (tags, oldTile = '') => {
                     for (const item in tags) {
                       if (
@@ -164,7 +167,7 @@ export default function imageViewer(data) {
                   });
                 })
                 .catch((err) => {
-                  console.error(err);
+                  tinyConsole.error(err);
                   alert(err.message, 'Image Metadata Error');
                 });
             },
@@ -189,7 +192,7 @@ export default function imageViewer(data) {
         if (data.lightbox && data.lightbox.loadAndOpen) data.lightbox.loadAndOpen(0);
       }
     } catch (err) {
-      console.error(err);
+      tinyConsole.error(err);
       toast(err.message);
       reject(err);
     }

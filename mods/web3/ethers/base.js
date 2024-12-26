@@ -6,6 +6,8 @@ import provider from 'eth-provider';
 import Web3WsProvider from 'web3-providers-ws';
 import { objType } from 'for-promise/utils/lib.mjs';
 
+import tinyConsole from '@src/util/libs/console';
+
 import storageManager from '@src/util/libs/Localstorage';
 import moment from '@src/util/libs/momentjs';
 import modWeb3Cfg from '../../web3';
@@ -74,7 +76,7 @@ export function validateWeb3Account(ethereumData, userId) {
 
     return false;
   } catch (err) {
-    console.error(err);
+    tinyConsole.error(err);
     return false;
   }
 }
@@ -258,7 +260,7 @@ const startWeb3 = (/* tcall */) => {
                 .catch(reject);
             })
             .catch((err) => {
-              console.error(err);
+              tinyConsole.error(err);
               resolve(null);
             });
         } else {
@@ -423,7 +425,7 @@ const startWeb3 = (/* tcall */) => {
 
     // Ready Provider and check the connection
     const tinyConnectionError = (err) => {
-      console.error(err);
+      tinyConsole.error(err);
       alert(err.message, 'Web3 Ethers Error');
     };
 

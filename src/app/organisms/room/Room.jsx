@@ -4,6 +4,7 @@ import $ from 'jquery';
 import clone from 'clone';
 import { objType } from 'for-promise/utils/lib.mjs';
 
+import tinyConsole from '@src/util/libs/console';
 import { isMobile } from '@src/util/libs/mobile';
 import blobUrlManager from '@src/util/libs/blobUrlManager';
 import matrixAppearance from '@src/util/libs/appearance';
@@ -78,7 +79,7 @@ function Room() {
       setIsRoomMode(roomType === 'room' ? true : false);
     };
     const setRoomSelected = (roomId, threadId, eventId, forceScroll) => {
-      console.log(
+      tinyConsole.log(
         `[selected-room] ${roomId}${threadId ? `:${threadId}` : ''}${eventId ? ` ${eventId}` : ''}`,
       );
 
@@ -90,7 +91,7 @@ function Room() {
           forceScroll,
         });
       } catch (err) {
-        console.error(err);
+        tinyConsole.error(err);
         alert(err.message, 'Timeline start error!');
       }
     };

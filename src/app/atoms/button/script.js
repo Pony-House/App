@@ -1,3 +1,5 @@
+import tinyConsole from '@src/util/libs/console';
+
 /**
  * blur [selector] element in bubbling path.
  * @param {Event} e Event
@@ -10,7 +12,7 @@ function blurOnBubbling(e, selector) {
 
   for (let elIndex = 0; elIndex < bubblingPath.length; elIndex += 1) {
     if (bubblingPath[elIndex] === document) {
-      console.warn(blurOnBubbling, 'blurOnBubbling: not found selector in bubbling path');
+      tinyConsole.warn(blurOnBubbling, 'blurOnBubbling: not found selector in bubbling path');
       break;
     }
 

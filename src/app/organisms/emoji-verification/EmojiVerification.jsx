@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { Crypto } from 'matrix-js-sdk';
 import { CrossSigningKey, VerificationPhase } from 'matrix-js-sdk/lib/crypto-api';
 
+import tinyConsole from '@src/util/libs/console';
 import { twemojifyReact } from '../../../util/twemojify';
 
 import initMatrix from '../../../client/initMatrix';
@@ -104,7 +105,7 @@ function EmojiVerificationContent({ data, requestClose }) {
       }
     } catch (err) {
       // Oh no
-      console.error(err);
+      tinyConsole.error(err);
       setSas({ sas: null, verifier: null });
       setProcess(false);
       alert(err.message, 'Emoji Verification Error');
@@ -120,7 +121,7 @@ function EmojiVerificationContent({ data, requestClose }) {
   const sasConfirm = () => {
     tData.sas.confirm().catch((err) => {
       alert(err.message, 'SAS Confirm error!');
-      console.error(err);
+      tinyConsole.error(err);
       setProcess(false);
     });
     setProcess(true);
@@ -182,7 +183,7 @@ function EmojiVerificationContent({ data, requestClose }) {
           await startVerification(verifier);
         })
         .catch((err) => {
-          console.error(err);
+          tinyConsole.error(err);
           alert(err.message, 'Request device verification error');
           reqCancel();
         });

@@ -1,6 +1,9 @@
 import React, { useMemo } from 'react';
 import EventEmitter from 'events';
 import { ClientEvent, RoomStateEvent } from 'matrix-js-sdk';
+
+import tinyConsole from '@src/util/libs/console';
+
 import { imageMimes, imageExts } from '@src/util/MimesUtil';
 
 import { objType } from 'for-promise/utils/lib.mjs';
@@ -212,7 +215,7 @@ class EmojiEditor extends EventEmitter {
 
     mx.addListener(ClientEvent.AccountData, (event) => {
       if (event.getType() !== EmojiEvents.UserEmotes) return;
-      console.log('[matrix-emoji-editor] [personal-emojis] Updated!');
+      tinyConsole.log('[matrix-emoji-editor] [personal-emojis] Updated!');
       tinyThis.personalPack = tinyThis.useUserImagePack(false);
       tinyThis.emit('personalUpdated', tinyThis.personalPack);
     });
@@ -222,7 +225,7 @@ class EmojiEditor extends EventEmitter {
       const roomId = event.getRoomId();
       const stateKey = event.getStateKey();
       if (roomId && stateKey) {
-        console.log('[matrix-emoji-editor] [room-emojis] Updated!', roomId, stateKey);
+        tinyConsole.log('[matrix-emoji-editor] [room-emojis] Updated!', roomId, stateKey);
 
         if (!tinyThis.roomsPack[roomId]) tinyThis.roomsPack[roomId] = {};
         tinyThis.roomsPack[roomId][stateKey] = tinyThis.useRoomImagePack(
@@ -237,7 +240,7 @@ class EmojiEditor extends EventEmitter {
     });
 
     mx.addListener(ClientEvent.DeleteRoom, (roomId) => {
-      console.log('[matrix-emoji-editor] [room-emojis] Removed!', roomId);
+      tinyConsole.log('[matrix-emoji-editor] [room-emojis] Removed!', roomId);
       tinyThis.emit(
         'roomDeleted',
         roomId,

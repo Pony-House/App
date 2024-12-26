@@ -3,6 +3,8 @@ import PropTypes from 'prop-types';
 import $ from 'jquery';
 
 import { objType } from 'for-promise/utils/lib.mjs';
+import tinyConsole from '@src/util/libs/console';
+
 import tinyClipboard from '@src/util/libs/Clipboard';
 import { getShareUrl } from '@src/util/tools';
 
@@ -141,7 +143,7 @@ function useToggleDialog() {
         setIsLoadingId(originalRoomId);
 
         const tinyError = (err) => {
-          console.error(err);
+          tinyConsole.error(err);
           alert(err.message, 'Room Viewer Error');
           setPublicData({});
           setIsLoadingPublic(false);

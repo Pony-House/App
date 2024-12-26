@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import $ from 'jquery';
 
+import tinyConsole from '@src/util/libs/console';
 import getUrlPreview from '@src/util/libs/getUrlPreview';
 import { twemojifyReact } from '@src/util/twemojify';
 import initMatrix from '@src/client/initMatrix';
@@ -22,7 +23,7 @@ function HookshotFeeds({ feedData, roomId, threadId }) {
     if (!embed && typeof feedData.link === 'string' && feedData.link.length > 0)
       getUrlPreview(feedData.link)
         .then((json) => setEmbed(json))
-        .catch(console.error);
+        .catch(tinyConsole.error);
 
     const button = $(embedButton.current);
     const openUrl = (event) => {

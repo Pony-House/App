@@ -9,6 +9,7 @@ import React, {
 import PropTypes from 'prop-types';
 import $ from 'jquery';
 
+import tinyConsole from '@src/util/libs/console';
 import moment from '@src/util/libs/momentjs';
 import windowEvents from '@src/util/libs/window';
 
@@ -113,7 +114,7 @@ function useTimeline(roomTimeline, eventId, readUptoEvtStore, eventLimitRef) {
     const limit = eventLimitRef.current;
     if (limit) {
       const initTimeline = (eId) => {
-        console.log(
+        tinyConsole.log(
           `[timeline] [${roomTimeline.roomId}] Ready${eId ? ` in event id "${eId}"` : ''}!`,
         );
         // NOTICE: eId can be id of readUpto, reply or specific event.

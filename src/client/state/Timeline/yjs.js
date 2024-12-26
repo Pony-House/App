@@ -3,6 +3,8 @@ import clone from 'clone';
 import objectHash from 'object-hash';
 import { objType } from 'for-promise/utils/lib.mjs';
 
+import tinyConsole from '@src/util/libs/console';
+
 import moment from '@src/util/libs/momentjs';
 import storageManager from '@src/util/libs/Localstorage';
 
@@ -208,7 +210,7 @@ export default function installYjs(tinyThis) {
           }
         }
       } catch (err) {
-        console.error(err);
+        tinyConsole.error(err);
       }
     }
 
@@ -356,7 +358,7 @@ export default function installYjs(tinyThis) {
               resolve(tinyThis._tryInsertCrdtAgain());
             })
             .catch((err) => {
-              console.error(err);
+              tinyConsole.error(err);
               tinyThis._ydoc.send_events.unshift(newData);
               tinyThis._ydoc.sending_event = false;
 
@@ -401,7 +403,7 @@ export default function installYjs(tinyThis) {
             resolve(tinyThis._tryInsertCrdtAgain());
           })
           .catch((err) => {
-            console.error(err);
+            tinyConsole.error(err);
             tinyThis._ydoc.send_events.unshift(newData);
             tinyThis._ydoc.sending_event = false;
             tinyThis._ydoc.error_hash = objectHash(newData);
@@ -428,7 +430,7 @@ export default function installYjs(tinyThis) {
             resolve(tinyThis._tryInsertCrdtAgain());
           })
           .catch((err) => {
-            console.error(err);
+            tinyConsole.error(err);
             tinyThis._ydoc.send_events.unshift(newData);
             tinyThis._ydoc.sending_event = false;
             tinyThis._ydoc.error_hash = objectHash(newData);
@@ -455,7 +457,7 @@ export default function installYjs(tinyThis) {
             resolve(tinyThis._tryInsertCrdtAgain());
           })
           .catch((err) => {
-            console.error(err);
+            tinyConsole.error(err);
             tinyThis._ydoc.send_events.unshift(newData);
             tinyThis._ydoc.sending_event = false;
             tinyThis._ydoc.error_hash = objectHash(newData);
@@ -482,7 +484,7 @@ export default function installYjs(tinyThis) {
             resolve(tinyThis._tryInsertCrdtAgain());
           })
           .catch((err) => {
-            console.error(err);
+            tinyConsole.error(err);
             tinyThis._ydoc.send_events.unshift(newData);
             tinyThis._ydoc.sending_event = false;
             tinyThis._ydoc.error_hash = objectHash(newData);
@@ -617,7 +619,7 @@ export default function installYjs(tinyThis) {
             tinyThis._ydoc.update_time.cache = [];
           }, delayYdocUpdate);
         } catch (err) {
-          console.error(err);
+          tinyConsole.error(err);
         }
       }
     });
