@@ -12,6 +12,7 @@ import RoomIntro from '../../../molecules/room-intro/RoomIntro';
 import cons from '../../../../client/state/cons';
 import storageManager from '@src/util/libs/Localstorage';
 import Spinner from '@src/app/atoms/spinner/Spinner';
+import { getRoomInfo } from '../Room';
 
 export default function RoomIntroContainer({ event, timeline }) {
   const [, nameForceUpdate] = useForceUpdate();

@@ -7,7 +7,6 @@ import { AvatarJquery } from '@src/app/atoms/avatar/Avatar';
 import { setLoadingPage } from '@src/app/templates/client/Loading';
 import { colorMXID } from '@src/util/colorMXID';
 import { twemojify } from '@src/util/twemojify';
-import { getRoomInfo } from '@src/app/organisms/room/Room';
 import {
   addToDataFolder,
   getDataFolderRaw,
