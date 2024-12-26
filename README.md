@@ -13,9 +13,16 @@
     <a href="https://aur.archlinux.org/packages/pony-house-bin"><img src="https://img.shields.io/aur/version/pony-house-bin?logo=archlinux&style=for-the-badge" alt="Arch Linux" /></a>
 </p>
 
+</center>
+
 Last Beta Version: https://github.com/Pony-House/Client/tree/60421cd2baf5cfb2bfcde00affcaec9a93581010
 
-</center>
+<br/>
+
+If you want to use the latest beta most stable version, use the beta 2:
+
+https://github.com/Pony-House/Client/tree/1.6.0-beta-2-(closed)
+
 
 # Pony House
 
