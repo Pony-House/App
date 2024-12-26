@@ -108,7 +108,6 @@ class RoomTimeline extends EventEmitter {
   _timelineUpdated(eventType, mEvent) {
     console.log(
       `${this._consoleTag} [${eventType}]${mEvent ? ` [${mEvent.getType()}]` : ''} Timeline updated!`,
-      mEvent,
     );
   }
 
@@ -506,7 +505,7 @@ class RoomTimeline extends EventEmitter {
     if (relateToId === null) return { mEvents: null, mEventId: null, tsId: null };
     if (!this.reactionTimeline.has(relateToId)) this.reactionTimeline.set(relateToId, []);
     const mEvents = this.reactionTimeline.get(relateToId);
-    return { mEvents, tsId: `${relateToId}:${mEvent.getId()}` };
+    return { mEvents, relateToId, tsId: `${relateToId}:${mEvent.getId()}` };
   }
 
   _insertReaction(mEvent) {
@@ -530,7 +529,7 @@ class RoomTimeline extends EventEmitter {
   _removeReaction(mEvent) {
     const isRedacted = mEvent.isRedacted();
     if (isRedacted) {
-      const { mEvents, tsId } = this._getReactionTimeline(mEvent);
+      const { mEvents, relateToId, tsId } = this._getReactionTimeline(mEvent);
       const ts = mEvent.getTs();
       if (
         mEvents &&
@@ -541,6 +540,8 @@ class RoomTimeline extends EventEmitter {
           mEvent.forceRedaction();
           console.log(`${this._consoleTag} Reaction removed: ${mEvent.getId()}`, ts);
           mEvents.splice(index, 1);
+          if (mEvents.length < 1) this.reactionTimeline.delete(relateToId);
+
           this.reactionTimelineTs[tsId] = ts;
           this.emit(cons.events.roomTimeline.EVENT_REDACTED, mEvent);
         }
@@ -717,6 +718,8 @@ class RoomTimeline extends EventEmitter {
         if (index > -1) {
           const rEvent = mEvents[index];
           mEvents.splice(index, 1);
+          if (mEvents.length < 1) this.reactionTimeline.delete(relateToId);
+
           const ts = rEvent.getTs();
           rEvent.forceRedaction();
           console.log(`${this._consoleTag} Reaction removed: ${redacts}`, ts);
