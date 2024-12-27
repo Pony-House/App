@@ -35,7 +35,7 @@ class TinyConsole {
   _sendLog(type, args) {
     this[`_${type}`].push(args);
     this.cache.push({ type, index: this[`_${type}`].length - 1 });
-    if (this._canShow) console[type].apply(console, args);
+    if (this._canShow || type === 'error' || type === 'warn') console[type].apply(console, args);
   }
 
   activeShow() {
