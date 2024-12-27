@@ -3,8 +3,8 @@ import { objType } from 'for-promise/utils/lib.mjs';
 import EventEmitter from 'events';
 
 import { startDb } from './indexedDb';
-import { getMemberEventType } from '@src/app/organisms/room/MemberEvents';
 import eventsDb from './eventsDb';
+import getMemberEventType from '@src/app/organisms/room/getMemberEventType';
 
 const getTableName = (tableData) => (typeof tableData === 'string' ? tableData : tableData.name);
 

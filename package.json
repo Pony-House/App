@@ -9,6 +9,7 @@
   },
   "scripts": {
     "start": "git submodule update --init && vite dev",
+    "start:debug:hmr": "git submodule update --init && vite dev --debug hmr",
     "build": "git submodule update --init && vite build",
     "build:8gb": "git submodule update --init && cross-env NODE_OPTIONS=--max-old-space-size=8192 vite build",
     "electron:start": "git submodule update --init && cross-env ELECTRON_MODE=true vite dev",

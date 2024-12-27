@@ -21,18 +21,7 @@ import RoomView from './RoomView';
 import RoomSettings from './RoomSettings';
 import PeopleDrawer from './PeopleDrawer';
 import tinyAPI from '../../../util/mods';
-
-let resetRoomInfo;
-global.resetRoomInfo = () => (typeof resetRoomInfo === 'function' ? resetRoomInfo() : null);
-let tinyRoomInfo;
-
-export function getRoomInfo() {
-  return tinyRoomInfo;
-}
-
-if (__ENV_APP__.MODE === 'development') {
-  global.getRoomInfo = getRoomInfo;
-}
+import { setResetRoomInfo, setTinyRoomInfo } from './RoomInfo';
 
 function Room() {
   const defaultRoomInfo = {
@@ -56,12 +45,12 @@ function Room() {
 
   const sendRoomInfo = (newData) => {
     setRoomInfo(newData);
-    tinyRoomInfo = newData;
+    setTinyRoomInfo(newData);
     tinyAPI.emit('setRoomInfo', newData);
   };
 
   const mx = initMatrix.matrixClient;
-  resetRoomInfo = () => {
+  setResetRoomInfo(() => {
     $('#space-header .space-drawer-body .room-selector--selected').removeClass(
       'room-selector--selected',
     );
@@ -72,7 +61,7 @@ function Room() {
       eventId: null,
       forceScroll: null,
     });
-  };
+  });
 
   useEffect(() => {
     const onRoomModeSelected = (roomType) => {

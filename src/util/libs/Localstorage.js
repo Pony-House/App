@@ -19,12 +19,12 @@ import tinyConsole from '@src/util/libs/console';
 import initMatrix from '@src/client/initMatrix';
 import { decryptAllEventsOfTimeline } from '@src/client/state/Timeline/functions';
 import cons from '@src/client/state/cons';
-import { memberEventAllowed, MemberEventsList } from '@src/app/organisms/room/MemberEvents';
 
 import { toTitleCase } from '../tools';
 import TinyDbManager from './db/manager';
 import eventsDb from './db/eventsDb';
 import { getAppearance } from './appearance';
+import { MemberEventsList, memberEventAllowed } from '../Events';
 
 const genKey = () => generateApiKey().replace(/\~/g, 'pud');
 

@@ -36,11 +36,11 @@ import copyText from '../profile-viewer/copyText';
 
 import { openPinMessageModal } from '../../../util/libs/pinMessage';
 import { openThreadsMessageModal } from '../../../util/libs/thread';
-import { getRoomInfo } from './Room';
 import RoomWidget from './RoomWidget';
 import Spinner from '@src/app/atoms/spinner/Spinner';
 import Tooltip from '@src/app/atoms/tooltip/Tooltip';
 import storageManager from '@src/util/libs/Localstorage';
+import { getRoomInfo } from './RoomInfo';
 
 function RoomViewHeader({ roomId, threadId, roomAlias, roomItem, disableActions = false }) {
   const [, forceUpdate] = useForceUpdate();

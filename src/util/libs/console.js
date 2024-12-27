@@ -1,5 +1,10 @@
-class TinyConsole {
+import { EventEmitter } from 'events';
+
+class TinyConsole extends EventEmitter {
   constructor(logs = ['log', 'debug', 'warn', 'error', 'info']) {
+    super();
+    this.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
+
     this._logs = logs;
     this._canShow = __ENV_APP__.SHOW_LOG;
     this.cache = [];
@@ -26,7 +31,7 @@ class TinyConsole {
     for (const item in this.cache) {
       const index = this.cache[item].index;
       const type = this.cache[item].type;
-      if (items.indexOf(type) > -1) showList.push(this[`_${type}`][index]);
+      if (items.indexOf(type) > -1) showList.push([type, this[`_${type}`][index]]);
     }
 
     return showList;
@@ -36,6 +41,10 @@ class TinyConsole {
     this[`_${type}`].push(args);
     this.cache.push({ type, index: this[`_${type}`].length - 1 });
     if (this._canShow || type === 'error' || type === 'warn') console[type].apply(console, args);
+
+    const argsEmit = [type];
+    for (const item in args) argsEmit.push(args[item]);
+    this.emit.apply(this, argsEmit);
   }
 
   activeShow() {

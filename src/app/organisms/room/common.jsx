@@ -9,12 +9,8 @@ import { getUsername, getUsernameOfRoomMember } from '../../../util/matrixUtil';
 import { comparePinEvents } from './chat-messages/PinnedEventsMessage';
 import moment from '@src/util/libs/momentjs';
 
-import {
-  getMemberEventType,
-  getTimelineJSXMessages,
-  makeReturnObj,
-  memberEventsMessage,
-} from './MemberEvents';
+import { getTimelineJSXMessages, makeReturnObj, memberEventsMessage } from './MemberEvents';
+import getMemberEventType from './getMemberEventType';
 
 function getUsersActionJsx(roomId, userIds, actionStr) {
   const room = initMatrix.matrixClient.getRoom(roomId);

@@ -12,7 +12,7 @@ import { btModal } from '../../tools';
 
 import { setLoadingPage } from '../../../app/templates/client/Loading';
 import { twemojify } from '../../twemojify';
-import { getRoomInfo } from '../../../app/organisms/room/Room';
+import { getRoomInfo } from '../../../app/organisms/room/RoomInfo';
 
 import { openProfileViewer, selectRoom } from '../../../client/action/navigation';
 import { colorMXID } from '../../colorMXID';

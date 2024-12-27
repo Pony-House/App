@@ -12,8 +12,8 @@ import { updateRoomInfo } from '../action/navigation';
 import urlParams from '../../util/libs/urlParams';
 import { getLastLinkedTimeline, getLiveReaders, getEventReaders } from './Timeline/functions';
 import installYjs from './Timeline/yjs';
-import { memberEventAllowed } from '@src/app/organisms/room/MemberEvents';
 import TinyEventChecker from './Notifications/validator';
+import { memberEventAllowed } from '@src/util/Events';
 
 const tinyCheckEvent = new TinyEventChecker();
 

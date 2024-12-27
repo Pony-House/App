@@ -6,7 +6,7 @@ When you obtain data from a room, which is normally done in the way described be
 
 ```js
 // Get the selected room function
-import { getRoomInfo } from './src/app/organisms/room/Room';
+import { getRoomInfo } from './src/app/organisms/room/RoomInfo';
 
 // Get Room
 const selectedRoom = getRoomInfo().roomTimeline;
