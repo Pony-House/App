@@ -1745,47 +1745,6 @@ class StorageManager extends EventEmitter {
     return data;
   }
 
-  _addToTimelineRun(event, resolve, reject) {
-    // tinyConsole.log(`[room-db-sync] Adding new event "${event.getId()}"...`);
-    const tinyThis = this;
-    const tinyReject = (err) => {
-      tinyConsole.error(`[room-db-sync] Error in the event "${event.getId()}"!`);
-      tinyConsole.error('[indexed-db] ERROR SAVING TIMELINE DATA!');
-      tinyConsole.error(err);
-      tinyThis.emit('dbTimeline-Error', err);
-      reject(err);
-    };
-
-    const tinyComplete = async (result) => {
-      await tinyThis.dbManager._setIsThread(event);
-      // tinyConsole.log(`[room-db-sync] Event "${event.getId()}" added!`);
-      resolve(result);
-    };
-
-    const eventType = event.getType();
-    if (typeof this._timelineInsertTypes[eventType] === 'function')
-      this._timelineInsertTypes[eventType](event)
-        .then(async (tinyData) => {
-          if (eventType === 'm.room.member') await tinyThis.dbManager.setMember(event);
-          tinyComplete(tinyData);
-        })
-        .catch(tinyReject);
-    else {
-      this.dbManager
-        .setTimeline(event)
-        .then(async (result) => {
-          try {
-            if (eventType === 'm.room.redaction') await tinyThis.dbManager._sendSetRedaction(event);
-            if (eventType === 'm.room.member') await tinyThis.dbManager.setMember(event);
-            tinyComplete(result);
-          } catch (err) {
-            tinyReject(err);
-          }
-        })
-        .catch(tinyReject);
-    }
-  }
-
   // Timeout waiter script
   waitAddTimeline() {
     const tinyThis = this;
@@ -1855,17 +1814,46 @@ class StorageManager extends EventEmitter {
       };
 
       // Resolve and reject functions
+      // tinyConsole.log(`[room-db-sync] Adding new event "${eventSnap.getId()}"...`);
       const tinyReject = (err) => {
+        tinyConsole.error(`[room-db-sync] Error in the event "${eventSnap.getId()}"!`);
+        tinyConsole.error('[indexed-db] ERROR SAVING TIMELINE DATA!');
+        tinyConsole.error(err);
+        tinyThis.emit('dbTimeline-Error', err);
         tinyComplete();
         reject(err);
       };
 
-      const tinyResolve = (data) => {
+      const funcComplete = async (result) => {
+        await tinyThis.dbManager._setIsThread(eventSnap);
+        // tinyConsole.log(`[room-db-sync] Event "${eventSnap.getId()}" added!`);
         tinyComplete();
-        resolve(data);
+        resolve(result);
       };
 
-      tinyThis._addToTimelineRun(eventSnap, tinyResolve, tinyReject);
+      const eventType = eventSnap.getType();
+      if (typeof tinyThis._timelineInsertTypes[eventType] === 'function')
+        tinyThis._timelineInsertTypes[eventType](eventSnap)
+          .then(async (tinyData) => {
+            if (eventType === 'm.room.member') await tinyThis.dbManager.setMember(eventSnap);
+            funcComplete(tinyData);
+          })
+          .catch(tinyReject);
+      else {
+        tinyThis.dbManager
+          .setTimeline(eventSnap)
+          .then(async (result) => {
+            try {
+              if (eventType === 'm.room.redaction')
+                await tinyThis.dbManager._sendSetRedaction(eventSnap);
+              if (eventType === 'm.room.member') await tinyThis.dbManager.setMember(eventSnap);
+              funcComplete(result);
+            } catch (err) {
+              tinyReject(err);
+            }
+          })
+          .catch(tinyReject);
+      }
     });
   }
 
