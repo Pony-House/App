@@ -6815,10 +6815,10 @@ sanitize-html@2.14.0:
     parse-srcset "^1.0.2"
     postcss "^8.3.11"
 
-sass@1.83.0:
-  version "1.83.0"
-  resolved "https://registry.yarnpkg.com/sass/-/sass-1.83.0.tgz#e36842c0b88a94ed336fd16249b878a0541d536f"
-  integrity sha512-qsSxlayzoOjdvXMVLkzF84DJFc2HZEL/rFyGIKbbilYtAvlCxyuzUeff9LawTn4btVnLKg75Z8MMr1lxU1lfGw==
+sass@1.83.3:
+  version "1.83.3"
+  resolved "https://registry.yarnpkg.com/sass/-/sass-1.83.3.tgz#26acbd0f272a13b827c3017e9f833ef0eaa26b7d"
+  integrity sha512-t4gb+nTrUeaPb+xzdqDmaMyi8evP0QuUB8o57dYHZF/lIGniqZ/PR/iWGcWoS8vr46F9V7buXFv290fMV6vTIQ==
   dependencies:
     chokidar "^4.0.0"
     immutable "^5.0.2"
