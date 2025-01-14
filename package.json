@@ -121,7 +121,7 @@
     "twemoji": "14.0.2",
     "video.js": "8.21.0",
     "web3-providers-ws": "4.0.8",
-    "yjs": "13.6.21"
+    "yjs": "13.6.22"
   },
   "devDependencies": {
     "@capacitor/cli": "6.2.0",
