@@ -760,17 +760,17 @@
   resolved "https://registry.yarnpkg.com/@juggle/resize-observer/-/resize-observer-3.4.0.tgz#08d6c5e20cf7e4cc02fd181c4b0c225cd31dbb60"
   integrity sha512-dfLbk+PwWvFzSxwk3n5ySL0hfBog779o8h68wK/7/APo/7cgyWp5jcXockbxdk5kFRkbeXWm4Fbi9FrdN381sA==
 
-"@khanacademy/perseus-core@3.0.5":
-  version "3.0.5"
-  resolved "https://registry.yarnpkg.com/@khanacademy/perseus-core/-/perseus-core-3.0.5.tgz#d377afd6af921eadc60e880a262ca5c6eb945422"
-  integrity sha512-xkW25Hy5+LUYLVR46Rj7K/AGUixT2GEpw+fwypZJtEfZODN6tgxxfmwH7vLZOcJQqiTrtNp/ADmV6o2oXUovWg==
+"@khanacademy/perseus-core@3.1.0":
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/@khanacademy/perseus-core/-/perseus-core-3.1.0.tgz#645f14cfabba4cc293e87eb534c219181cff7c13"
+  integrity sha512-sS+JHSZcVRfW1B9oFVdwYsjudx8Xvh7uS08h2XiEmnbMQw/N0dIBonRHMfynWSPkXW8eG+aqXybt7VA18n4qTw==
 
-"@khanacademy/simple-markdown@0.13.13":
-  version "0.13.13"
-  resolved "https://registry.yarnpkg.com/@khanacademy/simple-markdown/-/simple-markdown-0.13.13.tgz#40597d0dfe93173355e4121cfa3d47e062f35d88"
-  integrity sha512-Fw6oCU5QTUyBNJAdzG8byHZZ3eqmcF5Bb+IwkdNtxEH2or9NCi5dpMh5ttz48bd9bK7FL83wTltdYNwL5Swyaw==
+"@khanacademy/simple-markdown@0.13.14":
+  version "0.13.14"
+  resolved "https://registry.yarnpkg.com/@khanacademy/simple-markdown/-/simple-markdown-0.13.14.tgz#0bac1ee65896d64d0e586abfdb02bfe9c1f9746c"
+  integrity sha512-MmfgcuKHxZ1rBV2iQkQp9OygfBdC1MiO79JqOTAvmkaa/TdEhISgCH68IO4V2lIE7LMSlXMnqUPkvRIKlfx8yA==
   dependencies:
-    "@khanacademy/perseus-core" "3.0.5"
+    "@khanacademy/perseus-core" "3.1.0"
 
 "@malept/cross-spawn-promise@^2.0.0":
   version "2.0.0"
