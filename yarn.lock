@@ -190,10 +190,10 @@
   resolved "https://registry.yarnpkg.com/@capacitor/app/-/app-6.0.2.tgz#bf33d4e0882962f1f8a82481faad344053b0cd3f"
   integrity sha512-SiGTGgslK4TbWJVImCUL1odul7/YFkVfkYtAYS9AAEzQpxBECBeRnuN3FFBcfZ9eiN1XxFBFchhiwpxtx/c7yQ==
 
-"@capacitor/browser@6.0.4":
-  version "6.0.4"
-  resolved "https://registry.yarnpkg.com/@capacitor/browser/-/browser-6.0.4.tgz#e19cdabc3fa042f3616d4cef179493e31aa14810"
-  integrity sha512-uiKnDuI4BXaEgMreP6vk8Li9Reg2uOZYf/aUsoorZcaXcdlFBaMQ9nteA+aITWtm92vi59Hj9aBlSf/WGAHcuA==
+"@capacitor/browser@6.0.5":
+  version "6.0.5"
+  resolved "https://registry.yarnpkg.com/@capacitor/browser/-/browser-6.0.5.tgz#8bd9bacb28ee3c74dff716b967b3b4221c0eb9ea"
+  integrity sha512-TjA1YCiYT7wb7CLmI6zLLoS09vm7d+h4oAKXAVWDwjOyKdbAPKh75ZtzlN+lum8+sOtO9YJ+1Zdi6rdw6dxYYw==
 
 "@capacitor/cli@7.0.0":
   version "7.0.0"
