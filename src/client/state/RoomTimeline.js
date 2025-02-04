@@ -15,6 +15,8 @@ import installYjs from './Timeline/yjs';
 import TinyEventChecker from './Notifications/validator';
 import { memberEventAllowed } from '@src/util/Events';
 
+const tinyCheckEvent = new TinyEventChecker();
+
 // Class
 class RoomTimeline extends EventEmitter {
   constructor(roomId, threadId, roomAlias = null) {
@@ -208,6 +210,7 @@ class RoomTimeline extends EventEmitter {
     // Message events
     this._onMessage = async (r, mEvent) => {
       await tinyThis.waitTimeline();
+      if (!tinyCheckEvent.check(mEvent)) return;
       const tmc = tinyThis.getTimelineCache(mEvent);
       if (!tmc && !mEvent.isRedacted()) return;
       tinyConsole.log(`${tinyThis._consoleTag} New message: ${mEvent.getId()}`);
@@ -224,6 +227,7 @@ class RoomTimeline extends EventEmitter {
 
     this._onYourMessage = async (data, mEvent) => {
       await tinyThis.waitTimeline();
+      if (!tinyCheckEvent.check(mEvent)) return;
       const tmc = tinyThis.getTimelineCache(mEvent);
       if (!tmc) return;
       tinyThis._insertIntoTimeline(mEvent, tmc);
@@ -245,6 +249,7 @@ class RoomTimeline extends EventEmitter {
 
     this._onYourMessageError = async (data, mEvent) => {
       await tinyThis.waitTimeline();
+      if (!tinyCheckEvent.check(mEvent)) return;
       const tmc = tinyThis.getTimelineCache(mEvent);
       if (!tmc) return;
       const eventId = mEvent.getId();
@@ -257,6 +262,7 @@ class RoomTimeline extends EventEmitter {
     // Reaction events
     this._onReaction = async (r, mEvent) => {
       await tinyThis.waitTimeline();
+      if (!tinyCheckEvent.check(mEvent)) return;
       if (!tinyThis.belongToRoom(mEvent)) return;
       tinyThis._insertReaction(mEvent);
       return tinyThis._timelineUpdated('reaction', mEvent);
@@ -265,6 +271,7 @@ class RoomTimeline extends EventEmitter {
     // Timeline events
     this._onTimeline = async (r, mEvent) => {
       await tinyThis.waitTimeline();
+      if (!tinyCheckEvent.check(mEvent)) return;
       const tmc = tinyThis.getTimelineCache(mEvent);
       if (!tmc) return;
       tinyConsole.log(`${tinyThis._consoleTag} New timeline event: ${mEvent.getId()}`);
@@ -275,6 +282,7 @@ class RoomTimeline extends EventEmitter {
 
     this._onRedaction = async (info) => {
       await tinyThis.waitTimeline();
+      if (!tinyCheckEvent.checkIds(info.roomId, info.eventId)) return;
       const { eventId, isRedacted, roomId } = info;
       if (!isRedacted || roomId !== this.roomId) return;
       tinyConsole.log(`${tinyThis._consoleTag} New redaction: ${eventId}`);
@@ -285,6 +293,7 @@ class RoomTimeline extends EventEmitter {
     // Thread added events
     this._onThreadEvent = async (r, event) => {
       await tinyThis.waitTimeline();
+      if (!tinyCheckEvent.checkIds(event.room_id, event.event_id)) return;
       if (!event.room_id !== tinyThis.roomId) return;
       tinyConsole.log(`${tinyThis._consoleTag} New thread event: ${event.event_id}`);
       const mEvent = this.findEventById(event.event_id);
@@ -295,6 +304,7 @@ class RoomTimeline extends EventEmitter {
 
     // Crdt events
     this._onCrdt = (r, mEvent) => {
+      if (!tinyCheckEvent.check(mEvent)) return;
       if (!tinyThis.belongToRoom(mEvent)) return;
       tinyThis.sendCrdtToTimeline(mEvent);
       return tinyThis._timelineUpdated('crdt', mEvent);
