@@ -180,20 +180,20 @@
     "@babel/helper-string-parser" "^7.25.9"
     "@babel/helper-validator-identifier" "^7.25.9"
 
-"@capacitor/android@6.2.0":
-  version "6.2.0"
-  resolved "https://registry.yarnpkg.com/@capacitor/android/-/android-6.2.0.tgz#4cbb29e45457839dfd391ff0744b437ef4d4034b"
-  integrity sha512-3YIDPylV0Q2adEQ/H568p496QdYG0jK/XGMdx7OGSqdBZen92ciAsYdyhLtyl91UVsN1lBhDi5H6j3T2KS6aJg==
+"@capacitor/android@7.0.1":
+  version "7.0.1"
+  resolved "https://registry.yarnpkg.com/@capacitor/android/-/android-7.0.1.tgz#16c45a305edeb8bcf0b083ea52abcc62ca4e5e70"
+  integrity sha512-jukJJHfkcyEBOkFBJRD3EwXMIIQo7lSv0ExPWgsIliPdGXLAj6ElvK2JaYEzec3vKyLc4RTNFVv0PMEU0vnImg==
 
-"@capacitor/app@6.0.2":
-  version "6.0.2"
-  resolved "https://registry.yarnpkg.com/@capacitor/app/-/app-6.0.2.tgz#bf33d4e0882962f1f8a82481faad344053b0cd3f"
-  integrity sha512-SiGTGgslK4TbWJVImCUL1odul7/YFkVfkYtAYS9AAEzQpxBECBeRnuN3FFBcfZ9eiN1XxFBFchhiwpxtx/c7yQ==
+"@capacitor/app@7.0.0":
+  version "7.0.0"
+  resolved "https://registry.yarnpkg.com/@capacitor/app/-/app-7.0.0.tgz#f216c6fdef2ed227b04786fb3c381ecc319d5135"
+  integrity sha512-/UFwfPFsw/Jen6vjrV0lfTBOQWSaDDdmrYXKpYg4Xn8hwj0xrrRPXxC43j7VmPoj9AFMVPA+hx94ygqjChPASQ==
 
-"@capacitor/browser@6.0.5":
-  version "6.0.5"
-  resolved "https://registry.yarnpkg.com/@capacitor/browser/-/browser-6.0.5.tgz#8bd9bacb28ee3c74dff716b967b3b4221c0eb9ea"
-  integrity sha512-TjA1YCiYT7wb7CLmI6zLLoS09vm7d+h4oAKXAVWDwjOyKdbAPKh75ZtzlN+lum8+sOtO9YJ+1Zdi6rdw6dxYYw==
+"@capacitor/browser@7.0.0":
+  version "7.0.0"
+  resolved "https://registry.yarnpkg.com/@capacitor/browser/-/browser-7.0.0.tgz#90a2d3bb367d81f559da31dc7aa486e0b067ec3b"
+  integrity sha512-wM2gclpulyOAvno9HDKI1X6Vxd0qXviO1zFeY5dplsNSR4tm6k6BtVGW7jEqUbQCFXbnDmhKLQgLr39JUwjzcA==
 
 "@capacitor/cli@7.0.0":
   version "7.0.0"
@@ -218,57 +218,57 @@
     tslib "^2.8.1"
     xml2js "^0.6.2"
 
-"@capacitor/clipboard@6.0.2":
-  version "6.0.2"
-  resolved "https://registry.yarnpkg.com/@capacitor/clipboard/-/clipboard-6.0.2.tgz#4d2a797e8f5c3494c61d50a2355075d92687b7b2"
-  integrity sha512-jQ6UeFra5NP58THNZNb7HtzOZU7cHsjgrbQGVuMTgsK1uTILZpNeh+pfqHbKggba6KaNh5DAsJvEVQGpIR1VBA==
+"@capacitor/clipboard@7.0.0":
+  version "7.0.0"
+  resolved "https://registry.yarnpkg.com/@capacitor/clipboard/-/clipboard-7.0.0.tgz#2a243d5691fbb2437baa302bbd235fba2c9a3d9c"
+  integrity sha512-vASrjIbQq8XsvR3dRuaoDqcltH1S0ZeS/ARVYdQzyVDZLPN+FGYfOCtTRPaOOIw0KJiLRDqwhawJvx15NAEREA==
 
-"@capacitor/core@6.2.0":
-  version "6.2.0"
-  resolved "https://registry.yarnpkg.com/@capacitor/core/-/core-6.2.0.tgz#b12b4e451b221972e2a41aa6fd1b7678e611e74d"
-  integrity sha512-B9IlJtDpUqhhYb+T8+cp2Db/3RETX36STgjeU2kQZBs/SLAcFiMama227o+msRjLeo3DO+7HJjWVA1+XlyyPEg==
+"@capacitor/core@7.0.1":
+  version "7.0.1"
+  resolved "https://registry.yarnpkg.com/@capacitor/core/-/core-7.0.1.tgz#e2a635ffced0aa0e1160f48cffa8d8148f947972"
+  integrity sha512-1Ob9bvA/p8g8aNwK6VesxEekGXowLVf6APjkW4LRnr05H+7z/bke+Q5pn9zqh/GgTbIxAQ/rwZrAZvvxkdm1UA==
   dependencies:
     tslib "^2.1.0"
 
-"@capacitor/filesystem@6.0.3":
-  version "6.0.3"
-  resolved "https://registry.yarnpkg.com/@capacitor/filesystem/-/filesystem-6.0.3.tgz#80d8f637b2ffa5281ca6d81bbb8a8c60eef4c8a9"
-  integrity sha512-PdIP/yOGAbG1lq1wbFbSPhXQ9/5lpTpeiok2NneawJOk6UXvy9W7QZXRo7wXAP7J6FdzU7bKfOORRXpOJpgXyw==
+"@capacitor/filesystem@7.0.0":
+  version "7.0.0"
+  resolved "https://registry.yarnpkg.com/@capacitor/filesystem/-/filesystem-7.0.0.tgz#3823c5a63dfa2992db401832db1dbe6063f1b1a7"
+  integrity sha512-xMzLq+ZaqYBAincYOKF1eNy/3UWwx1XM6TuvWBTVQTHeRsURzqwwbqBKtfkhbRzk5wnXEprWZz5k5iFo2s2BXw==
 
-"@capacitor/haptics@6.0.2":
-  version "6.0.2"
-  resolved "https://registry.yarnpkg.com/@capacitor/haptics/-/haptics-6.0.2.tgz#3971a606ff3f436d71c90b5c524993fb684d53ee"
-  integrity sha512-xcFdIH4iIIeW2+1lzmlYMVicqB9ytaiuZ9NE3a9laKFPvMGC7hdj6i6tHFezwPJ/96xkHOwXT2b0F8Mh9xtTWg==
+"@capacitor/haptics@7.0.0":
+  version "7.0.0"
+  resolved "https://registry.yarnpkg.com/@capacitor/haptics/-/haptics-7.0.0.tgz#b16b8968850ded0c3f0a233fea54321e94f3e199"
+  integrity sha512-8uI8rWyAbq8EzkjS+sHZSncyzujHzVbuLKgj8J5H0yUL6+r26F16gVA2iuQuIBvzbSMy7Y0/pUuWlwZr/H8AKg==
 
-"@capacitor/keyboard@6.0.3":
-  version "6.0.3"
-  resolved "https://registry.yarnpkg.com/@capacitor/keyboard/-/keyboard-6.0.3.tgz#0ea0e2f832722c02e32c5bb8a1e776d8bddc9b9e"
-  integrity sha512-V/mURxBI68HvClYjrGBlOriWkwYN7r+cWid/igJz/3scNc/V81DgQ9fpoLr4W0I5NY7YxOesjIJLuLO+LT18mQ==
+"@capacitor/keyboard@7.0.0":
+  version "7.0.0"
+  resolved "https://registry.yarnpkg.com/@capacitor/keyboard/-/keyboard-7.0.0.tgz#c31dcda3faa4158dc63da07e17e8c1ec31382e6d"
+  integrity sha512-Tqwy8wG+sx4UqiFCX4Q+bFw6uKgG7BiHKAPpeefoIgoEB8H8Jf3xZNZoVPnJIMuPsCdSvuyHXZbJXH9IEEirGA==
 
-"@capacitor/local-notifications@6.1.2":
-  version "6.1.2"
-  resolved "https://registry.yarnpkg.com/@capacitor/local-notifications/-/local-notifications-6.1.2.tgz#d5495bce6f27229b8c040f77a3323153668b14c2"
-  integrity sha512-LZrwkuh+EaIbpIOeqotUUB31MWA3BF+Hdf9ZdOK9MVJyHG7hL27ja/mx50tO6VW3+nlaXSeygkRZPIuuV4UQRQ==
+"@capacitor/local-notifications@7.0.0":
+  version "7.0.0"
+  resolved "https://registry.yarnpkg.com/@capacitor/local-notifications/-/local-notifications-7.0.0.tgz#15616348ea71154efc71efede404de0401d4e124"
+  integrity sha512-+k93w1W0hZTVxM8rjttEyUKkkHxOW776POFM4snDcwv+sAxWX+YK+oqIwNtln6N5Plp3Z9TkQS0RufwZbl7GUw==
 
-"@capacitor/network@6.0.3":
-  version "6.0.3"
-  resolved "https://registry.yarnpkg.com/@capacitor/network/-/network-6.0.3.tgz#d7a045a9d42f6a17fe4c2374ef9eb1d2b30e273e"
-  integrity sha512-ODRgVY8AMIDXPoND6OvaaeMwRhtnq+K/IK7IEKV1pSg8CqJgqoD6je0omZnDqM+S1BKI2JOm8pe3gVvtcoehdw==
+"@capacitor/network@7.0.0":
+  version "7.0.0"
+  resolved "https://registry.yarnpkg.com/@capacitor/network/-/network-7.0.0.tgz#bfbe955fc033457f5f282766c835251834ca643e"
+  integrity sha512-cIr0tElqiAKxbRJ7/OGOPssSyaVpyU8ushjcOItdYaGu/L9RAI+4tKdRCoL9cngCycgcUGWn+SkuN9oJCf8iHw==
 
-"@capacitor/status-bar@6.0.2":
-  version "6.0.2"
-  resolved "https://registry.yarnpkg.com/@capacitor/status-bar/-/status-bar-6.0.2.tgz#a28a46630af1677f3e9c73f0e6921431d5340152"
-  integrity sha512-AmRIX6QvFemItlY7/69ARkIAqitRQqJ2qwgZmD1KqgFb78pH+XFXm1guvS/a8CuOOm/IqZ4ddDbl20yxtBqzGA==
+"@capacitor/status-bar@7.0.0":
+  version "7.0.0"
+  resolved "https://registry.yarnpkg.com/@capacitor/status-bar/-/status-bar-7.0.0.tgz#11a66ac1a34f49d792931f8eca7f2ce3f65ef1b5"
+  integrity sha512-wsvPkWkoSOXMIgVHu4c6P1sOuDSZ1ClUo5OpLRwj7u8DYzlV4jlmNzztQn2Lvsiqx1z4kfukSaqe40k1Lo4c9g==
 
-"@capacitor/toast@6.0.3":
-  version "6.0.3"
-  resolved "https://registry.yarnpkg.com/@capacitor/toast/-/toast-6.0.3.tgz#e11624b79409160199e22671f70d9c3810fdf085"
-  integrity sha512-zJFmLbU73qg0nJobk4XV9ao6DajWM22qYYZjWmRqxZJuvrBM5OHNQWw1aAVleStLsfM0zI7Bdv1QftBvrXq7qA==
+"@capacitor/toast@7.0.0":
+  version "7.0.0"
+  resolved "https://registry.yarnpkg.com/@capacitor/toast/-/toast-7.0.0.tgz#35abb157d60fd763e7befe9014a75436f4aba95c"
+  integrity sha512-HsJ6nn1h+Ucm/actgA9bZhI5FOXKh3oFb3wiDYGB0xdnV+6U8rJu+xR1MUdVwM7opAXHuozjFi06FvnZ6gVO4w==
 
-"@capawesome/capacitor-file-picker@6.2.0":
-  version "6.2.0"
-  resolved "https://registry.yarnpkg.com/@capawesome/capacitor-file-picker/-/capacitor-file-picker-6.2.0.tgz#18e39148ba53c830580256aa86902d8e345f9c1b"
-  integrity sha512-ZgXbC3qOyKJrQh2bQIOLcjAYOdS8+ii1V0zaV56pMAw2i/pitdayvdBs7Da3tTw/eMdUNZ0lBYZcLN6NPQMIvA==
+"@capawesome/capacitor-file-picker@7.0.1":
+  version "7.0.1"
+  resolved "https://registry.yarnpkg.com/@capawesome/capacitor-file-picker/-/capacitor-file-picker-7.0.1.tgz#b77e437c78f4d0f3cc7449ebb67bca02a4c9dd50"
+  integrity sha512-b+EBAWul2I0RRp+eQoHiP/ykgc8PNRP9wIMrvnqDZEg7iIl8rAd/AJsZMYzoo/ACcYJofn4bD0CXQDC2fcKw4g==
 
 "@cryptofonts/cryptofont@1.3.5":
   version "1.3.5"
