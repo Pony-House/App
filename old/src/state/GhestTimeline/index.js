@@ -5,15 +5,15 @@ import { Direction, MatrixEventEvent, Room, RoomEvent, RoomMemberEvent } from 'm
 import tinyConsole from '@src/util/libs/console';
 import storageManager from '@src/util/libs/Localstorage';
 
-import initMatrix from '../../initMatrix';
-import cons from '../cons';
+import initMatrix from '../../../../src/client/initMatrix';
+import cons from '../../../../src/client/state/cons';
 
 import { messageIsClassicCrdt } from '../../../util/libs/crdt';
 
-import { updateRoomInfo } from '../../action/navigation';
-import urlParams from '../../../util/libs/urlParams';
-import tinyFixScrollChat from '../../../app/molecules/media/mediaFix';
-import { buildRoomTimeline, startRoomTimelineRefresh } from './GuestRoomTimeline';
+import { updateRoomInfo } from '../../../../src/client/action/navigation';
+import urlParams from '../../../../src/util/libs/urlParams';
+import tinyFixScrollChat from '../../../../src/app/molecules/media/mediaFix';
+import { buildRoomTimeline, startRoomTimelineRefresh } from '../GuestRoomTimeline';
 import {
   isEdited,
   isReaction,
@@ -51,9 +51,9 @@ class RoomTimeline extends EventEmitter {
     this.room = !this.isGuest
       ? this.matrixClient.getRoom(roomId)
       : new Room(roomId, this.matrixClient, this.guestId, {
-          lazyLoadMembers: true,
-          timelineSupport: true,
-        });
+        lazyLoadMembers: true,
+        timelineSupport: true,
+      });
 
     this.room.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
 

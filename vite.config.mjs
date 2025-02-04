@@ -140,6 +140,7 @@ export default defineConfig(({ command, mode }) => {
     IPFS: addBooleanToEnv('IPFS'),
 
     PAG_LIMIT: Number(env.PAG_LIMIT),
+    PORT: Number(env.PORT),
 
     SHOW_LOG: addBooleanToEnv('SHOW_LOG'),
 
@@ -275,7 +276,7 @@ export default defineConfig(({ command, mode }) => {
           'src/util/libs/console.js',
         ].map((file) => path.resolve(__dirname, file)),
       },
-      port: 8469,
+      port: envData.PORT,
       host: true,
     },
 
