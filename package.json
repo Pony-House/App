@@ -124,7 +124,7 @@
     "yjs": "13.6.23"
   },
   "devDependencies": {
-    "@capacitor/cli": "7.0.0",
+    "@capacitor/cli": "7.0.1",
     "@esbuild-plugins/node-globals-polyfill": "0.2.3",
     "@eslint/compat": "1.2.5",
     "@eslint/js": "9.19.0",
