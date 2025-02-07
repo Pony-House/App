@@ -97,7 +97,7 @@
     "linkify-react": "4.2.0",
     "linkifyjs": "4.2.0",
     "matrix-encrypt-attachment": "1.0.3",
-    "matrix-js-sdk": "34.13.0",
+    "matrix-js-sdk": "36.1.0",
     "md5": "2.3.0",
     "moment-timezone": "0.5.47",
     "node-fetch": "2",
