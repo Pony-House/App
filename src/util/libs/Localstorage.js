@@ -1175,6 +1175,15 @@ class StorageManager extends EventEmitter {
 
             // Next page
             tinyConsole.log(`[room-db-sync] [${valueId}] Getting next timeline page...`);
+            /*
+            await initMatrix.fetchMessage(
+              roomId,
+              __ENV_APP__.TIMELINE_EVENTS_PER_TIME,
+              lastTimelineToken,
+              Direction.Forward,
+            );
+            */
+
             await mx.paginateEventTimeline(tm, {
               backwards: Direction.Forward,
               limit: __ENV_APP__.TIMELINE_EVENTS_PER_TIME,
@@ -1284,21 +1293,6 @@ class StorageManager extends EventEmitter {
     }
     if (typeof this._eventsLoadWaitingUsing[valueId] !== 'undefined')
       delete this._eventsLoadWaitingUsing[valueId];
-  }
-
-  async _requestTimelineToken(roomId, paginationToken) {
-    const result = await initMatrix.matrixClient.http.authedRequest(
-      'GET',
-      `/rooms/${encodeURIComponent(roomId)}/messages`,
-      {
-        from: paginationToken,
-        dir: Direction.Forward,
-        limit: __ENV_APP__.TIMELINE_EVENTS_PER_TIME,
-      },
-    );
-
-    const chuck = result.chunk;
-    return chuck;
   }
 
   // Reset timeline cache

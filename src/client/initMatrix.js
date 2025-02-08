@@ -2,6 +2,7 @@ import EventEmitter from 'events';
 import * as sdk from 'matrix-js-sdk';
 
 import Olm from '@matrix-org/olm';
+import { objType } from 'for-promise/utils/lib.mjs';
 
 import tinyConsole from '@src/util/libs/console';
 import { clearFetchPwaCache } from '@src/util/pwa/installer';
@@ -60,6 +61,49 @@ class InitMatrix extends EventEmitter {
     if (__ENV_APP__.MODE === 'development') {
       global.initMatrix = { matrixClient: mx, mxcUrl: this.mxcUrl };
     }
+  }
+
+  async fetchMessage(roomId, limit = 10, filter = null, fromToken = null, dir = 'b') {
+    // Request parameters
+    const params = {
+      dir, // "b" = backward (old events), "f" = forward
+      limit, // Number of events per page
+    };
+
+    if (typeof fromToken === 'string') params.from = fromToken;
+    if (objType(filter, 'object')) params.filter = JSON.stringify(filter);
+
+    // Search API messages
+    const response = await this.matrixClient.http.authedRequest(
+      'GET',
+      `/rooms/${roomId}/messages`,
+      params,
+    );
+
+    // Decrypt messages (if necessary)
+    const decryptedMessages = await Promise.all(
+      response.chunk.map(async (event) => {
+        const mEvent = new sdk.MatrixEvent(event);
+        if (mEvent.getType() === 'm.room.encrypted') {
+          try {
+            const decrypted = await this.matrixClient.getCrypto().decryptEvent(mEvent);
+            return {
+              mEvent,
+              decrypted: decrypted.clearEvent.content.body, // Decrypted message
+            };
+          } catch (error) {
+            return { mEvent, decrypted: null, eventError: error };
+          }
+        }
+        return event;
+      }),
+    );
+
+    // Return messages and token to next page
+    return {
+      messages: decryptedMessages,
+      nextToken: response.end, // Token to the next page
+    };
   }
 
   async init(isGuest = false) {
