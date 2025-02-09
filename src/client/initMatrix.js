@@ -63,7 +63,13 @@ class InitMatrix extends EventEmitter {
     }
   }
 
-  async fetchMessage(roomId, limit = 10, filter = null, fromToken = null, dir = 'b') {
+  async fetchMessages(
+    roomId,
+    limit = 10,
+    filter = null,
+    fromToken = null,
+    dir = sdk.Direction.Backward,
+  ) {
     // Request parameters
     const params = {
       dir, // "b" = backward (old events), "f" = forward
@@ -87,21 +93,21 @@ class InitMatrix extends EventEmitter {
         if (mEvent.getType() === 'm.room.encrypted') {
           try {
             const decrypted = await this.matrixClient.getCrypto().decryptEvent(mEvent);
-            return {
-              mEvent,
-              decrypted: decrypted.clearEvent.content.body, // Decrypted message
-            };
-          } catch (error) {
-            return { mEvent, decrypted: null, eventError: error };
+            if (objType(decrypted, 'object')) {
+              if (objType(decrypted.clearEvent, 'object')) mEvent.clearEvent = decrypted.clearEvent;
+              return { mEvent, decrypt: decrypted };
+            } else return { mEvent };
+          } catch (err) {
+            return { mEvent, err };
           }
         }
-        return event;
+        return { mEvent };
       }),
     );
 
     // Return messages and token to next page
     return {
-      messages: decryptedMessages,
+      events: decryptedMessages.reverse(),
       nextToken: response.end, // Token to the next page
     };
   }
