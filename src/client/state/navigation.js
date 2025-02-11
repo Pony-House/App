@@ -17,7 +17,7 @@ import {
   getSelectRoom,
 } from '../../util/selectedRoom';
 import { tinyCrypto } from '@mods/web3/ethers/base';
-import storageManager from '@src/util/libs/Localstorage';
+import storageManager from '@src/util/libs/localStorage/StorageManager';
 
 class Navigation extends EventEmitter {
   constructor() {

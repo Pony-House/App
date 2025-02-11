@@ -3,7 +3,7 @@ import EventEmitter from 'events';
 import tinyConsole from '@src/util/libs/console';
 import { tinyCrypto } from '../ethers/base';
 import envAPI from '@src/util/libs/env';
-import storageManager from '@src/util/libs/Localstorage';
+import storageManager from '@src/util/libs/localStorage/StorageManager';
 
 // Create a client using keys returned from getKeys
 const ENCODING = 'binary';

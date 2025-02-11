@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-// import storageManager from '@src/util/libs/Localstorage';
+// import storageManager from '@src/util/libs/localStorage/StorageManager';
 
 import { getAppearance, toggleAppearanceAction } from '../../../../util/libs/appearance';
 import SettingTile from '../../../molecules/setting-tile/SettingTile';

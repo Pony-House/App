@@ -1,5 +1,5 @@
 import * as sdk from 'matrix-js-sdk';
-import storageManager from '@src/util/libs/Localstorage';
+import storageManager from '@src/util/libs/localStorage/StorageManager';
 import cons from '../state/cons';
 import { fetchFn } from '../initMatrix';
 

@@ -5,7 +5,7 @@ import EventEmitter from 'events';
 import { objType } from 'for-promise/utils/lib.mjs';
 
 import tinyConsole from '@src/util/libs/console';
-import storageManager from '@src/util/libs/Localstorage';
+import storageManager from '@src/util/libs/localStorage/StorageManager';
 
 import { isMobile } from '@src/util/libs/mobile';
 import { cyrb128 } from '@src/util/tools';

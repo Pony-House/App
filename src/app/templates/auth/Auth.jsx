@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 import tinyConsole from '@src/util/libs/console';
 import WelcomePage from '@mods/WelcomePage';
-import storageManager from '@src/util/libs/Localstorage';
+import storageManager from '@src/util/libs/localStorage/StorageManager';
 import urlParams from '@src/util/libs/urlParams';
 
 import ProxyModal from '@src/app/organisms/proxy-modal/ProxyModal';

@@ -1,4 +1,4 @@
-import storageManager from '../../Localstorage';
+import storageManager from '../../localStorage/StorageManager';
 
 const version18 = async (connection) => {
   storageManager.resetAllTimelineSyncData();

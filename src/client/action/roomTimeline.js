@@ -1,4 +1,4 @@
-import storageManager from '@src/util/libs/Localstorage';
+import storageManager from '@src/util/libs/localStorage/StorageManager';
 
 async function sendReaction(roomId, toEventId, reaction, shortcode) {
   const content = {

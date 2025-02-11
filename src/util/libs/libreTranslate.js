@@ -6,7 +6,7 @@ import tinyConsole from '@src/util/libs/console';
 
 import { fetchFn } from '@src/client/initMatrix';
 import i18 from './locale';
-import storageManager from './Localstorage';
+import storageManager from './localStorage/StorageManager';
 
 // Emitter
 class LibreTranslate extends EventEmitter {

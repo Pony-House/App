@@ -1,5 +1,5 @@
 import EventEmitter from 'events';
-import storageManager from './Localstorage';
+import storageManager from './localStorage/StorageManager';
 
 /* 
   direct - In direct mode all connections are created directly, without any proxy involved.

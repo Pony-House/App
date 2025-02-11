@@ -5,7 +5,7 @@
 import EventEmitter from 'events';
 import tinyConsole from '@src/util/libs/console';
 
-import storageManager from './Localstorage';
+import storageManager from './localStorage/StorageManager';
 
 const ENV_NAME_LIMIT = 50;
 

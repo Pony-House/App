@@ -6,7 +6,7 @@ import { CallEventHandlerEvent } from 'matrix-js-sdk/lib/webrtc/callEventHandler
 import { EventEmitter } from 'events';
 
 import tinyConsole from '@src/util/libs/console';
-import storageManager from './Localstorage';
+import storageManager from './localStorage/StorageManager';
 
 // Emitter
 class MyEmitter extends EventEmitter {}

@@ -3,7 +3,7 @@ import EventEmitter from 'events';
 import { Direction, MatrixEventEvent, Room, RoomEvent, RoomMemberEvent } from 'matrix-js-sdk';
 
 import tinyConsole from '@src/util/libs/console';
-import storageManager from '@src/util/libs/Localstorage';
+import storageManager from '@src/util/libs/localStorage/StorageManager';
 
 import initMatrix from '../../../../src/client/initMatrix';
 import cons from '../../../../src/client/state/cons';

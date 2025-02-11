@@ -20,7 +20,7 @@ import { createMessageData } from '../../../app/molecules/message/Message';
 import { jqueryTime } from '../../../app/atoms/time/Time';
 
 import { getEventById } from './cache';
-import storageManager from '../Localstorage';
+import storageManager from '../localStorage/StorageManager';
 
 // Info
 const PIN_LIMIT = 50;

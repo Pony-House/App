@@ -39,7 +39,7 @@ import { openThreadsMessageModal } from '../../../util/libs/thread';
 import RoomWidget from './RoomWidget';
 import Spinner from '@src/app/atoms/spinner/Spinner';
 import Tooltip from '@src/app/atoms/tooltip/Tooltip';
-import storageManager from '@src/util/libs/Localstorage';
+import storageManager from '@src/util/libs/localStorage/StorageManager';
 import { getRoomInfo } from './RoomInfo';
 
 function RoomViewHeader({ roomId, threadId, roomAlias, roomItem, disableActions = false }) {

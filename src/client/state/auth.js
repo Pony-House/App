@@ -1,4 +1,4 @@
-import storageManager from '@src/util/libs/Localstorage';
+import storageManager from '@src/util/libs/localStorage/StorageManager';
 import cons from './cons';
 
 function getSecret(key) {

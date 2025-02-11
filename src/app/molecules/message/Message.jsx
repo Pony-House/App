@@ -24,7 +24,7 @@ import {
 } from '@src/app/molecules/reactions/Reactions';
 import tinyClipboard from '@src/util/libs/Clipboard';
 
-import storageManager from '@src/util/libs/Localstorage';
+import storageManager from '@src/util/libs/localStorage/StorageManager';
 import { decryptAllEventsOfTimeline } from '@src/client/state/Timeline/functions';
 
 import { btModal, resizeWindowChecker, toast } from '../../../util/tools';

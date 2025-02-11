@@ -272,8 +272,6 @@ export default defineConfig(({ command, mode }) => {
           '.github',
           '.git',
           '.vscode',
-          'src/util/libs/Localstorage.js',
-          'src/util/libs/console.js',
         ].map((file) => path.resolve(__dirname, file)),
       },
       port: envData.PORT,

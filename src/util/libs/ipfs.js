@@ -3,7 +3,7 @@ import CIDTool from 'cid-tool';
 import tinyConsole from '@src/util/libs/console';
 
 import envAPI from './env';
-import storageManager from './Localstorage';
+import storageManager from './localStorage/StorageManager';
 
 export function getIpfsCfg(folder, getDefault = true, domainsParse = false) {
   const content = storageManager.getJson('ponyHouse-ipfs', 'obj');

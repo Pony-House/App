@@ -6,7 +6,7 @@ import { objType } from 'for-promise/utils/lib.mjs';
 import tinyConsole from '@src/util/libs/console';
 
 import moment from '@src/util/libs/momentjs';
-import storageManager from '@src/util/libs/Localstorage';
+import storageManager from '@src/util/libs/localStorage/StorageManager';
 
 import { getClientYjs, enableyJsItem } from './functions';
 

@@ -1,4 +1,4 @@
-import storageManager from './Localstorage';
+import storageManager from './localStorage/StorageManager';
 
 export function getOsSettings(folder, getDefault = true) {
   const content = storageManager.getJson('ponyHouse-os-settings', 'obj');

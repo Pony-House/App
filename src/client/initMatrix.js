@@ -6,7 +6,7 @@ import { objType, countObj } from 'for-promise/utils/lib.mjs';
 
 import tinyConsole from '@src/util/libs/console';
 import { clearFetchPwaCache } from '@src/util/pwa/installer';
-import storageManager from '@src/util/libs/Localstorage';
+import storageManager from '@src/util/libs/localStorage/StorageManager';
 import MxcUrl from '@src/util/libs/MxcUrl';
 
 import envAPI from '@src/util/libs/env';

@@ -19,12 +19,12 @@ import initMatrix from '@src/client/initMatrix';
 import { decryptAllEventsOfTimeline } from '@src/client/state/Timeline/functions';
 import cons from '@src/client/state/cons';
 
-import { toTitleCase } from '../tools';
-import TinyDbManager from './db/manager';
-import eventsDb from './db/eventsDb';
-import { getAppearance } from './appearance';
-import { MemberEventsList, memberEventAllowed } from '../Events';
-import { waitForTrue } from './timeoutLib';
+import { toTitleCase } from '../../tools';
+import TinyDbManager from '../db/manager';
+import eventsDb from '../db/eventsDb';
+import { getAppearance } from '../appearance';
+import { MemberEventsList, memberEventAllowed } from '../../Events';
+import { waitForTrue } from '../timeoutLib';
 
 const genKey = () => generateApiKey().replace(/\~/g, 'pud');
 /* const getRoomValueId = (roomId, threadId) =>

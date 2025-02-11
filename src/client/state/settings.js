@@ -5,7 +5,7 @@ import EventEmitter from 'events';
 import { objType } from 'for-promise/utils/lib.mjs';
 
 import { isMobile, notificationStatus } from '@src/util/libs/mobile';
-import storageManager from '@src/util/libs/Localstorage';
+import storageManager from '@src/util/libs/localStorage/StorageManager';
 
 import appDispatcher from '../dispatcher';
 

@@ -3,7 +3,7 @@ import { objType } from 'for-promise/utils/lib.mjs';
 
 import tinyConsole from '@src/util/libs/console';
 
-import storageManager from './Localstorage';
+import storageManager from './localStorage/StorageManager';
 import localeNames from '@mods/locale/names';
 import localeCodes from '@mods/locale/codes';
 

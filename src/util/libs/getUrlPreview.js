@@ -7,7 +7,7 @@ import initMatrix from '../../client/initMatrix';
 import convertProtocols from './convertProtocols';
 import moment from './momentjs';
 import { getAppearance } from './appearance';
-import storageManager from './Localstorage';
+import storageManager from './localStorage/StorageManager';
 import { waitForTrue } from './timeoutLib';
 
 const tinyCache = {};

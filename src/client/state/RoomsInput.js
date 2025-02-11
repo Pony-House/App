@@ -8,7 +8,7 @@ import { objType } from 'for-promise/utils/lib.mjs';
 
 import tinyConsole from '@src/util/libs/console';
 
-import storageManager from '@src/util/libs/Localstorage';
+import storageManager from '@src/util/libs/localStorage/StorageManager';
 import blobUrlManager, { blobToBase64 } from '@src/util/libs/blobUrlManager';
 import { isMobile } from '@src/util/libs/mobile';
 import { fileReader, uploadContent } from '@src/app/molecules/file-input/FileInput';

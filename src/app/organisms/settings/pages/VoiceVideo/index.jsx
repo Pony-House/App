@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import $ from 'jquery';
 
 import tinyConsole from '@src/util/libs/console';
-import storageManager from '@src/util/libs/Localstorage';
+import storageManager from '@src/util/libs/localStorage/StorageManager';
 import RatioScreen from '@src/app/atoms/video/RatioScreen';
 
 import VolumeMeter from '../../../../../util/libs/volumeMeter';

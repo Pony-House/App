@@ -6,7 +6,7 @@ import { isMobile } from '@src/util/libs/mobile';
 import Button from '@src/app/atoms/button/Button';
 
 import SettingNumber from '@src/app/molecules/setting-number/SettingNumber';
-import storageManager from '@src/util/libs/Localstorage';
+import storageManager from '@src/util/libs/localStorage/StorageManager';
 
 import settings from '../../../../client/state/settings';
 import Toggle from '../../../atoms/button/Toggle';

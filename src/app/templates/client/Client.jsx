@@ -17,7 +17,7 @@ import {
 import settings from '@src/client/state/settings';
 import matrixAppearance from '@src/util/libs/appearance';
 import soundFiles from '@src/util/soundFiles';
-import storageManager from '@src/util/libs/Localstorage';
+import storageManager from '@src/util/libs/localStorage/StorageManager';
 
 import matrixProxy, { canProxy } from '@src/util/libs/proxy';
 import ProxyModal from '@src/app/organisms/proxy-modal/ProxyModal';

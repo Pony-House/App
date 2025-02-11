@@ -2,7 +2,7 @@ import EventEmitter from 'events';
 
 import tinyConsole from '@src/util/libs/console';
 
-import storageManager, { timelineCache } from '@src/util/libs/Localstorage';
+import storageManager, { timelineCache } from '@src/util/libs/localStorage/StorageManager';
 import { getAppearance } from '@src/util/libs/appearance';
 
 import initMatrix from '../initMatrix';

@@ -44,7 +44,7 @@ import matrixAppearance, { getAppearance } from '../../../util/libs/appearance';
 import handleOnClickCapture from './content/handleOnClickCapture';
 import RoomIntroContainer from './content/RoomIntroContainer';
 import LoadingMsgPlaceholders from './content/LoadingMsgPlaceholders';
-import storageManager from '@src/util/libs/Localstorage';
+import storageManager from '@src/util/libs/localStorage/StorageManager';
 
 function renderEvent(
   timelineSVRef,

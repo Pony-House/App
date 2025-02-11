@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 import tinyConsole from '@src/util/libs/console';
 import envAPI from '@src/util/libs/env';
 import hsWellKnown from '@src/util/libs/HsWellKnown';
-import storageManager from '@src/util/libs/Localstorage';
+import storageManager from '@src/util/libs/localStorage/StorageManager';
 
 import Text from '../../../atoms/text/Text';
 import { Debounce } from '../../../../util/common';

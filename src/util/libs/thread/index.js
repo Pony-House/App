@@ -24,7 +24,7 @@ import { jqueryTime } from '@src/app/atoms/time/Time';
 
 import { btModal } from '../../tools';
 import initMatrix, { fetchFn } from '../../../client/initMatrix';
-import storageManager from '../Localstorage';
+import storageManager from '../localStorage/StorageManager';
 
 // The class
 class ThreadsList extends EventEmitter {

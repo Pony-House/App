@@ -1,6 +1,6 @@
 import EventEmitter from 'events';
 import { RoomEvent, RoomStateEvent } from 'matrix-js-sdk';
-import storageManager from '@src/util/libs/Localstorage';
+import storageManager from '@src/util/libs/localStorage/StorageManager';
 
 import initMatrix from '../initMatrix';
 

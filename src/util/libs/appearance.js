@@ -4,7 +4,7 @@ import clone from 'clone';
 import { objType } from 'for-promise/utils/lib.mjs';
 
 import moment, { calendarFormat, localeIs12Hours } from './momentjs';
-import storageManager from './Localstorage';
+import storageManager from './localStorage/StorageManager';
 
 // Animated Image Url
 export function getAnimatedImageUrl(url) {

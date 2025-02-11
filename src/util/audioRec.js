@@ -2,7 +2,7 @@ import $ from 'jquery';
 import tinyConsole from '@src/util/libs/console';
 
 import { toggleActionLocal } from '../app/organisms/settings/Api';
-import storageManager from './libs/Localstorage';
+import storageManager from './libs/localStorage/StorageManager';
 
 // Console Values
 const prefixConsole = (text, type = 'log') => tinyConsole[type](`[audioRec.js] ${text}`);

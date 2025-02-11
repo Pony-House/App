@@ -10,7 +10,7 @@ import {
   getEventReactions,
 } from '@src/app/molecules/reactions/Reactions';
 
-import storageManager from '@src/util/libs/Localstorage';
+import storageManager from '@src/util/libs/localStorage/StorageManager';
 
 import { toast } from '../../../util/tools';
 import { twemojifyReact } from '../../../util/twemojify';

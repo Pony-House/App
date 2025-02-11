@@ -8,7 +8,7 @@ import { btModal } from '../tools';
 import tinyAPI from '../mods';
 import convertProtocols from '../libs/convertProtocols';
 import { setLoadingPage } from '../../app/templates/client/Loading';
-import storageManager from '../libs/Localstorage';
+import storageManager from '../libs/localStorage/StorageManager';
 import { isMobile } from '../libs/mobile';
 
 export const openUrl = (url) =>

@@ -5,7 +5,7 @@ import { objType } from 'for-promise/utils/lib.mjs';
 import tinyConsole from '@src/util/libs/console';
 
 import initMatrix from '@src/client/initMatrix';
-import storageManager from './Localstorage';
+import storageManager from './localStorage/StorageManager';
 
 // Emitter
 class AttemptDecryption extends EventEmitter {

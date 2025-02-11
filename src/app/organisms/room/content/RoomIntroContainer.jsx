@@ -10,7 +10,7 @@ import { twemojifyReact } from '@src/util/twemojify';
 import { useForceUpdate } from '../../../hooks/useForceUpdate';
 import RoomIntro from '../../../molecules/room-intro/RoomIntro';
 import cons from '../../../../client/state/cons';
-import storageManager from '@src/util/libs/Localstorage';
+import storageManager from '@src/util/libs/localStorage/StorageManager';
 import Spinner from '@src/app/atoms/spinner/Spinner';
 import { getRoomInfo } from '../RoomInfo';
 
