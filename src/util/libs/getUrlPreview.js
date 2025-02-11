@@ -8,6 +8,7 @@ import convertProtocols from './convertProtocols';
 import moment from './momentjs';
 import { getAppearance } from './appearance';
 import storageManager from './Localstorage';
+import { waitForTrue } from './timeoutLib';
 
 const tinyCache = {};
 const urlConvert = {
@@ -162,29 +163,22 @@ export default function getUrlPreview(newUrl, ts = 0) {
         // New
         if (!storeCache) {
           // Start cache manager
-          const lookForCache = () => {
-            if (!urlPreviewStore.using) {
-              if (!embedParallelLoad) urlPreviewStore.using = true;
-              mx.getUrlPreview(tinyUrl, ts)
-                .then((embed) => {
-                  tinyCache[url.href] = { data: embed, timeout: moment().add(12, 'hours') };
-                  urlPreviewStore.set(url.href, tinyCache[url.href]);
-                  urlPreviewStore.using = false;
-                  resolve(fixGetUrlValues(url.href, embed));
-                })
-                .catch((err) => {
-                  tinyCache[url.href] = { data: null, timeout: moment().add(1, 'hours') };
-                  urlPreviewStore.delete(url.href);
-                  urlPreviewStore.using = false;
-                  reject(err);
-                });
-            } else {
-              setTimeout(() => lookForCache(), 500);
-            }
-          };
-
-          // Start now
-          lookForCache();
+          waitForTrue(() => !urlPreviewStore.using, 500).then(() => {
+            if (!embedParallelLoad) urlPreviewStore.using = true;
+            mx.getUrlPreview(tinyUrl, ts)
+              .then((embed) => {
+                tinyCache[url.href] = { data: embed, timeout: moment().add(12, 'hours') };
+                urlPreviewStore.set(url.href, tinyCache[url.href]);
+                urlPreviewStore.using = false;
+                resolve(fixGetUrlValues(url.href, embed));
+              })
+              .catch((err) => {
+                tinyCache[url.href] = { data: null, timeout: moment().add(1, 'hours') };
+                urlPreviewStore.delete(url.href);
+                urlPreviewStore.using = false;
+                reject(err);
+              });
+          });
         }
 
         // Use cache

@@ -64,25 +64,27 @@ class InitMatrix extends EventEmitter {
   }
 
   async fetchMessages(
-    roomId,
-    limit = 10,
-    filter = null,
-    fromToken = null,
-    dir = sdk.Direction.Backward,
+    ops = {
+      dir: sdk.Direction.Backward,
+      limit: 10,
+      filter: null,
+      fromToken: null,
+      roomId: null,
+    },
   ) {
     // Request parameters
     const params = {
-      dir, // "b" = backward (old events), "f" = forward
-      limit, // Number of events per page
+      dir: typeof ops.dir === 'string' ? ops.dir : sdk.Direction.Backward, // "b" = backward (old events), "f" = forward
+      limit: typeof ops.limit === 'number' ? ops.limit : 10, // Number of events per page
     };
 
-    if (typeof fromToken === 'string') params.from = fromToken;
-    if (objType(filter, 'object')) params.filter = JSON.stringify(filter);
+    if (typeof ops.fromToken === 'string') params.from = ops.fromToken;
+    if (objType(ops.filter, 'object')) params.filter = JSON.stringify(ops.filter);
 
     // Search API messages
     const response = await this.matrixClient.http.authedRequest(
       'GET',
-      `/rooms/${roomId}/messages`,
+      `/rooms/${String(ops.roomId)}/messages`,
       params,
     );
 
@@ -105,10 +107,23 @@ class InitMatrix extends EventEmitter {
       }),
     );
 
+    // Anti repeat token
+    const isNewToken = (responseToken) =>
+      typeof ops.fromToken !== 'string' || ops.fromToken !== responseToken;
+
     // Return messages and token to next page
     return {
       events: decryptedMessages.reverse(),
-      nextToken: response.end, // Token to the next page
+      nextToken:
+        typeof response.end === 'string' &&
+        (ops.dir !== sdk.Direction.Backward || isNewToken(response.end))
+          ? response.end
+          : null, // Token to the next page
+      prevToken:
+        typeof response.start === 'string' &&
+        (ops.dir !== sdk.Direction.Forward || isNewToken(response.start))
+          ? response.start
+          : null, // Token to the prev page
     };
   }
 

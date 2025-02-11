@@ -27,69 +27,6 @@ class MatrixDevices extends EventEmitter {
 }
 
 const matrixDevices = new MatrixDevices();
-const sendPing = () => {
-  const mx = initMatrix.matrixClient;
-  if (mx && typeof mx.getAccountData === 'function') {
-    const eventData = mx.getAccountData('pony.house.ping');
-    if (eventData) {
-      const devices = matrixDevices.getDevices();
-      const devicesData = eventData.getContent() ?? {};
-      const hash = {};
-
-      const deviceId = mx.getDeviceId();
-      const newDevicesData = { pings: [] };
-      try {
-        if (objType(devicesData, 'object')) {
-          hash.old = objectHash(devicesData);
-        } else {
-          hash.old = null;
-        }
-      } catch {
-        hash.old = null;
-      }
-
-      if (objType(devicesData, 'object') && Array.isArray(devicesData.pings)) {
-        for (const item in devicesData.pings) {
-          if (
-            objType(newDevicesData.pings[item], 'object') &&
-            typeof newDevicesData.pings[item].id === 'string' &&
-            devices.find((device) => device.device_id === newDevicesData.pings[item].id) &&
-            typeof newDevicesData.pings[item].unix === 'number'
-          ) {
-            newDevicesData.pings.push({
-              id: newDevicesData.pings[item].id,
-              unix: newDevicesData.pings[item].unix,
-            });
-          }
-        }
-      }
-
-      const deviceItem = newDevicesData.pings.find((item) => item.id === deviceId);
-      if (deviceItem) {
-        deviceItem.unix = moment().unix();
-      } else {
-        newDevicesData.pings.push({ id: deviceId, unix: moment().unix() });
-      }
-
-      try {
-        hash.new = objectHash(newDevicesData);
-      } catch {
-        hash.new = null;
-      }
-      if (hash.new !== hash.old) {
-        mx.setAccountData('pony.house.ping', newDevicesData);
-        matrixDevices.emit('devicePing', newDevicesData.pings);
-      }
-    } else {
-      setTimeout(sendPing, 200);
-    }
-  } else {
-    setTimeout(sendPing, 200);
-  }
-};
-
-// 10 Minutes later...
-setTimeout(() => sendPing(), 60000 * 10);
 
 // Export
 let firstTime = true;
@@ -121,11 +58,7 @@ export function useDeviceList() {
               const devices = data.devices || [];
               matrixDevices.updateDevices(devices);
               matrixDevices.emit('devicesUpdated', devices);
-
-              if (firstTime) {
-                firstTime = false;
-                sendPing();
-              }
+              if (firstTime) firstTime = false;
 
               setDeviceKeys(dKeys);
               setDeviceList(devices);

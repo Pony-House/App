@@ -14,6 +14,7 @@ import { getLastLinkedTimeline, getLiveReaders, getEventReaders } from './Timeli
 import installYjs from './Timeline/yjs';
 import TinyEventChecker from './Notifications/validator';
 import { memberEventAllowed } from '@src/util/Events';
+import { waitForTrue } from '@src/util/libs/timeoutLib';
 
 const tinyCheckEvent = new TinyEventChecker();
 
@@ -348,11 +349,7 @@ class RoomTimeline extends EventEmitter {
     if (this.firstStart) return true;
     else {
       const tinyThis = this;
-      return new Promise((resolve, reject) => {
-        setTimeout(() => {
-          tinyThis.waitFirstSync().then(resolve).catch(reject);
-        }, 100);
-      });
+      return waitForTrue(() => true, 100);
     }
   }
 
@@ -378,10 +375,6 @@ class RoomTimeline extends EventEmitter {
     this.syncTimeline();
     updateRoomInfo();
     return true;
-  }
-
-  refreshLiveTimeline() {
-    return storageManager.refreshLiveTimeline(this.room, this.threadId);
   }
 
   syncTimeline() {
@@ -692,10 +685,7 @@ class RoomTimeline extends EventEmitter {
 
   waitTimeline() {
     const tinyThis = this;
-    return new Promise((resolve, reject) => {
-      if (tinyThis._eventsQueue.busy < 1) resolve();
-      else setTimeout(() => tinyThis.waitTimeline().then(resolve).catch(reject), 300);
-    });
+    return waitForTrue(() => tinyThis._eventsQueue.busy < 1, 300);
   }
 
   // Deleting places

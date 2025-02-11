@@ -11,3 +11,14 @@ export const opSetTimeout = (id, callback, value, limit = null) => {
   if (typeof limit !== 'number') return setTimeout(callback, result);
   if (result > limit) return setTimeout(callback, limit);
 };
+
+export function waitForTrue(getValue, checkInterval = 100) {
+  return new Promise((resolve) => {
+    const interval = setInterval(() => {
+      if (getValue()) {
+        clearInterval(interval);
+        resolve();
+      }
+    }, checkInterval);
+  });
+}

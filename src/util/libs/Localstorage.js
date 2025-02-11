@@ -1,6 +1,5 @@
 import EventEmitter from 'events';
 import {
-  Direction,
   UNSIGNED_THREAD_ID_FIELD,
   THREAD_RELATION_TYPE,
   EventType,
@@ -25,6 +24,7 @@ import TinyDbManager from './db/manager';
 import eventsDb from './db/eventsDb';
 import { getAppearance } from './appearance';
 import { MemberEventsList, memberEventAllowed } from '../Events';
+import { waitForTrue } from './timeoutLib';
 
 const genKey = () => generateApiKey().replace(/\~/g, 'pud');
 
@@ -104,29 +104,6 @@ const addCustomSearch = (where, items) => {
     }
   }
 };
-
-const decryptingCache = {};
-const executeDecryptAllEventsOfTimeline = async (tm, roomId) =>
-  new Promise((resolve, reject) => {
-    if (!Array.isArray(decryptingCache[roomId])) {
-      decryptingCache[roomId] = [];
-      decryptAllEventsOfTimeline(tm)
-        .then((data) => {
-          resolve(data);
-          for (const item in decryptingCache[roomId]) {
-            decryptingCache[roomId][item].resolve(data);
-          }
-          delete decryptingCache[roomId];
-        })
-        .catch((err) => {
-          reject(err);
-          for (const item in decryptingCache[roomId]) {
-            decryptingCache[roomId][item].reject(data);
-          }
-          delete decryptingCache[roomId];
-        });
-    } else decryptingCache[roomId].push({ resolve, reject });
-  });
 
 const objWhereChecker = (join, dataCheck = {}, isClone = false) => {
   const newJson = !isClone ? clone(!Array.isArray(join) ? [join] : join) : join;
@@ -516,8 +493,7 @@ class StorageManager extends EventEmitter {
     };
 
     this._timelineSyncCache = this.getJson('ponyHouse-timeline-sync', 'obj');
-    this._lastTimelineSyncCache = clone(this._timelineSyncCache) || {};
-    tinyConsole.log(`[room-db-sync] [sync] Data loaded!`, this._lastTimelineSyncCache);
+    tinyConsole.log(`[room-db-sync] [sync] Data loaded!`, this._timelineSyncCache);
 
     this._timelineLastEvent = this.getJson('ponyHouse-timeline-le-sync', 'obj');
     this._lastTimelineLastEvent = clone(this._timelineLastEvent) || {};
@@ -959,10 +935,6 @@ class StorageManager extends EventEmitter {
 
         tinyConsole.log(`[room-db-sync] [${valueId}] Waiting...`);
 
-        // Decrypt time
-        if (room.hasEncryptionStateEvent())
-          await executeDecryptAllEventsOfTimeline(tm, room.roomId);
-
         // Is complete?
         const isComplete =
           this._timelineSyncCache[valueId] &&
@@ -979,7 +951,7 @@ class StorageManager extends EventEmitter {
           ) {
             tinyConsole.log(`[room-db-sync] [${valueId}] [re-add] Re-add progress detected!`);
             this._eventsLoadWaitingUsing[valueId] = true;
-            this.syncTimelineRecoverEvent(room, threadId, tm);
+            this.syncTimelineRecoverEvent(room, threadId);
           }
         }
 
@@ -1001,7 +973,15 @@ class StorageManager extends EventEmitter {
         if (canStartSync) this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
 
         // Get events
-        const events = tm.getEvents();
+        const roomMsgRequest = await initMatrix.fetchMessages({
+          roomId,
+          limit: __ENV_APP__.TIMELINE_EVENTS_PER_TIME,
+          fromToken: this._timelineSyncCache[valueId]
+            ? this._timelineSyncCache[valueId].paginationToken
+            : null,
+        });
+
+        const events = roomMsgRequest.events.map((eventData) => eventData.mEvent);
 
         // Can use the last event mode. This method will synchronize events until the last event received from this timeline. (ignoring the full sync mode)
         let canLastCheckPoint =
@@ -1132,7 +1112,7 @@ class StorageManager extends EventEmitter {
 
             // Update the non-full sync data
             if (!singleTime && lastTimelineEventId) {
-              lastTimelineToken = tm.getPaginationToken(Direction.Backward);
+              lastTimelineToken = roomMsgRequest.nextToken;
 
               // Complete
               this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
@@ -1164,7 +1144,7 @@ class StorageManager extends EventEmitter {
 
         // Next Timeline
         if (!singleTime) {
-          const nextTimelineToken = tm.getPaginationToken(Direction.Backward);
+          const nextTimelineToken = roomMsgRequest.nextToken;
           if (
             (!isComplete && nextTimelineToken) ||
             (canLastCheckPoint && this._lastTimelineLastEvent[valueId])
@@ -1175,23 +1155,6 @@ class StorageManager extends EventEmitter {
 
             // Next page
             tinyConsole.log(`[room-db-sync] [${valueId}] Getting next timeline page...`);
-            /*
-            await initMatrix.fetchMessage(
-              roomId,
-              __ENV_APP__.TIMELINE_EVENTS_PER_TIME,
-              lastTimelineToken,
-              Direction.Forward,
-            );
-            */
-
-            await mx.paginateEventTimeline(tm, {
-              backwards: Direction.Forward,
-              limit: __ENV_APP__.TIMELINE_EVENTS_PER_TIME,
-            });
-
-            // Delete old cache
-            tinyConsole.log(`[room-db-sync] [${valueId}] New paginate page loaded!`);
-            if (this._lastTimelineSyncCache[valueId]) delete this._lastTimelineSyncCache[valueId];
 
             // Done!
             tinyComplete(
@@ -1212,7 +1175,7 @@ class StorageManager extends EventEmitter {
     }
   }
 
-  async syncTimelineRecoverEvent(room, threadId, tm) {
+  async syncTimelineRecoverEvent(room, threadId) {
     // Matrix Client
     const roomId = room.roomId;
     const valueId = `${roomId}${threadId ? `:${threadId}` : ''}`;
@@ -1228,63 +1191,50 @@ class StorageManager extends EventEmitter {
     tinyConsole.log(`[room-db-sync] [${valueId}] [re-add] Preparing to re-add events...`);
     if (checkTinyArray()) {
       try {
-        // Start events
-        const eTimeline = tm.fork(EventTimeline.FORWARDS);
+        // Get events
+        const events = [];
+        for (const item in this._lastEventsLoadWaiting[valueId]) {
+          let iEvent = null;
 
-        const newEvents = [];
-        const oldEvents = tm.getEvents();
-        for (const item in oldEvents) newEvents.push(oldEvents[item]);
-        eTimeline.initialiseState(newEvents);
+          // Get data from cache
+          if (room) iEvent = room.findEventById(this._lastEventsLoadWaiting[valueId][item]);
 
-        // Start data insert
+          // Get data from server
+          if (!iEvent) {
+            iEvent = await mx.fetchRoomEvent(roomId, this._lastEventsLoadWaiting[valueId][item]);
+            if (iEvent) events.push(new MatrixEvent(iEvent));
+          } else events.push(iEvent);
+        }
+
+        // Decrypt messages (if necessary)
+        await Promise.all(
+          events.map(async (mEvent) => {
+            if (mEvent.getType() === 'm.room.encrypted') {
+              try {
+                const decrypted = await mx.getCrypto().decryptEvent(mEvent);
+                if (objType(decrypted, 'object') && objType(decrypted.clearEvent, 'object'))
+                  mEvent.clearEvent = decrypted.clearEvent;
+              } catch {}
+            }
+          }),
+        );
+
+        // Add new events
+        tinyConsole.log(`[room-db-sync] [${valueId}] [re-add] Readding new events...`, events);
         if (checkTinyArray()) {
-          tinyConsole.log(`[room-db-sync] [${valueId}] [re-add] Preparing a little more...`);
-          if (checkTinyArray()) {
-            tinyConsole.log(`[room-db-sync] [${valueId}] [re-add] Preparing readding id...`);
-            tinyConsole.log(`[room-db-sync] [${valueId}] [re-add]`, eTimeline);
-            // Insert new events
-            if (checkTinyArray()) {
-              for (const item in this._lastEventsLoadWaiting[valueId]) {
-                if (
-                  !newEvents.find(
-                    (event) =>
-                      event.getId() === this._lastEventsLoadWaiting[valueId][item].event_id,
-                  )
-                ) {
-                  const iEvent = await mx.fetchRoomEvent(
-                    roomId,
-                    this._lastEventsLoadWaiting[valueId][item],
-                  );
-
-                  if (iEvent) eTimeline.addEvent(new MatrixEvent(iEvent));
-                }
-              }
-
-              if (room.hasEncryptionStateEvent())
-                await executeDecryptAllEventsOfTimeline(eTimeline, room.roomId);
-
-              const events = eTimeline.getEvents();
-              tinyConsole.log(
-                `[room-db-sync] [${valueId}] [re-add] Readding new events...`,
-                events,
-              );
-              if (checkTinyArray()) {
-                for (const item in events) {
-                  const eventIdp = events[item].getId();
-                  if (this._lastEventsLoadWaiting[valueId].indexOf(eventIdp) > -1) {
-                    this.addToTimeline(events[item]);
-                  }
-                }
-
-                await this.waitAddTimeline();
-                delete this._eventsLoadWaiting[valueId];
-                delete this._lastEventsLoadWaiting[valueId];
-                this.setJson('ponyHouse-storage-loading', this._eventsLoadWaiting);
-
-                tinyConsole.log(`[room-db-sync] [${valueId}] [re-add] New events readded!`);
-              }
+          for (const item in events) {
+            const eventIdp = events[item].getId();
+            if (this._lastEventsLoadWaiting[valueId].indexOf(eventIdp) > -1) {
+              this.addToTimeline(events[item]);
             }
           }
+
+          // Complete
+          await this.waitAddTimeline();
+          delete this._eventsLoadWaiting[valueId];
+          delete this._lastEventsLoadWaiting[valueId];
+          this.setJson('ponyHouse-storage-loading', this._eventsLoadWaiting);
+          tinyConsole.log(`[room-db-sync] [${valueId}] [re-add] New events readded!`);
         }
       } catch (err) {
         tinyConsole.error(err);
@@ -1308,45 +1258,13 @@ class StorageManager extends EventEmitter {
     }
   }
 
-  // Refresh timeline
-  refreshLiveTimeline(room, threadId) {
-    const tinyThis = this;
-    const roomId = room.roomId;
-    const valueId = `${roomId}${threadId ? `:${threadId}` : ''}`;
-    return new Promise((resolve, reject) => {
-      if (!tinyThis._lastEventsLoadWaiting[valueId]) {
-        room
-          .refreshLiveTimeline()
-          .then((data) =>
-            room
-              .loadMembersIfNeeded()
-              .then((data2) => ({ refresh: data, loadMembers: data2 }))
-              .catch(reject),
-          )
-          .catch(reject);
-      } else setTimeout(() => tinyThis.refreshLiveTimeline().then(resolve).catch(reject), 100);
-    });
-  }
-
   // Next timeline
   _syncTimelineComplete(roomId, threadId, valueId) {
-    // const usingTmLastEvent = clone(this._syncTimelineCache.usingTmLastEvent);
-    // const mx = initMatrix.matrixClient;
-
     // Complete!
     if (this._timelineSyncCache[valueId]) {
       this._timelineSyncCache[valueId].isComplete = true;
       this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
     }
-
-    /* const tinyRoom = mx.getRoom(roomId);
-      const tmLastEventUsed = usingTmLastEvent.indexOf(valueId) > -1 ? true : false;
-
-      if (tinyRoom && !tmLastEventUsed)
-        this.refreshLiveTimeline(tinyRoom, threadId).catch((err) =>
-          tinyConsole.error(err),
-        );
-    */
 
     // 100% complete message
     if (this._syncTimelineCache.busy < 1)
@@ -1742,13 +1660,7 @@ class StorageManager extends EventEmitter {
   // Timeout waiter script
   waitAddTimeline() {
     const tinyThis = this;
-    return new Promise((resolve) => {
-      const tinyWaitTime = () => {
-        if (tinyThis._dbQueryQueue < 1) resolve();
-        else setTimeout(tinyWaitTime, 200);
-      };
-      tinyWaitTime();
-    });
+    return waitForTrue(() => tinyThis._dbQueryQueue < 1, 200);
   }
 
   // Add to timeline
