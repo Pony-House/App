@@ -115,11 +115,13 @@ class InitMatrix extends EventEmitter {
     return {
       events: decryptedMessages.reverse(),
       nextToken:
+        decryptedMessages.length > 0 &&
         typeof response.end === 'string' &&
         (ops.dir !== sdk.Direction.Backward || isNewToken(response.end))
           ? response.end
           : null, // Token to the next page
       prevToken:
+        decryptedMessages.length > 0 &&
         typeof response.start === 'string' &&
         (ops.dir !== sdk.Direction.Forward || isNewToken(response.start))
           ? response.start
