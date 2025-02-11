@@ -247,7 +247,7 @@ function MessageReactionGroup({ roomTimeline, mEvent }) {
         />
       ))}
 
-      {canSendReaction && (
+      {canSendReaction && reacts.order.length > 0 && (
         <IconButton
           className="ms-2 btn-sm reaction-message"
           onClick={(e) => {

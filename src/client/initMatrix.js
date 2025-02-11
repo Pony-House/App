@@ -2,7 +2,7 @@ import EventEmitter from 'events';
 import * as sdk from 'matrix-js-sdk';
 
 import Olm from '@matrix-org/olm';
-import { objType } from 'for-promise/utils/lib.mjs';
+import { objType, countObj } from 'for-promise/utils/lib.mjs';
 
 import tinyConsole from '@src/util/libs/console';
 import { clearFetchPwaCache } from '@src/util/pwa/installer';
@@ -70,6 +70,9 @@ class InitMatrix extends EventEmitter {
       filter: null,
       fromToken: null,
       roomId: null,
+      relType: null,
+      eventId: null,
+      filesOnly: false,
     },
   ) {
     // Request parameters
@@ -78,14 +81,35 @@ class InitMatrix extends EventEmitter {
       limit: typeof ops.limit === 'number' ? ops.limit : 10, // Number of events per page
     };
 
+    // Add Filter items
+    const filter = {};
+    if (objType(ops.filter, 'object'))
+      for (const item in ops.filter) filter[item] = ops.filter[item];
+
+    if (ops.filesOnly) {
+      filter.contains_url = true;
+      if (!Array.isArray(filter.types)) filter.types = ['m.room.message'];
+    }
+
+    // Add Values
     if (typeof ops.fromToken === 'string') params.from = ops.fromToken;
-    if (objType(ops.filter, 'object')) params.filter = JSON.stringify(ops.filter);
+    if (countObj(filter) > 0) params.filter = JSON.stringify(filter);
+
+    // Relation Type
+    const relType = typeof ops.relType === 'string' ? ops.relType : null;
+    const eventId = typeof ops.eventId === 'string' ? ops.eventId : null;
 
     // Search API messages
     const response = await this.matrixClient.http.authedRequest(
       'GET',
-      `/rooms/${String(ops.roomId)}/messages`,
+      `/rooms/${String(ops.roomId)}${
+        typeof eventId !== 'string' || typeof relType !== 'string'
+          ? `/messages`
+          : `/relations/${eventId}/${relType}`
+      }`,
       params,
+      null,
+      { prefix: '/_matrix/client/v3' },
     );
 
     // Decrypt messages (if necessary)
@@ -142,17 +166,13 @@ class InitMatrix extends EventEmitter {
 
   async getAccount3pid() {
     if (this.matrixClient) {
-      const res = await fetchFn(
-        `${this.matrixClient.baseUrl}/_matrix/client/v3/account/3pid?access_token=${this.matrixClient.getAccessToken()}`,
-        {
-          headers: {
-            Accept: 'application/json',
-          },
-        },
+      return this.matrixClient.http.authedRequest(
+        'GET',
+        `/account/3pid`,
+        { access_token: this.matrixClient.getAccessToken() },
+        null,
+        { prefix: '/_matrix/client/v3' },
       );
-
-      const data = await res.json();
-      return data;
     }
 
     return null;

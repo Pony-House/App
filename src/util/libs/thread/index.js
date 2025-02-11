@@ -1,6 +1,7 @@
 import $ from 'jquery';
 import moment from 'moment-timezone';
 import EventEmitter from 'events';
+import { Direction } from 'matrix-js-sdk';
 import { objType } from 'for-promise/utils/lib.mjs';
 
 import tinyConsole from '@src/util/libs/console';
@@ -109,17 +110,19 @@ class ThreadsList extends EventEmitter {
   get(config = {}) {
     const tinyThis = this;
     return new Promise((resolve, reject) => {
-      fetchFn(
-        `${tinyThis.mx.baseUrl}/_matrix/client/v1/rooms/${encodeURIComponent(tinyThis.roomId)}/threads?limit=${typeof config.limit === 'number' ? encodeURIComponent(String(config.limit)) : '30'}${typeof config.from === 'string' ? `&from=${encodeURIComponent(config.from)}` : ''}&dir=${typeof config.dir === 'string' ? encodeURIComponent(config.dir) : 'b'}&include=${typeof config.include === 'string' ? encodeURIComponent(config.include) : 'all'}&filter=${objType(config.filter, 'object') ? encodeURIComponent(JSON.stringify(config.filter)) : '%7B%22lazy_load_members%22%3Atrue%7D'}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${tinyThis.mx.getAccessToken()}`,
-          },
-        },
-      )
-        .then((res) => res.json())
+      const params = {
+        limit: typeof config.limit === 'number' ? config.limit : 30,
+        dir: typeof config.dir === 'string' ? config.dir : Direction.Backward,
+        include: typeof config.include === 'string' ? config.include : 'all',
+        filter: objType(config.filter, 'object')
+          ? JSON.stringify(config.filter)
+          : '%7B%22lazy_load_members%22%3Atrue%7D',
+      };
+      if (typeof config.from === 'string') params.from = config.from;
+      tinyThis.mx.http
+        .authedRequest('GET', `/rooms/${tinyThis.roomId}/threads`, params, null, {
+          prefix: '/_matrix/client/v1',
+        })
         .then((data) => {
           const events = [];
 
@@ -161,15 +164,15 @@ class ThreadsList extends EventEmitter {
                   if (objType(ev.unsigned, 'object')) tinyItem.unsigned = ev.unsigned;
 
                   /* events.push(new MatrixEvent({
-                                    origin_server_ts: ev.origin_server_ts,
-                                    content: ev.content,
-                                    event_id: ev.event_id,
-                                    room_id: ev.room_id,
-                                    sender: ev.sender,
-                                    user_id: ev.user_id,
-                                    type: ev.type,
-                                    unsigned: ev.unsigned,
-                                })); */
+                                  origin_server_ts: ev.origin_server_ts,
+                                  content: ev.content,
+                                  event_id: ev.event_id,
+                                  room_id: ev.room_id,
+                                  sender: ev.sender,
+                                  user_id: ev.user_id,
+                                  type: ev.type,
+                                  unsigned: ev.unsigned,
+                              })); */
 
                   events.push(tinyItem);
                 }

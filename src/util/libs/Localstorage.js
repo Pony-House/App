@@ -27,6 +27,9 @@ import { MemberEventsList, memberEventAllowed } from '../Events';
 import { waitForTrue } from './timeoutLib';
 
 const genKey = () => generateApiKey().replace(/\~/g, 'pud');
+/* const getRoomValueId = (roomId, threadId) =>
+  `${roomId}${typeof threadId === 'string' ? `:${threadId}` : ''}`; */
+const getRoomValueId = (roomId) => roomId;
 
 const finishWhereDbPrepare = (memberType, threadId, data, existMemberType = false) => {
   if (!Array.isArray(data.where)) data.where = [data.where];
@@ -802,7 +805,7 @@ class StorageManager extends EventEmitter {
     const ts = event.getTs();
 
     if (typeof roomId === 'string') {
-      const valueId = `${roomId}${typeof threadId === 'string' ? `:${threadId}` : ''}`;
+      const valueId = getRoomValueId(roomId, threadId);
       if (
         typeof ts === 'number' &&
         (!this._timelineLastEvent[valueId] ||
@@ -840,7 +843,7 @@ class StorageManager extends EventEmitter {
       };
 
       if (typeof threadId !== 'boolean' || !threadId)
-        deleteTinyData(`${roomId}${typeof threadId === 'string' ? `:${threadId}` : ''}`);
+        deleteTinyData(getRoomValueId(roomId, threadId));
       else {
         deleteTinyData(roomId);
         for (const item in this._timelineSyncCache) {
@@ -888,7 +891,7 @@ class StorageManager extends EventEmitter {
     const tinyThis = this;
     const loadComplete = (roomId, threadId, updateTinyData, isNext, newTm = null, err = null) => {
       // Default
-      const valueId = `${roomId}${threadId ? `:${threadId}` : ''}`;
+      const valueId = getRoomValueId(roomId, threadId);
 
       // Error
       if (err) {
@@ -931,7 +934,7 @@ class StorageManager extends EventEmitter {
         // Get room data
         const roomId = room.roomId;
         const threadId = thread ? thread?.id : null;
-        const valueId = `${roomId}${threadId ? `:${threadId}` : ''}`;
+        const valueId = getRoomValueId(roomId, threadId);
 
         tinyConsole.log(`[room-db-sync] [${valueId}] Waiting...`);
 
@@ -975,6 +978,7 @@ class StorageManager extends EventEmitter {
         // Get events
         const roomMsgRequest = await initMatrix.fetchMessages({
           roomId,
+          threadId,
           limit: __ENV_APP__.TIMELINE_EVENTS_PER_TIME,
           fromToken: this._timelineSyncCache[valueId]
             ? this._timelineSyncCache[valueId].paginationToken
@@ -1178,7 +1182,7 @@ class StorageManager extends EventEmitter {
   async syncTimelineRecoverEvent(room, threadId) {
     // Matrix Client
     const roomId = room.roomId;
-    const valueId = `${roomId}${threadId ? `:${threadId}` : ''}`;
+    const valueId = getRoomValueId(roomId, threadId);
     const mx = initMatrix.matrixClient;
 
     // Checker
@@ -1290,7 +1294,7 @@ class StorageManager extends EventEmitter {
   }
 
   isRoomSyncing(roomId, threadId) {
-    const valueId = `${roomId}${threadId ? `:${threadId}` : ''}`;
+    const valueId = getRoomValueId(roomId, threadId);
     return (
       this.isSyncingTimelines() &&
       typeof this._syncTimelineCache.eventsAdded[valueId] === 'number' &&
@@ -1672,7 +1676,7 @@ class StorageManager extends EventEmitter {
 
     const thread = event.getThread();
     const threadId = thread ? thread?.id : event.threadRootId || null;
-    const valueId = `${roomId}${threadId ? `:${threadId}` : ''}`;
+    const valueId = getRoomValueId(roomId, threadId);
 
     const eventSnap = event.toSnapshot();
 
