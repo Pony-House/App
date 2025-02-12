@@ -8,9 +8,10 @@ import MyThreadEmitter from './MyThreadEmitter';
 export const threadsCache = {};
 
 class LocalStorageEvent extends EventEmitter {
-  constructor(event) {
+  constructor(event, storageManager) {
     super();
 
+    this.storageManager = storageManager;
     this.event = event;
     this.room = initMatrix.matrixClient.getRoom(this.event.room_id);
 
@@ -83,8 +84,7 @@ class LocalStorageEvent extends EventEmitter {
         const threadValue = `${this.getRoomId()}:${threadId}`;
 
         // Create the thread class and and this into the event
-        if (!threadsCache[threadValue])
-          threadsCache[threadValue] = new MyThreadEmitter(this, storageManager);
+        if (!threadsCache[threadValue]) threadsCache[threadValue] = new MyThreadEmitter(this);
         this.thread = threadsCache[threadValue];
 
         // Complete!

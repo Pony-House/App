@@ -7,9 +7,10 @@ import { getAppearance } from '../appearance';
 export const timelineCache = {};
 
 class MyThreadEmitter extends EventEmitter {
-  constructor(tinyThis, storageManager) {
+  constructor(tinyThis) {
     super();
     this.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
+    const storageManager = tinyThis.storageManager;
 
     this.initialized = false;
     this._starting = null;

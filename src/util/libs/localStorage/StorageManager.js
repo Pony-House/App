@@ -328,7 +328,7 @@ class StorageManager extends StorageManagerBase {
   }
 
   convertToEventFormat(event) {
-    return new LocalStorageEvent(clone(event));
+    return new LocalStorageEvent(clone(event), storageManager);
   }
 
   setTmLastEvent(event) {
