@@ -8,6 +8,7 @@ import { avatarDefaultColor } from '@src/app/atoms/avatar/Avatar';
 import { colorMXID } from '../colorMXID';
 import { getBlobSafeMimeType } from '../mimetypes';
 import envAPI from './env';
+import tinyConsole from './console';
 
 const LOAD_DELAY_COUNTER = __ENV_APP__.MXC_FETCH_WAITER;
 const fetchLimit = {
@@ -196,10 +197,15 @@ class MxcUrl extends EventEmitter {
     };
 
     if (typeof type === 'string' && type.length > 0) {
-      const tinyUrl = new URL(tinyLink);
-      if (typeof tinyUrl.search === 'string' && tinyUrl.search.length > 0) tinyLink += `&`;
-      else tinyLink += `?`;
-      tinyLink += `ph_mxc_type=${type}`;
+      try {
+        const tinyUrl = new URL(tinyLink);
+        if (typeof tinyUrl.search === 'string' && tinyUrl.search.length > 0) tinyLink += `&`;
+        else tinyLink += `?`;
+        tinyLink += `ph_mxc_type=${type}`;
+      } catch (err) {
+        tinyConsole.log(`MCX Error in the URL: ${tinyLink}`);
+        tinyConsole.error(err);
+      }
     }
 
     if (!ignoreAuth && this._isAuth && this.mx && link.startsWith(`${this.mx.baseUrl}/`)) {
