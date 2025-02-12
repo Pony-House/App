@@ -25,8 +25,8 @@ export const resetThreadsCache = () => {
 
 const timelineCache = {};
 
-export const createTimelineCache = (roomId) => {
-  timelineCache[roomId] = {
+export const createTimelineCache = (roomId, threadId) => {
+  timelineCache[`${roomId}${threadId ? `:${threadId}` : ''}`] = {
     timeline: [],
     page: 0,
     pages: 0,
@@ -40,22 +40,22 @@ export const createTimelineCache = (roomId) => {
   return timelineCache[roomId];
 };
 
-export const getTimelineCache = (roomId, forceCreate = false) => {
-  if (timelineCache[roomId]) return timelineCache[roomId];
-  else if (forceCreate) return createTimelineCache(roomId);
+export const getTimelineCache = (valueId, forceCreate = false, roomId = null, threadId = null) => {
+  if (timelineCache[valueId]) return timelineCache[valueId];
+  else if (forceCreate) return createTimelineCache(roomId, threadId);
   return null;
 };
 
-export const delTimelineCache = (roomId) => {
-  if (timelineCache[roomId]) {
-    delete timelineCache[roomId];
+export const delTimelineCache = (valueId) => {
+  if (timelineCache[valueId]) {
+    delete timelineCache[valueId];
     return true;
   }
   return false;
 };
 
 export const resetTimelineCache = () => {
-  for (const roomId in timelineCache) {
-    delTimelineCache(roomId);
+  for (const valueId in timelineCache) {
+    delTimelineCache(valueId);
   }
 };

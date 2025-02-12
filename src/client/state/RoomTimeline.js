@@ -49,7 +49,7 @@ class RoomTimeline extends EventEmitter {
     this.timelineId = `${roomId}${threadId ? `:${threadId}` : ''}`;
 
     // These are local timelines
-    const timelineCacheData = getTimelineCache(this.timelineId, true);
+    const timelineCacheData = getTimelineCache(this.timelineId, true, roomId, threadId);
 
     this.editedTimeline = timelineCacheData.editedTimeline;
     this.reactionTimeline = timelineCacheData.reactionTimeline;
