@@ -1447,7 +1447,7 @@ function Message({
   );
 
   // Normal Message
-  if (msgType !== 'm.bad.encrypted') {
+  if (msgType !== 'm.bad.encrypted' && mEvent.getType() !== 'm.room.encrypted') {
     if (mEvent.getType() !== 'm.sticker' || isStickersVisible) {
       // Return Data
       return (
