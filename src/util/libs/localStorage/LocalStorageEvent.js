@@ -4,8 +4,7 @@ import { objType } from 'for-promise/utils/lib.mjs';
 
 import initMatrix from '@src/client/initMatrix';
 import MyThreadEmitter from './MyThreadEmitter';
-
-export const threadsCache = {};
+import { createThreadsCache, getThreadsCache } from './cache';
 
 class LocalStorageEvent extends EventEmitter {
   constructor(event, storageManager) {
@@ -84,8 +83,9 @@ class LocalStorageEvent extends EventEmitter {
         const threadValue = `${this.getRoomId()}:${threadId}`;
 
         // Create the thread class and and this into the event
-        if (!threadsCache[threadValue]) threadsCache[threadValue] = new MyThreadEmitter(this);
-        this.thread = threadsCache[threadValue];
+        if (!getThreadsCache(threadValue))
+          createThreadsCache(threadValue, new MyThreadEmitter(this));
+        this.thread = getThreadsCache(threadValue);
 
         // Complete!
         return !fetchNow ? true : this.thread.fetch();

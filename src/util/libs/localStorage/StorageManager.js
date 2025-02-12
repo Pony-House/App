@@ -11,9 +11,10 @@ import { toTitleCase } from '../../tools';
 import TinyDbManager from '../db/manager';
 import eventsDb from '../db/eventsDb';
 import { waitForTrue } from '../timeoutLib';
+
+// Local Storage modules
 import StorageManagerBase from './Ls';
 import LocalStorageEvent from './LocalStorageEvent';
-
 import {
   genKey,
   getRoomValueId,
@@ -22,7 +23,9 @@ import {
   addCustomSearch,
   objWhereChecker,
 } from './lib';
+import { delTimelineCache, resetTimelineCache } from './cache';
 
+// Class
 class StorageManager extends StorageManagerBase {
   constructor() {
     super();
@@ -373,6 +376,7 @@ class StorageManager extends StorageManagerBase {
         }
 
         if (this._lastEventsLoadWaiting[valueId]) delete this._lastEventsLoadWaiting[valueId];
+        delTimelineCache(valueId);
       };
 
       if (typeof threadId !== 'boolean' || !threadId)
@@ -409,6 +413,7 @@ class StorageManager extends StorageManagerBase {
     this.removeItem('ponyHouse-timeline-le-sync');
     this._timelineLastEvent = {};
     this._lastEventsLoadWaiting = {};
+    resetTimelineCache();
   }
 
   // Sync Timeline

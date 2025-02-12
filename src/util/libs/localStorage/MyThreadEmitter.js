@@ -3,8 +3,7 @@ import EventEmitter from 'events';
 import initMatrix from '@src/client/initMatrix';
 import cons from '@src/client/state/cons';
 import { getAppearance } from '../appearance';
-
-export const timelineCache = {};
+import { getTimelineCache } from './cache';
 
 class MyThreadEmitter extends EventEmitter {
   constructor(tinyThis) {
@@ -45,10 +44,10 @@ class MyThreadEmitter extends EventEmitter {
 
               // Get root event data
               if (tinyThis.threadRootId) {
+                const roomTimelineCache = getTimelineCache(thread.roomId);
                 const rootEvent =
-                  timelineCache[thread.roomId] &&
-                  Array.isArray(timelineCache[thread.roomId].timeline)
-                    ? timelineCache[thread.roomId].timeline.find(
+                  roomTimelineCache && Array.isArray(roomTimelineCache.timeline)
+                    ? roomTimelineCache.timeline.find(
                         (item) => item.getId() === tinyThis.threadRootId,
                       )
                     : null;

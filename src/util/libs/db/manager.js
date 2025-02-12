@@ -13,7 +13,7 @@ class TinyDbManager extends EventEmitter {
     super();
     this.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
 
-    this._dbVersion = 30;
+    this._dbVersion = 31;
     this._oldDbVersion = global.localStorage.getItem('ponyHouse-db-version') || 0;
     this.dbName = 'pony-house-database';
 

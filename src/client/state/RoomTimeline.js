@@ -3,7 +3,7 @@ import EventEmitter from 'events';
 import tinyConsole from '@src/util/libs/console';
 
 import storageManager from '@src/util/libs/localStorage/StorageManager';
-import { timelineCache } from '@src/util/libs/localStorage/MyThreadEmitter';
+import { getTimelineCache } from '@src/util/libs/localStorage/cache';
 import { getAppearance } from '@src/util/libs/appearance';
 
 import initMatrix from '../initMatrix';
@@ -49,24 +49,13 @@ class RoomTimeline extends EventEmitter {
     this.timelineId = `${roomId}${threadId ? `:${threadId}` : ''}`;
 
     // These are local timelines
-    if (!timelineCache[this.timelineId])
-      timelineCache[this.timelineId] = {
-        timeline: [],
-        page: 0,
-        pages: 0,
-        lastEvent: null,
-        threadId,
-        roomId,
-        editedTimeline: new Map(),
-        reactionTimeline: new Map(),
-        reactionTimelineTs: {},
-      };
+    const timelineCacheData = getTimelineCache(this.timelineId, true);
 
-    this.editedTimeline = timelineCache[this.timelineId].editedTimeline;
-    this.reactionTimeline = timelineCache[this.timelineId].reactionTimeline;
-    this.reactionTimelineTs = timelineCache[this.timelineId].reactionTimelineTs;
+    this.editedTimeline = timelineCacheData.editedTimeline;
+    this.reactionTimeline = timelineCacheData.reactionTimeline;
+    this.reactionTimelineTs = timelineCacheData.reactionTimelineTs;
 
-    this.timelineCache = timelineCache[this.timelineId];
+    this.timelineCache = timelineCacheData;
     this.timeline = this.timelineCache.timeline;
     for (const item in this.timeline) {
       const mEvent = this.timeline[item];
@@ -413,7 +402,7 @@ class RoomTimeline extends EventEmitter {
   getTimelineCache(event) {
     const threadId = event.getThreadId();
     const roomId = event.getRoomId();
-    return timelineCache[`${roomId}${threadId ? `:${threadId}` : ''}`];
+    return getTimelineCache(`${roomId}${threadId ? `:${threadId}` : ''}`);
   }
 
   // Belong to Room
