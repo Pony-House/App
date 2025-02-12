@@ -517,7 +517,7 @@ class StorageManager extends StorageManagerBase {
         const roomMsgRequest = await initMatrix.fetchMessages({
           roomId,
           threadId,
-          limit: __ENV_APP__.TIMELINE_EVENTS_PER_TIME,
+          limit: __ENV_APP__.PAG_LIMIT,
           fromToken: this._timelineSyncCache[valueId]
             ? this._timelineSyncCache[valueId].paginationToken
             : null,

@@ -135,9 +135,10 @@ export const enableyJsItem = {
 };
 
 // Get User renders
-export const getEventReaders = (room, liveTimeline, mEvent) => {
+export const getEventReaders = (room, liveTimeline, theEvent) => {
   const lTime = liveTimeline || room.getLiveTimeline();
   const liveEvents = lTime.getEvents();
+  const mEvent = room.findEventById(theEvent.getId()) || theEvent;
 
   const readers = [];
   if (!mEvent) return [];
