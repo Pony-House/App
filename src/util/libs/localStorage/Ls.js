@@ -5,6 +5,7 @@ class StorageManagerBase extends EventEmitter {
   constructor() {
     super();
     this.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
+    const tinyThis = this;
 
     // Is Persisted
     this.isPersisted = null;
