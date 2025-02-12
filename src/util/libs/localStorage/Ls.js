@@ -4,6 +4,7 @@ import { objType } from 'for-promise/utils/lib.mjs';
 class StorageManagerBase extends EventEmitter {
   constructor() {
     super();
+    this.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
 
     // Is Persisted
     this.isPersisted = null;

@@ -11,6 +11,7 @@ const getTableName = (tableData) => (typeof tableData === 'string' ? tableData :
 class TinyDbManager extends EventEmitter {
   constructor() {
     super();
+    this.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
 
     this._dbVersion = 30;
     this._oldDbVersion = global.localStorage.getItem('ponyHouse-db-version') || 0;

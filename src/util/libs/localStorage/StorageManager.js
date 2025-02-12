@@ -54,7 +54,6 @@ class StorageManager extends StorageManagerBase {
 
     // new Worker(new URL("worker.js", import.meta.url));
     this.dbManager = new TinyDbManager();
-    this.dbManager.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
 
     for (const item in eventsDb) {
       const data = typeof eventsDb[item] === 'string' ? { name: eventsDb[item] } : eventsDb[item];
@@ -1491,7 +1490,6 @@ class StorageManager extends StorageManagerBase {
 
 // Functions and class
 const storageManager = new StorageManager();
-storageManager.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
 export default storageManager;
 
 if (__ENV_APP__.MODE === 'development') {
