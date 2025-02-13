@@ -2,7 +2,6 @@ import EventEmitter from 'events';
 import * as sdk from 'matrix-js-sdk';
 
 import Olm from '@matrix-org/olm';
-import { objType, countObj } from 'for-promise/utils/lib.mjs';
 
 import tinyConsole from '@src/util/libs/console';
 import { clearFetchPwaCache } from '@src/util/pwa/installer';
