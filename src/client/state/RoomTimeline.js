@@ -217,7 +217,6 @@ class RoomTimeline extends EventEmitter {
       if (msgIndex > -1) {
         this.timelineCache.timeline.splice(msgIndex, 1);
         this._deletingEventPlaces(eventId);
-        this._disablingEventPlaces(mEvent);
       }
       return tinyThis._timelineUpdated('message-complete', mEvent);
     };
@@ -488,7 +487,7 @@ class RoomTimeline extends EventEmitter {
           tmc,
           (removedEvent) => {
             tinyThis._deletingEventPlaces(removedEvent.getId());
-            tinyThis._disablingEventPlaces(removedEvent);
+            // Event removed
           },
           forceAdd,
         );
@@ -496,7 +495,7 @@ class RoomTimeline extends EventEmitter {
           if (tmc.roomId === this.roomId && (!tmc.threadId || tmc.threadId === this.threadId)) {
             if (mEvent.isEdited()) this.editedTimeline.set(eventId, [mEvent.getEditedContent()]);
             if (!isFirstTime) this.emit(cons.events.roomTimeline.EVENT, mEvent);
-            this._enablingEventPlaces(mEvent);
+            // Event added
           }
         }
       } catch (err) {
@@ -522,64 +521,6 @@ class RoomTimeline extends EventEmitter {
     if (this._eventsQueue.busy < 1) {
       this._eventsQueue.busy++;
       this._addEventQueue(ignoredReactions);
-    }
-  }
-
-  // Deleting places
-  _deletingEventPlaces(redacts) {
-    this.editedTimeline.delete(redacts);
-    this.reactionTimeline.delete(redacts);
-
-    let relateToId = null;
-    for (const item in this.reactionTimelineTs) {
-      if (item.endsWith(`:${redacts}`)) {
-        relateToId = item.substring(0, item.length - redacts.length - 1);
-        break;
-      }
-    }
-
-    if (relateToId) {
-      const mEvents = this.reactionTimeline.get(relateToId);
-      if (mEvents) {
-        const index = mEvents.findIndex((ev) => ev.getId() === redacts);
-        if (index > -1) {
-          const rEvent = mEvents[index];
-          mEvents.splice(index, 1);
-          if (mEvents.length < 1) this.reactionTimeline.delete(relateToId);
-
-          const ts = rEvent.getTs();
-          rEvent.forceRedaction();
-          tinyConsole.log(`${this._consoleTag} Reaction removed: ${redacts}`, ts);
-          this.reactionTimelineTs[`${relateToId}:${redacts}`] = ts;
-          this.emit(cons.events.roomTimeline.EVENT_REDACTED, rEvent);
-        }
-      }
-    }
-  }
-
-  // Enabling events
-  _enablingEventPlaces(mEvent) {
-    // mEvent.on('PonyHouse.ThreatInitialized', this._autoUpdateEvent);
-  }
-
-  // Disabling events
-  _disablingEventPlaces(mEvent) {
-    // mEvent.off('PonyHouse.ThreatInitialized', this._autoUpdateEvent);
-  }
-
-  // Deleting events
-  _deletingEvent(event) {
-    return this._deletingEventById(event.getContent()?.redacts);
-  }
-
-  _deletingEventById(redacts) {
-    const rEvent = this.deleteFromTimeline(redacts);
-    this._deletingEventPlaces(redacts, rEvent);
-    if (rEvent) {
-      this._disablingEventPlaces(rEvent);
-      rEvent.forceRedaction();
-      tinyConsole.log(`${this._consoleTag} Deleting event: ${rEvent.getId()}`, rEvent.getTs());
-      this.emit(cons.events.roomTimeline.EVENT_REDACTED, rEvent);
     }
   }
 
@@ -757,7 +698,6 @@ class RoomTimeline extends EventEmitter {
         this._startTimeline,
       );
 
-      for (const item in this.timeline) this._disablingEventPlaces(this.timeline[item]);
       this._closed = true;
     }
   }
@@ -833,8 +773,19 @@ class RoomTimeline extends EventEmitter {
     }
   }
 
-  deleteFromTimeline(eventId) {
-    return timelineCache.deleteItem(this.roomId, this.threadId, eventId);
+  _deletingEvent(event) {
+    const rEvent = timelineCache.deletingEvent(this.roomId, this.threadId, event);
+    if (rEvent) this.emit(cons.events.roomTimeline.EVENT_REDACTED, rEvent);
+  }
+
+  _deletingEventById(redacts) {
+    const rEvent = timelineCache.deletingEventById(this.roomId, this.threadId, redacts);
+    if (rEvent) this.emit(cons.events.roomTimeline.EVENT_REDACTED, rEvent);
+  }
+
+  _deletingEventPlaces(redacts) {
+    const rEvent = timelineCache.deletingEventPlaces(this.roomId, this.threadId, redacts);
+    if (rEvent) this.emit(cons.events.roomTimeline.EVENT_REDACTED, rEvent);
   }
 
   getPages() {
