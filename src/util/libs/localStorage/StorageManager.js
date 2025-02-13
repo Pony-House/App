@@ -519,6 +519,7 @@ class StorageManager extends StorageManagerBase {
           roomId,
           threadId,
           limit: __ENV_APP__.PAG_LIMIT,
+          ignoreCache: true,
           fromToken: this._timelineSyncCache[valueId]
             ? this._timelineSyncCache[valueId].paginationToken
             : null,
