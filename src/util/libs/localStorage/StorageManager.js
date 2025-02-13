@@ -498,6 +498,7 @@ class StorageManager extends StorageManagerBase {
 
         // Matrix client
         const mx = initMatrix.matrixClient;
+        const em = initMatrix.eventManager;
 
         // Start timeline sync cache
         let canStartSync = false;
@@ -514,7 +515,7 @@ class StorageManager extends StorageManagerBase {
         if (canStartSync) this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
 
         // Get events
-        const roomMsgRequest = await initMatrix.fetchEvents({
+        const roomMsgRequest = await em.fetchEvents({
           roomId,
           threadId,
           limit: __ENV_APP__.PAG_LIMIT,
