@@ -83,11 +83,27 @@ class RoomTimeline extends EventEmitter {
   }
 
   getPages() {
-    return this.timelineCache.pages;
+    return timelineCache.getPages(this.roomId, this.threadId);
   }
 
   getPage() {
-    return this.timelineCache.page;
+    return timelineCache.getPage(this.roomId, this.threadId);
+  }
+
+  _setPages(value) {
+    return timelineCache.setPages(this.roomId, this.threadId, value);
+  }
+
+  _setPage(value) {
+    return timelineCache.setPage(this.roomId, this.threadId, value);
+  }
+
+  _addPage(value) {
+    return timelineCache.addPageValue(this.roomId, this.threadId, value);
+  }
+
+  _subPage(value) {
+    return timelineCache.subPageValue(this.roomId, this.threadId, value);
   }
 
   setPage(page) {
@@ -149,8 +165,8 @@ class RoomTimeline extends EventEmitter {
 
           const getMsgConfig = tinyThis._buildPagination({ page: 1 });
 
-          if (tinyThis.timelineCache.pages < 1) {
-            tinyThis.timelineCache.pages = await storageManager.getMessagesPagination(getMsgConfig);
+          if (tinyThis.getPages() < 1) {
+            tinyThis._setPages(await storageManager.getMessagesPagination(getMsgConfig));
             tinyThis.emit(cons.events.roomTimeline.PAGES_UPDATED, tinyThis.timelineCache);
           }
 
@@ -179,8 +195,8 @@ class RoomTimeline extends EventEmitter {
             }
           }
 
-          if (tinyThis.timelineCache.page < 1) {
-            tinyThis.timelineCache.page = 1;
+          if (tinyThis.getPage() < 1) {
+            tinyThis._setPage(1);
             tinyThis.emit(cons.events.roomTimeline.PAGES_UPDATED, tinyThis.timelineCache);
           }
 
@@ -709,12 +725,12 @@ class RoomTimeline extends EventEmitter {
   async paginateTimeline(backwards = false) {
     // Initialization
     if (this.isOngoingPagination) return false;
-    const oldPage = this.timelineCache.page;
+    const oldPage = this.getPage();
 
     if (typeof backwards === 'boolean') {
-      if (backwards) this.timelineCache.page++;
-      else this.timelineCache.page--;
-    } else if (typeof backwards === 'number') this.timelineCache.page = backwards;
+      if (backwards) this._addPage();
+      else this._subPage();
+    } else if (typeof backwards === 'number') this._setPage(backwards);
 
     this.isOngoingPagination = true;
 
@@ -724,7 +740,7 @@ class RoomTimeline extends EventEmitter {
     // Try time
     try {
       // Get Last Page
-      if (this.timelineCache.page > 1 && !this.timelineCache.lastEvent) {
+      if (this.getPage() > 1 && !this.timelineCache.lastEvent) {
         const firstTimeline = await storageManager.getMessages(
           this._buildPagination({ page: 1, limit: 1 }),
         );
@@ -737,11 +753,9 @@ class RoomTimeline extends EventEmitter {
 
         // Normal get page
         const normalGetData = async () => {
-          tinyThis.timelineCache.pages = await storageManager.getMessagesPagination(
-            this._buildPagination(),
-          );
+          tinyThis._setPages(await storageManager.getMessagesPagination(this._buildPagination()));
           events = await storageManager.getMessages(
-            this._buildPagination({ page: this.timelineCache.page }),
+            this._buildPagination({ page: this.getPage() }),
           );
           tinyThis.emit(cons.events.roomTimeline.PAGES_UPDATED, tinyThis.timelineCache);
         };
@@ -766,8 +780,8 @@ class RoomTimeline extends EventEmitter {
           );
 
           if (data && data.success) {
-            this.timelineCache.pages = data.pages;
-            this.timelineCache.page = data.page;
+            this._setPages(data.pages);
+            this._setPage(data.page);
             events = data.items;
             tinyThis.emit(cons.events.roomTimeline.PAGES_UPDATED, tinyThis.timelineCache);
           } else await normalGetData();
@@ -863,11 +877,11 @@ class RoomTimeline extends EventEmitter {
       this.timelineCache.timeline[0]?.getType() === 'm.room.create'
     )
       return false;
-    return this.timelineCache.page !== this.timelineCache.pages;
+    return this.getPage() !== this.getPages();
   }
 
   canPaginateForward() {
-    return this.timelineCache.page > 1;
+    return this.getPage() > 1;
   }
 
   isEncrypted() {
