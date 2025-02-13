@@ -1,7 +1,12 @@
+import TimelineCacheReactions from './TimelineCacheReactions';
 import cons from '@src/client/state/cons';
 import { getAppearance } from '../../appearance';
 
-class TimelineCacheTmItem {
+class TimelineCacheTmItem extends TimelineCacheReactions {
+  constructor() {
+    super();
+  }
+
   // Update Item
   async updateItem(mEvent, tmc, removeEventCallback, forceAdd) {
     // Get info

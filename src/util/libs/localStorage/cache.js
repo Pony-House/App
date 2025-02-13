@@ -38,3 +38,8 @@ export const threadsCache = new ThreadsCache();
 
 // Timeline cache
 export const timelineCache = new TimelineCacheBase();
+
+if (__ENV_APP__.MODE === 'development') {
+  global.timelineCache = timelineCache;
+  global.threadsCache = timelineCache;
+}

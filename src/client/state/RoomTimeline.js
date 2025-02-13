@@ -412,101 +412,7 @@ class RoomTimeline extends EventEmitter {
   _buildPagination(config = {}) {
     const threadId = config.threadId || this.threadId;
     const roomId = config.roomId || this.roomId;
-    const page = config.page;
-    const eventId = config.eventId;
-    const limit = config.limit;
-
-    const getMsgConfig = {
-      roomId: roomId,
-      showRedaction: false,
-    };
-
-    if (typeof limit === 'number') {
-      if (!Number.isNaN(limit) && Number.isFinite(limit) && limit > 0) getMsgConfig.limit = limit;
-    } else getMsgConfig.limit = getAppearance('pageLimit');
-
-    if (typeof page === 'number') getMsgConfig.page = page;
-    if (!threadId) getMsgConfig.showThreads = false;
-    if (typeof eventId === 'string' || Array.isArray(eventId)) getMsgConfig.eventId = eventId;
-    else getMsgConfig.threadId = threadId;
-    return getMsgConfig;
-  }
-
-  getRelateToId(mEvent) {
-    const relation = mEvent.getRelation();
-    return relation && (relation.event_id ?? null);
-  }
-
-  async _insertReactions(newEvent) {
-    // Get event list
-    const queryEvents = [];
-    const queryEvents2 = [];
-    if (!Array.isArray(newEvent)) {
-      queryEvents.push(newEvent.getId());
-      queryEvents2.push(newEvent);
-    } else
-      for (const item in newEvent) {
-        queryEvents.push(newEvent[item].getId());
-        queryEvents2.push(newEvent[item]);
-      }
-
-    const reactions = await storageManager.getReactions(
-      this._buildPagination({ limit: NaN, targetId: queryEvents }),
-    );
-
-    // Insert reactions
-    for (const item in reactions) {
-      this._insertReaction(reactions[item]);
-    }
-  }
-
-  _getReactionTimeline(mEvent) {
-    const relateToId = this.getRelateToId(mEvent);
-    if (relateToId === null) return { mEvents: null, mEventId: null, tsId: null };
-    if (!this.reactionTimeline.has(relateToId)) this.reactionTimeline.set(relateToId, []);
-    const mEvents = this.reactionTimeline.get(relateToId);
-    return { mEvents, relateToId, tsId: `${relateToId}:${mEvent.getId()}` };
-  }
-
-  _insertReaction(mEvent) {
-    const isRedacted = mEvent.isRedacted();
-    if (!isRedacted) {
-      const { mEvents, tsId } = this._getReactionTimeline(mEvent);
-      const ts = mEvent.getTs();
-      if (
-        mEvents &&
-        (typeof this.reactionTimelineTs[tsId] !== 'number' || ts > this.reactionTimelineTs[tsId])
-      ) {
-        if (mEvents.find((ev) => ev.getId() === mEvent.getId())) return;
-        tinyConsole.log(`${this._consoleTag} New reaction: ${mEvent.getId()}`, ts);
-        mEvents.push(mEvent);
-        this.reactionTimelineTs[tsId] = ts;
-        this.emit(cons.events.roomTimeline.EVENT, mEvent);
-      }
-    } else this._removeReaction(mEvent);
-  }
-
-  _removeReaction(mEvent) {
-    const isRedacted = mEvent.isRedacted();
-    if (isRedacted) {
-      const { mEvents, relateToId, tsId } = this._getReactionTimeline(mEvent);
-      const ts = mEvent.getTs();
-      if (
-        mEvents &&
-        (typeof this.reactionTimelineTs[tsId] !== 'number' || ts > this.reactionTimelineTs[tsId])
-      ) {
-        const index = mEvents.find((ev) => ev.getId() === mEvent.getId());
-        if (index > -1) {
-          mEvent.forceRedaction();
-          tinyConsole.log(`${this._consoleTag} Reaction removed: ${mEvent.getId()}`, ts);
-          mEvents.splice(index, 1);
-          if (mEvents.length < 1) this.reactionTimeline.delete(relateToId);
-
-          this.reactionTimelineTs[tsId] = ts;
-          this.emit(cons.events.roomTimeline.EVENT_REDACTED, mEvent);
-        }
-      }
-    }
+    return timelineCache.buildPagination(roomId, threadId, config);
   }
 
   async checkEventThreads(newEvent) {
@@ -909,6 +815,22 @@ class RoomTimeline extends EventEmitter {
     const threadId = event.getThreadId();
     const roomId = event.getRoomId();
     return timelineCache.get(roomId, threadId);
+  }
+
+  _insertReaction(mEvent) {
+    const result = timelineCache.insertReaction(this.roomId, this.threadId, mEvent);
+    if (result.inserted) this.emit(cons.events.roomTimeline.EVENT, mEvent);
+    if (result.deleted) this.emit(cons.events.roomTimeline.EVENT_REDACTED, mEvent);
+  }
+
+  async _insertReactions(events) {
+    const result = await timelineCache.insertReactions(this.roomId, this.threadId, events);
+    for (const index in result) {
+      if (result[index].data.inserted)
+        this.emit(cons.events.roomTimeline.EVENT, result[index].mEvent);
+      if (result[index].data.deleted)
+        this.emit(cons.events.roomTimeline.EVENT_REDACTED, result[index].mEvent);
+    }
   }
 
   deleteFromTimeline(eventId) {

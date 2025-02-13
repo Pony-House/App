@@ -11,6 +11,10 @@ class TimelineCacheBase extends TimelineCacheTmItem {
     return `${roomId}${threadId ? `:${threadId}` : ''}`;
   }
 
+  consoleTag(roomId, threadId) {
+    return `[timeline] [${roomId}]${threadId ? ` [${threadId}]` : ''}`;
+  }
+
   // Page
   getPage(roomId, threadId) {
     const valueId = this.getCacheId(roomId, threadId);
