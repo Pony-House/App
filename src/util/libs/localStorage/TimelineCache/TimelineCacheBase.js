@@ -1,6 +1,6 @@
-import TimelineCacheItem from './TimelineCacheItem';
+import TimelineCacheTmItem from './TimelineCacheTmItem';
 
-class TimelineCacheBase extends TimelineCacheItem {
+class TimelineCacheBase extends TimelineCacheTmItem {
   constructor() {
     super();
     this.cache = {};

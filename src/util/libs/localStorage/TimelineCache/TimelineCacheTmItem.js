@@ -1,7 +1,7 @@
 import cons from '@src/client/state/cons';
 import { getAppearance } from '../../appearance';
 
-class TimelineCacheItem {
+class TimelineCacheTmItem {
   // Update Item
   async updateItem(mEvent, tmc, removeEventCallback, forceAdd) {
     // Get info
@@ -63,4 +63,4 @@ class TimelineCacheItem {
   }
 }
 
-export default TimelineCacheItem;
+export default TimelineCacheTmItem;
