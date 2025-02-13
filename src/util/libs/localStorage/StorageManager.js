@@ -514,7 +514,7 @@ class StorageManager extends StorageManagerBase {
         if (canStartSync) this.setJson('ponyHouse-timeline-sync', this._timelineSyncCache);
 
         // Get events
-        const roomMsgRequest = await initMatrix.fetchMessages({
+        const roomMsgRequest = await initMatrix.fetchEvents({
           roomId,
           threadId,
           limit: __ENV_APP__.PAG_LIMIT,

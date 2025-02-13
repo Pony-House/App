@@ -63,7 +63,7 @@ class InitMatrix extends EventEmitter {
     }
   }
 
-  async fetchMessages(
+  async fetchEvents(
     ops = {
       dir: sdk.Direction.Backward,
       limit: 10,
