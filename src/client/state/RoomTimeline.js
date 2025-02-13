@@ -3,7 +3,7 @@ import EventEmitter from 'events';
 import tinyConsole from '@src/util/libs/console';
 
 import storageManager from '@src/util/libs/localStorage/StorageManager';
-import { getTimelineCache } from '@src/util/libs/localStorage/cache';
+import { timelineCache } from '@src/util/libs/localStorage/cache';
 import { getAppearance } from '@src/util/libs/appearance';
 
 import initMatrix from '../initMatrix';
@@ -49,7 +49,7 @@ class RoomTimeline extends EventEmitter {
     this.timelineId = `${roomId}${threadId ? `:${threadId}` : ''}`;
 
     // These are local timelines
-    const timelineCacheData = getTimelineCache(this.timelineId, true, roomId, threadId);
+    const timelineCacheData = timelineCache.get(roomId, threadId, true);
 
     this.editedTimeline = timelineCacheData.editedTimeline;
     this.reactionTimeline = timelineCacheData.reactionTimeline;
@@ -402,7 +402,7 @@ class RoomTimeline extends EventEmitter {
   getTimelineCache(event) {
     const threadId = event.getThreadId();
     const roomId = event.getRoomId();
-    return getTimelineCache(`${roomId}${threadId ? `:${threadId}` : ''}`);
+    return timelineCache.get(roomId, threadId);
   }
 
   // Belong to Room
@@ -599,48 +599,17 @@ class RoomTimeline extends EventEmitter {
           return;
         }
 
-        // Get info
-        const pageLimit = getAppearance('pageLimit');
-        const eventTs = mEvent.getTs();
-        if (
-          // Is page 1
-          (tmc.page < 2 || forceAdd) &&
-          // Exist?
-          !mEvent.isRedacted() &&
-          // More validation
-          cons.supportEventTypes.indexOf(mEvent.getType()) > -1 &&
-          // Timeline limit or by event time?
-          (tmc.timeline.length < pageLimit || eventTs > tmc.timeline[0].getTs())
-        ) {
-          // Update last event
-          const eventId = mEvent.getId();
-          if (!tmc.lastEvent || eventTs > tmc.lastEvent.getTs()) tmc.lastEvent = mEvent;
-
-          // Insert event
-          const msgIndex = tmc.timeline.findIndex((item) => item.getId() === eventId);
-          if (msgIndex < 0) {
-            // Check thread
-            if (
-              mEvent.thread &&
-              typeof mEvent.thread.fetch === 'function' &&
-              !mEvent.thread.initialized
-            )
-              await mEvent.thread.fetch();
-
-            // Add event
-            tmc.timeline.push(mEvent);
-            if (tmc.timeline.length > pageLimit) {
-              // Remove event
-              const removedEvent = tmc.timeline.shift();
-              this._deletingEventPlaces(removedEvent.getId());
-              this._disablingEventPlaces(removedEvent);
-            }
-
-            // Sort list
-            tmc.timeline.sort((a, b) => a.getTs() - b.getTs());
-          } else tmc.timeline[msgIndex] = mEvent;
-
-          // Complete
+        // Complete
+        const eventInserted = await timelineCache.updateItem(
+          mEvent,
+          tmc,
+          (removedEvent) => {
+            tinyThis._deletingEventPlaces(removedEvent.getId());
+            tinyThis._disablingEventPlaces(removedEvent);
+          },
+          forceAdd,
+        );
+        if (eventInserted) {
           if (tmc.roomId === this.roomId && (!tmc.threadId || tmc.threadId === this.threadId)) {
             if (mEvent.isEdited()) this.editedTimeline.set(eventId, [mEvent.getEditedContent()]);
             if (!isFirstTime) this.emit(cons.events.roomTimeline.EVENT, mEvent);
@@ -873,9 +842,7 @@ class RoomTimeline extends EventEmitter {
 
   // Simpler scripts
   deleteFromTimeline(eventId) {
-    const i = this.getEventIndex(eventId);
-    if (i === -1) return undefined;
-    return this.timelineCache.timeline.splice(i, 1)[0];
+    return timelineCache.deleteItem(this.roomId, this.threadId, eventId);
   }
 
   // Checar se isso ainda vai continuar sendo usado.

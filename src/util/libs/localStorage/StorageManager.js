@@ -23,7 +23,7 @@ import {
   addCustomSearch,
   objWhereChecker,
 } from './lib';
-import { delTimelineCache, resetTimelineCache } from './cache';
+import { timelineCache } from './cache';
 
 // Class
 class StorageManager extends StorageManagerBase {
@@ -376,7 +376,7 @@ class StorageManager extends StorageManagerBase {
         }
 
         if (this._lastEventsLoadWaiting[valueId]) delete this._lastEventsLoadWaiting[valueId];
-        delTimelineCache(valueId);
+        timelineCache.delete(valueId);
       };
 
       if (typeof threadId !== 'boolean' || !threadId)
@@ -413,7 +413,7 @@ class StorageManager extends StorageManagerBase {
     this.removeItem('ponyHouse-timeline-le-sync');
     this._timelineLastEvent = {};
     this._lastEventsLoadWaiting = {};
-    resetTimelineCache();
+    timelineCache.reset();
   }
 
   // Sync Timeline
