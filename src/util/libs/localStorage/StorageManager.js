@@ -592,14 +592,14 @@ class StorageManager extends StorageManagerBase {
                 this._syncTimelineCache.usedIds.push(eventIdp);
 
                 // Get thread
-                const newThread =
+                /* const newThread =
                   !events[item].threadRootId || events[item].threadRootId === events[item].getId()
                     ? events[item].getThread()
                     : null;
                 if (newThread && typeof newThread.id === 'string')
                   this.syncTimeline(roomId, newThread.id);
                 else if (events[item].threadRootId)
-                  this.syncTimeline(roomId, events[item].threadRootId);
+                  this.syncTimeline(roomId, events[item].threadRootId); */
 
                 // Send the event to the timeline database manager
                 this.addToTimeline(events[item], true);
