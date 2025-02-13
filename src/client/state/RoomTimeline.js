@@ -82,38 +82,6 @@ class RoomTimeline extends EventEmitter {
     setTimeout(() => this.room.loadMembersIfNeeded());
   }
 
-  getPages() {
-    return timelineCache.getPages(this.roomId, this.threadId);
-  }
-
-  getPage() {
-    return timelineCache.getPage(this.roomId, this.threadId);
-  }
-
-  _setPages(value) {
-    return timelineCache.setPages(this.roomId, this.threadId, value);
-  }
-
-  _setPage(value) {
-    return timelineCache.setPage(this.roomId, this.threadId, value);
-  }
-
-  _addPage(value) {
-    return timelineCache.addPageValue(this.roomId, this.threadId, value);
-  }
-
-  _subPage(value) {
-    return timelineCache.subPageValue(this.roomId, this.threadId, value);
-  }
-
-  setPage(page) {
-    return this.paginateTimeline(page);
-  }
-
-  setForceLoad(value) {
-    if (typeof value === 'boolean') this.forceLoad = value;
-  }
-
   _timelineUpdated(eventType, mEvent) {
     tinyConsole.log(
       `${this._consoleTag} [${eventType}]${mEvent ? ` [${mEvent.getType()}]` : ''} Timeline updated!`,
@@ -414,13 +382,6 @@ class RoomTimeline extends EventEmitter {
     }
   }
 
-  // Get TimelineCache
-  getTimelineCache(event) {
-    const threadId = event.getThreadId();
-    const roomId = event.getRoomId();
-    return timelineCache.get(roomId, threadId);
-  }
-
   // Belong to Room
   belongToRoom(event) {
     return (
@@ -658,11 +619,6 @@ class RoomTimeline extends EventEmitter {
     }
   }
 
-  waitTimeline() {
-    const tinyThis = this;
-    return waitForTrue(() => tinyThis._eventsQueue.busy < 1, 300);
-  }
-
   // Deleting places
   _deletingEventPlaces(redacts) {
     this.editedTimeline.delete(redacts);
@@ -818,24 +774,6 @@ class RoomTimeline extends EventEmitter {
     }
   }
 
-  // Get User renders
-  getEventReaders(mEvent) {
-    return getEventReaders(this.room, this.liveTimeline, mEvent);
-  }
-
-  getLiveReaders() {
-    return getLiveReaders(this.room, this.liveTimeline);
-  }
-
-  getEvents() {
-    return this.timelineCache.timeline;
-  }
-
-  // Has Event inside the visible timeline
-  hasEventInTimeline(eventId) {
-    return this.getEventIndex(eventId) > -1 ? true : false;
-  }
-
   // Get Event data
   getUnreadEventIndex(readUpToEventId) {
     if (!this.hasEventInTimeline(readUpToEventId)) return -1;
@@ -855,9 +793,6 @@ class RoomTimeline extends EventEmitter {
   }
 
   // Simpler scripts
-  deleteFromTimeline(eventId) {
-    return timelineCache.deleteItem(this.roomId, this.threadId, eventId);
-  }
 
   // Checar se isso ainda vai continuar sendo usado.
   getUnfilteredTimelineSet() {
@@ -884,26 +819,10 @@ class RoomTimeline extends EventEmitter {
     return this.getPage() > 1;
   }
 
-  isEncrypted() {
-    return this.room && this.room.hasEncryptionStateEvent();
-  }
-
   getReadUpToEventId() {
     const userId = this.matrixClient.getUserId();
     if (!userId) return null;
     return this.timelineCache.lastEvent ? this.timelineCache.lastEvent.getId() : null;
-  }
-
-  getEventIndex(eventId) {
-    return this.timelineCache.timeline.findIndex((mEvent) => mEvent.getId() === eventId);
-  }
-
-  findEventByIdInTimelineSet(eventId) {
-    return this.findEventById(eventId);
-  }
-
-  findEventById(eventId) {
-    return this.timelineCache.timeline[this.getEventIndex(eventId)] ?? null;
   }
 
   removeInternalListeners() {
@@ -935,6 +854,89 @@ class RoomTimeline extends EventEmitter {
       for (const item in this.timeline) this._disablingEventPlaces(this.timeline[item]);
       this._closed = true;
     }
+  }
+
+  // Get User renders
+  getEventReaders(mEvent) {
+    return getEventReaders(this.room, this.liveTimeline, mEvent);
+  }
+
+  getLiveReaders() {
+    return getLiveReaders(this.room, this.liveTimeline);
+  }
+
+  getEvents() {
+    return this.timelineCache.timeline;
+  }
+
+  // Has Event inside the visible timeline
+  hasEventInTimeline(eventId) {
+    return this.getEventIndex(eventId) > -1 ? true : false;
+  }
+
+  // Other scripts
+  waitTimeline() {
+    const tinyThis = this;
+    return waitForTrue(() => tinyThis._eventsQueue.busy < 1, 300);
+  }
+
+  getEventIndex(eventId) {
+    return this.timelineCache.timeline.findIndex((mEvent) => mEvent.getId() === eventId);
+  }
+
+  findEventByIdInTimelineSet(eventId) {
+    return this.findEventById(eventId);
+  }
+
+  findEventById(eventId) {
+    return this.timelineCache.timeline[this.getEventIndex(eventId)] ?? null;
+  }
+
+  isEncrypted() {
+    return this.room && this.room.hasEncryptionStateEvent();
+  }
+
+  setPage(page) {
+    return this.paginateTimeline(page);
+  }
+
+  setForceLoad(value) {
+    if (typeof value === 'boolean') this.forceLoad = value;
+  }
+
+  // Timeline cache
+  getTimelineCache(event) {
+    const threadId = event.getThreadId();
+    const roomId = event.getRoomId();
+    return timelineCache.get(roomId, threadId);
+  }
+
+  deleteFromTimeline(eventId) {
+    return timelineCache.deleteItem(this.roomId, this.threadId, eventId);
+  }
+
+  getPages() {
+    return timelineCache.getPages(this.roomId, this.threadId);
+  }
+
+  getPage() {
+    return timelineCache.getPage(this.roomId, this.threadId);
+  }
+
+  _setPages(value) {
+    return timelineCache.setPages(this.roomId, this.threadId, value);
+  }
+
+  _setPage(value) {
+    return timelineCache.setPage(this.roomId, this.threadId, value);
+  }
+
+  _addPage(value) {
+    return timelineCache.addPageValue(this.roomId, this.threadId, value);
+  }
+
+  _subPage(value) {
+    return timelineCache.subPageValue(this.roomId, this.threadId, value);
   }
 }
 
