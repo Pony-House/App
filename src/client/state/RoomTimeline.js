@@ -11,7 +11,6 @@ import cons from './cons';
 import { updateRoomInfo } from '../action/navigation';
 import urlParams from '../../util/libs/urlParams';
 import { getLastLinkedTimeline, getLiveReaders, getEventReaders } from './Timeline/functions';
-import installYjs from './Timeline/yjs';
 import TinyEventChecker from './Notifications/validator';
 import { memberEventAllowed } from '@src/util/Events';
 import { waitForTrue } from '@src/util/libs/timeoutLib';
@@ -33,7 +32,7 @@ class RoomTimeline extends EventEmitter {
       throw new Error(`Created a RoomTimeline for a room that doesn't exist: ${roomId}`);
 
     // First install
-    installYjs(this);
+    // installYjs(this);
     this.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
     this._selectEvent = null;
     this.forceLoad = false;
@@ -75,12 +74,6 @@ class RoomTimeline extends EventEmitter {
 
     // Load Members
     setTimeout(() => this.room.loadMembersIfNeeded());
-  }
-
-  _timelineUpdated(eventType, mEvent) {
-    tinyConsole.log(
-      `${this._consoleTag} [${eventType}]${mEvent ? ` [${mEvent.getType()}]` : ''} Timeline updated!`,
-    );
   }
 
   _activeEvents() {
@@ -192,7 +185,6 @@ class RoomTimeline extends EventEmitter {
         // Send into the timeline
         tinyThis._insertIntoTimeline(mEvent, tmc);
       }
-      return tinyThis._timelineUpdated('message', mEvent);
     };
 
     this._onYourMessage = async (data, mEvent) => {
@@ -201,7 +193,6 @@ class RoomTimeline extends EventEmitter {
       const tmc = tinyThis.getTimelineCache(mEvent);
       if (!tmc) return;
       tinyThis._insertIntoTimeline(mEvent, tmc);
-      return tinyThis._timelineUpdated('your-message', mEvent);
     };
 
     this._onYourMessageComplete = async (data, mEvent) => {
@@ -213,7 +204,6 @@ class RoomTimeline extends EventEmitter {
         this.timelineCache.timeline.splice(msgIndex, 1);
         this._deletingEventPlaces(eventId);
       }
-      return tinyThis._timelineUpdated('message-complete', mEvent);
     };
 
     this._onYourMessageError = async (data, mEvent) => {
@@ -225,7 +215,6 @@ class RoomTimeline extends EventEmitter {
       const msgIndex = tmc.timeline.findIndex((item) => item.getId() === eventId);
       if (msgIndex > -1) {
       }
-      return tinyThis._timelineUpdated('message-error', mEvent);
     };
 
     // Reaction events
@@ -234,7 +223,6 @@ class RoomTimeline extends EventEmitter {
       if (!tinyCheckEvent.check(mEvent)) return;
       if (!tinyThis.belongToRoom(mEvent)) return;
       tinyThis._insertReaction(mEvent);
-      return tinyThis._timelineUpdated('reaction', mEvent);
     };
 
     // Timeline events
@@ -246,7 +234,6 @@ class RoomTimeline extends EventEmitter {
       tinyConsole.log(`${tinyThis._consoleTag} New timeline event: ${mEvent.getId()}`);
       if (mEvent.getType() !== 'm.room.redaction') tinyThis._insertIntoTimeline(mEvent, tmc);
       else tinyThis._deletingEvent(mEvent);
-      return tinyThis._timelineUpdated('timeline-event', mEvent);
     };
 
     this._onRedaction = async (info) => {
@@ -256,7 +243,6 @@ class RoomTimeline extends EventEmitter {
       if (!isRedacted || roomId !== this.roomId) return;
       tinyConsole.log(`${tinyThis._consoleTag} New redaction: ${eventId}`);
       tinyThis._deletingEventById(eventId);
-      return tinyThis._timelineUpdated('redaction');
     };
 
     // Thread added events
@@ -268,15 +254,6 @@ class RoomTimeline extends EventEmitter {
       const mEvent = this.findEventById(event.event_id);
       if (!mEvent) return;
       await mEvent.insertThread();
-      return tinyThis._timelineUpdated('thread-event');
-    };
-
-    // Crdt events
-    this._onCrdt = (r, mEvent) => {
-      if (!tinyCheckEvent.check(mEvent)) return;
-      if (!tinyThis.belongToRoom(mEvent)) return;
-      tinyThis.sendCrdtToTimeline(mEvent);
-      return tinyThis._timelineUpdated('crdt', mEvent);
     };
 
     // Updated events
@@ -287,7 +264,6 @@ class RoomTimeline extends EventEmitter {
       if (type === 'redact') {
         tinyConsole.log(`${tinyThis._consoleTag} New redaction from local: ${eventId}`);
         tinyThis._deletingEventById(eventId);
-        return tinyThis._timelineUpdated('redaction');
       }
     };
 
@@ -300,7 +276,6 @@ class RoomTimeline extends EventEmitter {
     // Prepare events
     storageManager.on('timelineSyncComplete', this._syncComplete);
     storageManager.on('timelineSyncNext', this._syncComplete);
-    storageManager.on('dbCrdt', this._onCrdt);
     storageManager.on('dbMessage', this._onMessage);
     storageManager.on('dbMessageUpdate', this._onMessage);
     storageManager.on('dbReaction', this._onReaction);
@@ -451,10 +426,6 @@ class RoomTimeline extends EventEmitter {
         }
       }
     }
-  }
-
-  _autoUpdateEvent(thread, mEvent) {
-    // tinyConsole.log('[timeline] Event room updated!', mEvent);
   }
 
   async _addEventQueue(ignoredReactions = false) {
@@ -682,7 +653,6 @@ class RoomTimeline extends EventEmitter {
       storageManager.off('dbEventCachePreparing', this._onYourMessage);
       storageManager.off('dbEventCacheReady', this._onYourMessageComplete);
       storageManager.off('dbEventCacheError', this._onYourMessageError);
-      storageManager.off('dbCrdt', this._onCrdt);
       storageManager.off('dbMessage', this._onMessage);
       storageManager.off('dbMessageUpdate', this._onMessage);
       storageManager.off('dbReaction', this._onReaction);
