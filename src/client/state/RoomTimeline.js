@@ -31,8 +31,9 @@ class RoomTimeline extends EventEmitter {
     if (this.room === null)
       throw new Error(`Created a RoomTimeline for a room that doesn't exist: ${roomId}`);
 
-    // First install
     // installYjs(this);
+
+    // First install
     this.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
     this._selectEvent = null;
     this.forceLoad = false;
@@ -635,7 +636,7 @@ class RoomTimeline extends EventEmitter {
       this._eventsQueue.busy = 0;
       this.initialized = false;
 
-      this._disableYdoc();
+      // this._disableYdoc();
 
       storageManager.off('_eventUpdated', this._onEventsUpdated);
       storageManager.off('timelineSyncComplete', this._syncComplete);
