@@ -4,7 +4,6 @@ import tinyConsole from '@src/util/libs/console';
 
 import storageManager from '@src/util/libs/localStorage/StorageManager';
 import { timelineCache } from '@src/util/libs/localStorage/cache';
-import { getAppearance } from '@src/util/libs/appearance';
 
 import initMatrix from '../initMatrix';
 import cons from './cons';
@@ -52,8 +51,6 @@ class RoomTimeline extends EventEmitter {
     const timelineCacheData = timelineCache.get(roomId, threadId, true);
 
     this.editedTimeline = timelineCacheData.editedTimeline;
-    this.reactionTimeline = timelineCacheData.reactionTimeline;
-    this.reactionTimelineTs = timelineCacheData.reactionTimelineTs;
 
     this.timelineCache = timelineCacheData;
     this.timeline = this.timelineCache.timeline;
@@ -493,7 +490,8 @@ class RoomTimeline extends EventEmitter {
         );
         if (eventInserted) {
           if (tmc.roomId === this.roomId && (!tmc.threadId || tmc.threadId === this.threadId)) {
-            if (mEvent.isEdited()) this.editedTimeline.set(eventId, [mEvent.getEditedContent()]);
+            if (mEvent.isEdited())
+              this.editedTimeline.set(mEvent.getId(), [mEvent.getEditedContent()]);
             if (!isFirstTime) this.emit(cons.events.roomTimeline.EVENT, mEvent);
             // Event added
           }
@@ -810,6 +808,10 @@ class RoomTimeline extends EventEmitter {
 
   _subPage(value) {
     return timelineCache.subPageValue(this.roomId, this.threadId, value);
+  }
+
+  getReactionTimeline() {
+    return timelineCache.get(this.roomId, this.threadId)?.reactionTimeline;
   }
 }
 

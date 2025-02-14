@@ -1,6 +1,7 @@
 import TimelineCacheReactions from './TimelineCacheReactions';
 import cons from '@src/client/state/cons';
 import { getAppearance } from '../../appearance';
+import tinyConsole from '../../console';
 
 class TimelineCacheTmItem extends TimelineCacheReactions {
   constructor() {

@@ -579,7 +579,6 @@ function MessageEdit({ body, onSave, onCancel, refRoomInput, roomId, mEvent }) {
 
 MessageEdit.propTypes = {
   roomId: PropTypes.string.isRequired,
-  eventId: PropTypes.string.isRequired,
   body: PropTypes.string.isRequired,
   onSave: PropTypes.func.isRequired,
   onCancel: PropTypes.func.isRequired,
@@ -781,8 +780,7 @@ const MessageOptions = React.memo(
                     const ul = $('<ul>', { class: 'nav nav-pills nav flex-column react-list' });
                     const content = $('<div>', { class: 'tab-content react-content' });
 
-                    const { reactionTimeline } = roomTimeline;
-                    const eventReactions = reactionTimeline.get(mEvent.getId());
+                    const eventReactions = roomTimeline.getReactionTimeline().get(mEvent.getId());
                     const reacts = getEventReactions(eventReactions);
                     const appearanceSettings = getAppearance();
                     let modal;
@@ -1049,7 +1047,7 @@ function Message({
   const mxcUrl = initMatrix.mxcUrl;
   const roomId = mEvent.getRoomId();
   const threadId = mEvent.getThread()?.id;
-  const { editedTimeline, reactionTimeline } = roomTimeline ?? {};
+  const { editedTimeline } = roomTimeline ?? {};
 
   const [, forceUpdate] = useReducer((count) => count + 1, 0);
   const [seeHiddenData, setSeeHiddenData] = useState(false);
@@ -1123,9 +1121,11 @@ function Message({
 
   // Emoji Type
   const isEdited = editedTimeline ? editedTimeline.has(eventId) : false;
-  const haveReactions = reactionTimeline
-    ? reactionTimeline.has(eventId) || !!mEvent.getServerAggregatedRelation('m.annotation')
-    : false;
+  const haveReactions =
+    roomTimeline && roomTimeline.getReactionTimeline
+      ? roomTimeline.getReactionTimeline().has(eventId) ||
+        !!mEvent.getServerAggregatedRelation('m.annotation')
+      : false;
   const eventRelation = mEvent.getRelation();
 
   // Is Reply

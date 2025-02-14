@@ -45,7 +45,7 @@ function toggleEmoji(roomId, eventId, emojiKey, shortcode, roomTimeline) {
 // Get Emoji
 function getMyEmojiEvent(emojiKey, eventId, roomTimeline) {
   const mx = initMatrix.matrixClient;
-  const rEvents = roomTimeline.reactionTimeline.get(eventId);
+  const rEvents = roomTimeline.getReactionTimeline().get(eventId);
   let rEvent = null;
   rEvents?.find((rE) => {
     if (rE.getRelation() === null) return false;
@@ -209,11 +209,11 @@ function MessageReactionGroup({ roomTimeline, mEvent }) {
   const [, forceUpdate] = useReducer((count) => count + 1, 0);
   const [isReacting, setIsReaction] = useState(false);
 
-  const { roomId, room, reactionTimeline } = roomTimeline;
+  const { roomId, room } = roomTimeline;
   const mx = initMatrix.matrixClient;
   const canSendReaction = getCurrentState(room).maySendEvent('m.reaction', mx.getUserId());
 
-  const eventReactions = reactionTimeline.get(mEvent.getId());
+  const eventReactions = roomTimeline.getReactionTimeline().get(mEvent.getId());
 
   useEffect(() => {
     const tinyUpdate = () => forceUpdate();
