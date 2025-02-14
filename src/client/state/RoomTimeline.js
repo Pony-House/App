@@ -143,14 +143,6 @@ class RoomTimeline extends EventEmitter {
             } else tinyThis._selectEvent = eventId;
           }
 
-          if (tinyThis._ydoc.initialized) {
-            const events = await storageManager.getCrdt(getMsgConfig);
-            for (const item in events) {
-              const mEvent = events[item];
-              tinyThis.sendCrdtToTimeline(mEvent);
-            }
-          }
-
           if (tinyThis.getPage() < 1) {
             tinyThis._setPage(1);
             tinyThis.emit(cons.events.roomTimeline.PAGES_UPDATED, tinyThis.timelineCache);

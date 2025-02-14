@@ -265,9 +265,6 @@ class StorageManager extends StorageManagerBase {
       this.dbManager.on('dbMessage', (r, mEvent) =>
         tinyThis.emit('dbMessage', r, tinyThis.convertToEventFormat(mEvent)),
       );
-      this.dbManager.on('dbCrdt', (r, mEvent) =>
-        tinyThis.emit('dbCrdt', r, tinyThis.convertToEventFormat(mEvent)),
-      );
       this.dbManager.on('dbTimeline', (r, mEvent) =>
         tinyThis.emit('dbTimeline', r, tinyThis.convertToEventFormat(mEvent)),
       );
@@ -290,7 +287,6 @@ class StorageManager extends StorageManagerBase {
       this.dbManager.on('dbMessageDeleted', (r, mEvent) =>
         tinyThis.emit('dbMessageDeleted', r, mEvent),
       );
-      this.dbManager.on('dbCrdtDeleted', (r, mEvent) => tinyThis.emit('dbCrdtDeleted', r, mEvent));
       this.dbManager.on('dbReactionDeleted', (r, mEvent) =>
         tinyThis.emit('dbReactionDeleted', r, mEvent),
       );
@@ -311,7 +307,6 @@ class StorageManager extends StorageManagerBase {
     // Timeline Inserts
     const tinyThis = this;
     this._timelineInsertTypes = {
-      'pony.house.crdt': (event) => tinyThis.dbManager.setCrdt(event),
       'm.reaction': (event) => tinyThis.dbManager.setReaction(event),
     };
 

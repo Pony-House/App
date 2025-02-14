@@ -3,10 +3,12 @@ import SqlWeb from 'sqlweb';
 
 import version19 from './versions/19';
 import version31 from './versions/31';
+import version32 from './versions/32';
 
 const versionUpdate = {
   19: version19,
   31: version31,
+  32: version32,
 };
 
 export const startDb = async (tinyThis) => {
@@ -83,51 +85,6 @@ export const startDb = async (tinyThis) => {
           29: {
             add: {
               member_type: {
-                notNull: false,
-                dataType: DATA_TYPE.String,
-              },
-            },
-          },
-        },
-      },
-
-      {
-        name: 'crdt',
-        columns: {
-          event_id: { primaryKey: true, autoIncrement: false },
-
-          sender: { notNull: false, dataType: DATA_TYPE.String },
-          room_id: { notNull: false, dataType: DATA_TYPE.String },
-          thread_id: { notNull: false, dataType: DATA_TYPE.String },
-
-          content: { notNull: false, dataType: DATA_TYPE.Object },
-          unsigned: { notNull: false, dataType: DATA_TYPE.Object },
-
-          is_transaction: { notNull: true, dataType: DATA_TYPE.Boolean },
-          e_status: { notNull: false, dataType: DATA_TYPE.String },
-          redaction: { notNull: true, dataType: DATA_TYPE.Boolean },
-          origin_server_ts: { notNull: true, dataType: DATA_TYPE.Number },
-        },
-        alter: {
-          6: {
-            add: {
-              thread_id: {
-                notNull: false,
-                dataType: DATA_TYPE.String,
-              },
-            },
-          },
-          22: {
-            add: {
-              is_transaction: {
-                notNull: true,
-                dataType: DATA_TYPE.Boolean,
-              },
-            },
-          },
-          23: {
-            add: {
-              e_status: {
                 notNull: false,
                 dataType: DATA_TYPE.String,
               },

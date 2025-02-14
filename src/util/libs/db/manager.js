@@ -13,7 +13,7 @@ class TinyDbManager extends EventEmitter {
     super();
     this.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
 
-    this._dbVersion = 31;
+    this._dbVersion = 32;
     this._oldDbVersion = global.localStorage.getItem('ponyHouse-db-version') || 0;
     this.dbName = 'pony-house-database';
 
@@ -188,8 +188,6 @@ class TinyDbManager extends EventEmitter {
     await this._waitTimelineTimeout();
     const messages = await this._removeQuery({ from: 'messages', where });
     await this._waitTimelineTimeout();
-    const crdt = await this._removeQuery({ from: 'crdt', where });
-    await this._waitTimelineTimeout();
     const reactions = await this._removeQuery({ from: 'reactions', where });
     await this._waitTimelineTimeout();
     const members = await this._removeQuery({ from: 'members', where });
@@ -201,7 +199,6 @@ class TinyDbManager extends EventEmitter {
     const receipt = await this.deleteReceiptByRoomId(roomId);
 
     return {
-      crdt,
       timeline,
       messages,
       reactions,
@@ -553,14 +550,6 @@ class TinyDbManager extends EventEmitter {
 
   deleteMessageById(event) {
     return this._deleteDataByIdTemplate('messages', 'dbMessageDeleted', event);
-  }
-
-  setCrdt(event) {
-    return this._setDataTemplate('crdt', 'dbCrdt', event);
-  }
-
-  deleteCrdtById(event) {
-    return this._deleteDataByIdTemplate('crdt', 'dbCrdtDeleted', event);
   }
 
   setReaction(event) {

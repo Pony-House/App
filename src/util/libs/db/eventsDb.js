@@ -4,7 +4,6 @@ import clone from 'clone';
 const eventsDb = [
   'messages_search',
   'messages_edit',
-  'crdt',
   { name: 'reactions', existMemberType: true, forceTransaction: true },
   { name: 'timeline', existMemberType: true },
 ];
