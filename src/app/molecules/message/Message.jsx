@@ -1047,7 +1047,6 @@ function Message({
   const mxcUrl = initMatrix.mxcUrl;
   const roomId = mEvent.getRoomId();
   const threadId = mEvent.getThread()?.id;
-  const { editedTimeline } = roomTimeline ?? {};
 
   const [, forceUpdate] = useReducer((count) => count + 1, 0);
   const [seeHiddenData, setSeeHiddenData] = useState(false);
@@ -1120,7 +1119,11 @@ function Message({
   if (msgType === 'm.emote') classList.push('message--type-emote');
 
   // Emoji Type
-  const isEdited = editedTimeline ? editedTimeline.has(eventId) : false;
+  const isEdited =
+    roomTimeline && roomTimeline.getEditedTimeline
+      ? roomTimeline.getEditedTimeline().has(eventId)
+      : false;
+
   const haveReactions =
     roomTimeline && roomTimeline.getReactionTimeline
       ? roomTimeline.getReactionTimeline().has(eventId) ||
@@ -1136,7 +1139,7 @@ function Message({
 
   // Is Edit
   if (isEdited) {
-    const editedList = editedTimeline.get(eventId);
+    const editedList = roomTimeline.getEditedTimeline().get(eventId);
     const editedMEvent = editedList[editedList.length - 1];
     [body, isCustomHTML, customHTML] = getEditedBody(editedMEvent);
   }

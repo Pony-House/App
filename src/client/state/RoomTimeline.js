@@ -50,8 +50,6 @@ class RoomTimeline extends EventEmitter {
     // These are local timelines
     const timelineCacheData = timelineCache.get(roomId, threadId, true);
 
-    this.editedTimeline = timelineCacheData.editedTimeline;
-
     this.timelineCache = timelineCacheData;
     this.timeline = this.timelineCache.timeline;
     for (const item in this.timeline) {
@@ -491,7 +489,7 @@ class RoomTimeline extends EventEmitter {
         if (eventInserted) {
           if (tmc.roomId === this.roomId && (!tmc.threadId || tmc.threadId === this.threadId)) {
             if (mEvent.isEdited())
-              this.editedTimeline.set(mEvent.getId(), [mEvent.getEditedContent()]);
+              this.getEditedTimeline().set(mEvent.getId(), [mEvent.getEditedContent()]);
             if (!isFirstTime) this.emit(cons.events.roomTimeline.EVENT, mEvent);
             // Event added
           }
@@ -808,6 +806,10 @@ class RoomTimeline extends EventEmitter {
 
   _subPage(value) {
     return timelineCache.subPageValue(this.roomId, this.threadId, value);
+  }
+
+  getEditedTimeline() {
+    return timelineCache.get(this.roomId, this.threadId)?.editedTimeline;
   }
 
   getReactionTimeline() {
