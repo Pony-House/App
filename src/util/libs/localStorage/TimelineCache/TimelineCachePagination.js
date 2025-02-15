@@ -143,7 +143,8 @@ class TimelineCachePagination extends EventEmitter {
           tinyConsole.log(
             `${tinyThis.consoleTag(roomId, threadId)} New timeline event: ${mEvent.getId()}`,
           );
-          if (mEvent.getType() !== 'm.room.redaction') tinyThis._insertIntoTimeline(mEvent, tmc);
+          if (mEvent.getType() !== 'm.room.redaction')
+            tinyThis.insertIntoTimeline(mEvent, roomId, threadId, tmc);
           else tinyThis._deletingEvent(roomId, threadId, mEvent);
         });
 
