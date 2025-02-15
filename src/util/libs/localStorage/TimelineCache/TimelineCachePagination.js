@@ -352,16 +352,18 @@ class TimelineCachePagination extends EventEmitter {
   async _insertReactionsResult(roomId, threadId, events) {
     const result = await this.insertReactions(roomId, threadId, events);
     for (const index in result) {
-      if (result[index].data.inserted) {
-        this.emit(TimelineCacheEvents.Event, result[index].mEvent);
-        this.emit(TimelineCacheEvents.insertId('Event', roomId, threadId), result[index].mEvent);
-      }
-      if (result[index].data.deleted) {
-        this.emit(TimelineCacheEvents.EventRedaction, result[index].mEvent);
-        this.emit(
-          TimelineCacheEvents.insertId('EventRedaction', roomId, threadId),
-          result[index].mEvent,
-        );
+      if (result[index].data) {
+        if (result[index].data.inserted) {
+          this.emit(TimelineCacheEvents.Event, result[index].mEvent);
+          this.emit(TimelineCacheEvents.insertId('Event', roomId, threadId), result[index].mEvent);
+        }
+        if (result[index].data.deleted) {
+          this.emit(TimelineCacheEvents.EventRedaction, result[index].mEvent);
+          this.emit(
+            TimelineCacheEvents.insertId('EventRedaction', roomId, threadId),
+            result[index].mEvent,
+          );
+        }
       }
     }
   }
