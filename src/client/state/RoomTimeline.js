@@ -33,13 +33,11 @@ class RoomTimeline extends EventEmitter {
     // First install
     this.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
     this._selectEvent = null;
-    this.forceLoad = false;
     this._closed = false;
 
     this.roomId = roomId;
     this.roomAlias = roomAlias;
     this.initialized = false;
-    this.firstStart = false;
 
     // These are local timelines
     const timelineCacheData = timelineCache.getData(roomId, threadId, true);
@@ -71,93 +69,11 @@ class RoomTimeline extends EventEmitter {
     setTimeout(() => this.room.loadMembersIfNeeded());
   }
 
+  // Start timeline events
   _activeEvents() {
     const tinyThis = this;
 
-    // Start timeline events
-    this._startTimeline = async (data, eventId) => {
-      tinyConsole.log(`${this._consoleTag} Starting timeline`);
-      const tinyError = (err) => {
-        tinyConsole.error(err);
-        alert(err.message, 'Timeline load error');
-      };
-
-      if (data.firstTime) {
-        try {
-          if (tinyThis.threadId) {
-            let thread = tinyThis.room.getThread(tinyThis.threadId);
-            if (!thread) {
-              await initMatrix.matrixClient.getEventTimeline(
-                tinyThis.getUnfilteredTimelineSet(),
-                tinyThis.threadId,
-              );
-
-              const tm = tinyThis.room.getLiveTimeline();
-              if (tinyThis.room.hasEncryptionStateEvent()) await decryptAllEventsOfTimeline(tm);
-              thread = tinyThis.room.getThread(tinyThis.threadId);
-            }
-
-            if (thread) {
-              tinyThis.thread = thread;
-              thread.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
-            }
-          }
-
-          const getMsgConfig = tinyThis._buildPagination({ page: 1 });
-
-          if (tinyThis.getPages() < 1) {
-            tinyThis._setPages(await storageManager.getMessagesPagination(getMsgConfig));
-            tinyThis.emit(cons.events.roomTimeline.PAGES_UPDATED, tinyThis.timelineCache);
-          }
-
-          if (tinyThis.timelineCache.timeline.length < 1) {
-            if (!eventId || tinyThis.forceLoad) {
-              const getMsgTinyCfg = tinyThis._buildPagination({ page: 1 });
-              const events = await storageManager.getMessages(getMsgTinyCfg);
-              while (tinyThis.timelineCache.timeline.length > 0) {
-                timelineCache._deletingEventById(
-                  tinyThis.roomId,
-                  tinyThis.threadId,
-                  tinyThis.timelineCache.timeline[0].getId(),
-                );
-              }
-
-              for (const item in events) {
-                timelineCache.insertIntoTimeline(
-                  events[item],
-                  tinyThis.roomId,
-                  tinyThis.threadId,
-                  tinyThis.timelineCache,
-                  true,
-                  true,
-                  true,
-                );
-              }
-              await tinyThis.waitTimeline();
-              await timelineCache._insertReactions(this.roomId, this.threadId, events);
-              tinyThis.forceLoad = false;
-            } else tinyThis._selectEvent = eventId;
-          }
-
-          if (tinyThis.getPage() < 1) {
-            tinyThis._setPage(1);
-            tinyThis.emit(cons.events.roomTimeline.PAGES_UPDATED, tinyThis.timelineCache);
-          }
-
-          tinyThis.initialized = true;
-          tinyThis.emit(cons.events.roomTimeline.READY, eventId || null);
-          tinyConsole.log(`${this._consoleTag} Timeline started`);
-          tinyThis.firstStart = true;
-        } catch (err) {
-          tinyError(err);
-        }
-      } else {
-        tinyThis.initialized = true;
-        tinyThis.firstStart = true;
-        tinyThis.emit(cons.events.roomTimeline.TIMELINE_INIT_UPDATED, tinyThis.initialized);
-      }
-    };
-
+    // Timeline events
     this._onNewEventAdded = (mEvent) => this.emit(cons.events.roomTimeline.EVENT, mEvent);
     this._onNewEventRemoved = (mEvent) =>
       this.emit(cons.events.roomTimeline.EVENT_REDACTED, mEvent);
@@ -172,14 +88,59 @@ class RoomTimeline extends EventEmitter {
       this._onNewEventRemoved,
     );
 
-    storageManager.on(
-      `dbTimelineLoaded-${this.roomId}${this.threadId ? `-${this.threadId}` : ''}`,
-      this._startTimeline,
+    // Selected Event
+    this._onSelectedEvent = (eventId) => (tinyThis._selectEvent = eventId);
+
+    timelineCache.on(
+      TimelineCacheEvents.insertId('SelectedEvent', this.roomId, this.threadId),
+      this._onSelectedEvent,
+    );
+
+    // Pages updated
+    this._onPagesUpdated = (tmc) => tinyThis.emit(cons.events.roomTimeline.PAGES_UPDATED, tmc);
+
+    timelineCache.on(
+      TimelineCacheEvents.insertId('PagesUpdated', this.roomId, this.threadId),
+      this._onPagesUpdated,
+    );
+
+    // Get thread
+    this._onGetThread = (thread) => (tinyThis.thread = thread);
+
+    timelineCache.on(
+      TimelineCacheEvents.insertId('GetThread', this.roomId, this.threadId),
+      this._onGetThread,
+    );
+
+    // Initialized
+    this._onTimelineInitialized = (initialized) => (tinyThis.initialized = initialized);
+
+    timelineCache.on(
+      TimelineCacheEvents.insertId('TimelineInitialized', this.roomId, this.threadId),
+      this._onTimelineInitialized,
+    );
+
+    this._onTimelineInitUpdated = (initialized) => {
+      if (typeof initialized === 'boolean') tinyThis.initialized = initialized;
+      tinyThis.emit(cons.events.roomTimeline.TIMELINE_INIT_UPDATED, tinyThis.initialized);
+    };
+
+    timelineCache.on(
+      TimelineCacheEvents.insertId('TimelineInitUpdated', this.roomId, this.threadId),
+      this._onTimelineInitUpdated,
+    );
+
+    // Ready
+    this._onTimelineReady = (eventId) => tinyThis.emit(cons.events.roomTimeline.READY, eventId);
+
+    timelineCache.on(
+      TimelineCacheEvents.insertId('TimelineReady', this.roomId, this.threadId),
+      this._onTimelineReady,
     );
   }
 
   async waitFirstSync() {
-    if (this.firstStart) return true;
+    if (this.initialized) return true;
     else {
       const tinyThis = this;
       return waitForTrue(() => true, 100);
@@ -417,9 +378,34 @@ class RoomTimeline extends EventEmitter {
         this._onNewEventRemoved,
       );
 
-      storageManager.off(
-        `dbTimelineLoaded-${this.roomId}${this.threadId ? `-${this.threadId}` : ''}`,
-        this._startTimeline,
+      timelineCache.off(
+        TimelineCacheEvents.insertId('SelectedEvent', this.roomId, this.threadId),
+        this._onSelectedEvent,
+      );
+
+      timelineCache.off(
+        TimelineCacheEvents.insertId('PagesUpdated', this.roomId, this.threadId),
+        this._onPagesUpdated,
+      );
+
+      timelineCache.off(
+        TimelineCacheEvents.insertId('GetThread', this.roomId, this.threadId),
+        this._onGetThread,
+      );
+
+      timelineCache.off(
+        TimelineCacheEvents.insertId('TimelineInitialized', this.roomId, this.threadId),
+        this._onTimelineInitialized,
+      );
+
+      timelineCache.off(
+        TimelineCacheEvents.insertId('TimelineInitUpdated', this.roomId, this.threadId),
+        this._onTimelineInitUpdated,
+      );
+
+      timelineCache.off(
+        TimelineCacheEvents.insertId('TimelineReady', this.roomId, this.threadId),
+        this._onTimelineReady,
       );
 
       this._closed = true;
@@ -487,10 +473,6 @@ class RoomTimeline extends EventEmitter {
 
   setPage(page) {
     return this.paginateTimeline(page);
-  }
-
-  setForceLoad(value) {
-    if (typeof value === 'boolean') this.forceLoad = value;
   }
 
   // Timeline cache

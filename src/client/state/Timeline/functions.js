@@ -6,7 +6,7 @@ import settings from '../settings';
 
 export const setEventTimeline = async (roomTimeline, eId) => {
   if (typeof eId === 'string') {
-    if (!roomTimeline.firstStart) {
+    if (!roomTimeline.initialized) {
       roomTimeline.syncTimeline();
       await roomTimeline.waitFirstSync();
     }

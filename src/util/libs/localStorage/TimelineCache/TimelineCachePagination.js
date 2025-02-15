@@ -7,6 +7,8 @@ import { waitForTrue } from '../../timeoutLib';
 import TimelineCacheEvents from './Events';
 import TinyEventChecker from '@src/client/state/Notifications/validator';
 import { memberEventAllowed } from '@src/util/Events';
+import initMatrix from '@src/client/initMatrix';
+import { decryptAllEventsOfTimeline } from '@src/client/state/Timeline/functions';
 
 const tinyCheckEvent = new TinyEventChecker();
 
@@ -19,6 +21,166 @@ class TimelineCachePagination extends EventEmitter {
     this.#_firstEventsEnabled = false;
     this._activeEvents = () => {
       if (!tinyThis.#_firstEventsEnabled) {
+        // Timeline loaded
+        storageManager.on('dbTimelineLoaded', async (data, eventId) => {
+          // Get timeline cache
+          const { roomId, threadId } = data;
+          const tmc = tinyThis.getData(roomId, threadId, true);
+
+          // Start the progress
+          tinyConsole.log(`${this.consoleTag(roomId, threadId)} Starting timeline`);
+          const tinyError = (err) => {
+            tinyConsole.error(err);
+            alert(err.message, 'Timeline load error');
+          };
+
+          // First time
+          if (data.firstTime) {
+            try {
+              // Prepare data
+              const room = initMatrix.matrixClient.getRoom(roomId);
+              let thread;
+              const getUnfilteredTimelineSet = () => {
+                return !thread
+                  ? room.getUnfilteredTimelineSet()
+                  : thread.getUnfilteredTimelineSet();
+              };
+
+              // Read thread
+              if (threadId) {
+                // Get cache
+                thread = room.getThread(threadId);
+                // No cache
+                if (!thread) {
+                  await initMatrix.matrixClient.getEventTimeline(
+                    getUnfilteredTimelineSet(),
+                    threadId,
+                  );
+
+                  // Decrypt timeline and get the thread again
+                  const tm = room.getLiveTimeline();
+                  if (room.hasEncryptionStateEvent()) await decryptAllEventsOfTimeline(tm);
+                  thread = room.getThread(threadId);
+                }
+
+                // Exist thread
+                if (thread) {
+                  tinyThis.emit(TimelineCacheEvents.GetThread, thread);
+                  tinyThis.emit(
+                    TimelineCacheEvents.insertId('GetThread', roomId, threadId),
+                    thread,
+                  );
+
+                  thread.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
+                }
+              }
+
+              // Get msg config
+              let needUpdatePage = false;
+
+              // Set pages
+              if (tinyThis.getPages(roomId, threadId) < 1) {
+                const getMsgConfig = tinyThis.buildPagination(roomId, threadId, {
+                  page: 1,
+                });
+
+                const pages = await storageManager.getMessagesPagination(getMsgConfig);
+                tinyThis.setPages(roomId, threadId, pages);
+                needUpdatePage = true;
+              }
+
+              // Insert timeline items
+              if (tmc.timeline.length < 1) {
+                // Normal mode
+                if (!eventId) {
+                  // Get items
+                  const getMsgTinyCfg = tinyThis.buildPagination(roomId, threadId, {
+                    page: 1,
+                  });
+                  const events = await storageManager.getMessages(getMsgTinyCfg);
+
+                  // Clear old items
+                  while (tmc.timeline.length > 0) {
+                    tinyThis._deletingEventById(roomId, threadId, tmc.timeline[0].getId());
+                  }
+
+                  // Insert new items
+                  for (const item in events) {
+                    tinyThis.insertIntoTimeline(
+                      events[item],
+                      roomId,
+                      threadId,
+                      tmc,
+                      true,
+                      true,
+                      true,
+                    );
+                  }
+
+                  // Insert reactions
+                  await tinyThis.waitTimeline(roomId, threadId);
+                  await tinyThis._insertReactions(roomId, threadId, events);
+                }
+
+                // Select event
+                else {
+                  tinyThis.emit(TimelineCacheEvents.SelectedEvent, eventId);
+                  tinyThis.emit(
+                    TimelineCacheEvents.insertId('SelectedEvent', roomId, threadId),
+                    eventId,
+                  );
+                }
+              }
+
+              // Set page
+              if (tinyThis.getPage(roomId, threadId) < 1) {
+                tinyThis.setPage(roomId, threadId, 1);
+                needUpdatePage = true;
+              }
+
+              // Update Pages
+              if (needUpdatePage) {
+                tinyThis.emit(TimelineCacheEvents.PagesUpdated, tmc);
+                tinyThis.emit(TimelineCacheEvents.insertId('PagesUpdated', roomId, threadId), tmc);
+              }
+
+              // Init data
+              tinyThis.emit(TimelineCacheEvents.TimelineInitialized, true);
+              tinyThis.emit(
+                TimelineCacheEvents.insertId('TimelineInitialized', roomId, threadId),
+                true,
+              );
+
+              // Ready!
+              tinyThis.emit(TimelineCacheEvents.TimelineReady, eventId || null);
+              tinyThis.emit(
+                TimelineCacheEvents.insertId('TimelineReady', roomId, threadId),
+                eventId || null,
+              );
+
+              tinyConsole.log(`${this.consoleTag(roomId, threadId)} Timeline started`);
+            } catch (err) {
+              tinyError(err);
+            }
+          }
+          // Nope first time
+          else {
+            // Init data
+            tinyThis.emit(TimelineCacheEvents.TimelineInitialized, true);
+            tinyThis.emit(
+              TimelineCacheEvents.insertId('TimelineInitialized', roomId, threadId),
+              true,
+            );
+
+            // Init updated
+            tinyThis.emit(TimelineCacheEvents.TimelineInitUpdated, null);
+            tinyThis.emit(
+              TimelineCacheEvents.insertId('TimelineInitUpdated', roomId, threadId),
+              null,
+            );
+          }
+        });
+
         // Updated events
         storageManager.on('_eventUpdated', async (type, mEvent, roomId, threadId) => {
           await tinyThis.waitTimeline(roomId, threadId);
@@ -306,34 +468,32 @@ class TimelineCachePagination extends EventEmitter {
 
   // Build Pagination
   buildPagination(roomId, threadId, config = {}) {
-    if (this.getData(roomId, threadId)) {
-      // Get config
-      const page = config.page;
-      const eventId = config.eventId;
-      const limit = config.limit;
+    // Get config
+    const page = config.page;
+    const eventId = config.eventId;
+    const limit = config.limit;
 
-      // Config Json
-      const getMsgConfig = {
-        roomId: roomId,
-        showRedaction: false,
-      };
+    // Config Json
+    const getMsgConfig = {
+      roomId: roomId,
+      showRedaction: false,
+    };
 
-      // Limit
-      if (typeof limit === 'number') {
-        if (!Number.isNaN(limit) && Number.isFinite(limit) && limit > 0) getMsgConfig.limit = limit;
-      } else getMsgConfig.limit = getAppearance('pageLimit');
+    // Limit
+    if (typeof limit === 'number') {
+      if (!Number.isNaN(limit) && Number.isFinite(limit) && limit > 0) getMsgConfig.limit = limit;
+    } else getMsgConfig.limit = getAppearance('pageLimit');
 
-      // Page Number
-      if (typeof page === 'number') getMsgConfig.page = page;
+    // Page Number
+    if (typeof page === 'number') getMsgConfig.page = page;
 
-      // No thread value
-      if (!threadId) getMsgConfig.showThreads = false;
-      if (typeof eventId === 'string' || Array.isArray(eventId)) getMsgConfig.eventId = eventId;
-      else getMsgConfig.threadId = threadId;
+    // No thread value
+    if (!threadId) getMsgConfig.showThreads = false;
+    if (typeof eventId === 'string' || Array.isArray(eventId)) getMsgConfig.eventId = eventId;
+    else getMsgConfig.threadId = threadId;
 
-      // Complete
-      return getMsgConfig;
-    } else return null;
+    // Complete
+    return getMsgConfig;
   }
 
   // Search Events
@@ -371,7 +531,7 @@ class TimelineCachePagination extends EventEmitter {
   }
 
   _insertReaction(roomId, threadId, mEvent) {
-    const result = timelineCache.insertReaction(roomId, threadId, mEvent);
+    const result = this.insertReaction(roomId, threadId, mEvent);
     if (result) {
       if (result.inserted) {
         this.emit(TimelineCacheEvents.Event, mEvent);
