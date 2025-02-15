@@ -44,7 +44,7 @@ class MyThreadEmitter extends EventEmitter {
 
               // Get root event data
               if (tinyThis.threadRootId) {
-                const roomTimelineCache = timelineCache.get(thread.roomId);
+                const roomTimelineCache = timelineCache.getData(thread.roomId);
                 const rootEvent =
                   roomTimelineCache && Array.isArray(roomTimelineCache.timeline)
                     ? roomTimelineCache.timeline.find(

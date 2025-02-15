@@ -371,7 +371,7 @@ class StorageManager extends StorageManagerBase {
         }
 
         if (this._lastEventsLoadWaiting[valueId]) delete this._lastEventsLoadWaiting[valueId];
-        timelineCache.delete(valueId);
+        timelineCache.deleteData(valueId);
       };
 
       if (typeof threadId !== 'boolean' || !threadId)
@@ -408,7 +408,7 @@ class StorageManager extends StorageManagerBase {
     this.removeItem('ponyHouse-timeline-le-sync');
     this._timelineLastEvent = {};
     this._lastEventsLoadWaiting = {};
-    timelineCache.reset();
+    timelineCache.resetData();
   }
 
   // Sync Timeline

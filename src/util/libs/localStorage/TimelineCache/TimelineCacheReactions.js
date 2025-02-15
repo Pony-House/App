@@ -35,7 +35,7 @@ class TimelineCacheReactions extends TimelineCachePagination {
 
   // Get Reaction Timeline
   getReactionTimeline(roomId, threadId, mEvent) {
-    const tmCache = this.get(roomId, threadId);
+    const tmCache = this.getData(roomId, threadId);
     // Get relate to id
     const relateToId = getRelateToId(mEvent);
 
@@ -52,7 +52,7 @@ class TimelineCacheReactions extends TimelineCachePagination {
 
   // Insert Reaction
   insertReaction(roomId, threadId, mEvent) {
-    const tmCache = this.get(roomId, threadId);
+    const tmCache = this.getData(roomId, threadId);
     // Is Redacted
     const isRedacted = mEvent.isRedacted();
     if (!isRedacted) {
@@ -76,12 +76,12 @@ class TimelineCacheReactions extends TimelineCachePagination {
         return { inserted: true, deleted: false };
       }
     } else return this.removeReaction(roomId, threadId, mEvent);
-    return { inserted: false, deleted: false };
+    return null;
   }
 
   // Remove Reaction
   removeReaction(roomId, threadId, mEvent) {
-    const tmCache = this.get(roomId, threadId);
+    const tmCache = this.getData(roomId, threadId);
     // Is Redacted
     const isRedacted = mEvent.isRedacted();
     if (isRedacted) {
@@ -100,7 +100,7 @@ class TimelineCacheReactions extends TimelineCachePagination {
 
           // Complete
           tinyConsole.log(
-            `${this.consoleTag(roomId, threadId)} Reaction removed: ${mEvent.getId()}`,
+            `${this.consoleTag(roomId, threadId)} Reaction removed (2): ${mEvent.getId()}`,
             ts,
           );
           mEvents.splice(index, 1);
@@ -113,7 +113,7 @@ class TimelineCacheReactions extends TimelineCachePagination {
         }
       }
     }
-    return { inserted: false, deleted: false };
+    return null;
   }
 }
 

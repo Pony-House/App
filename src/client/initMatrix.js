@@ -31,6 +31,7 @@ import { cryptoCallbacks } from './state/secretStorageKeys';
 import navigation from './state/navigation';
 import cons from './state/cons';
 import EventManager from './state/EventManager';
+import { timelineCache } from '@src/util/libs/localStorage/cache';
 
 global.Olm = Olm;
 
@@ -167,6 +168,7 @@ class InitMatrix extends EventEmitter {
       }
 
       this.matrixClient.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
+      timelineCache._activeEvents();
 
       await this.matrixClient.startClient({
         // includeArchivedRooms: true,

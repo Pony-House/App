@@ -2,6 +2,7 @@ import TimelineCacheReactions from './TimelineCacheReactions';
 import cons from '@src/client/state/cons';
 import { getAppearance } from '../../appearance';
 import tinyConsole from '../../console';
+import TimelineCacheEvents from './Events';
 
 class TimelineCacheTmItem extends TimelineCacheReactions {
   constructor() {
@@ -58,7 +59,7 @@ class TimelineCacheTmItem extends TimelineCacheReactions {
 
   // Delete timeline item
   deleteItem(roomId, threadId, eventId) {
-    const timelineCache = this.get(roomId, threadId);
+    const timelineCache = this.getData(roomId, threadId);
     if (timelineCache) {
       const i = timelineCache.timeline.findIndex((mEvent) => mEvent.getId() === eventId);
       if (i < 0) return undefined;
@@ -69,7 +70,7 @@ class TimelineCacheTmItem extends TimelineCacheReactions {
 
   // Deleting places
   deletingEventPlaces(roomId, threadId, redacts) {
-    const tmCache = this.get(roomId, threadId);
+    const tmCache = this.getData(roomId, threadId);
 
     // Edited Timeline
     tmCache.editedTimeline.delete(redacts);
@@ -103,7 +104,7 @@ class TimelineCacheTmItem extends TimelineCacheReactions {
 
           // Complete
           tinyConsole.log(
-            `${tmCache.consoleTag(roomId, threadId)} Reaction removed: ${redacts}`,
+            `${this.consoleTag(roomId, threadId)} Reaction removed (1): ${redacts}`,
             ts,
           );
           tmCache.reactionTimelineTs[`${relateToId}:${redacts}`] = ts;
@@ -121,18 +122,37 @@ class TimelineCacheTmItem extends TimelineCacheReactions {
     return this.deletingEventById(roomId, threadId, event.getContent()?.redacts);
   }
 
-  deletingEventById(roomId, threadId, redacts) {
-    const rEvent = this.deleteItem(roomId, threadId, redacts);
-    this.deletingEventPlaces(roomId, threadId, redacts);
-    if (rEvent) {
-      rEvent.forceRedaction();
-      tinyConsole.log(
-        `${this.consoleTag(roomId, threadId)} Deleting event: ${rEvent.getId()}`,
-        rEvent.getTs(),
-      );
-      return rEvent;
+  deletingEventById(roomId, threadId, redacts, tinyText = 'event') {
+    const deleteTinyEvent = (rEvent) => {
+      if (rEvent) {
+        rEvent.forceRedaction();
+        return rEvent;
+      }
+      return null;
+    };
+
+    const deleteProgress = [
+      deleteTinyEvent(this.deleteItem(roomId, threadId, redacts)),
+      deleteTinyEvent(this.deletingEventPlaces(roomId, threadId, redacts)),
+    ];
+
+    let lastId = null;
+    for (const index in deleteProgress) {
+      if (deleteProgress[index] && (!lastId || deleteProgress[index].getId() !== lastId)) {
+        this.emit(TimelineCacheEvents.EventRedaction, deleteProgress[index]);
+        this.emit(
+          TimelineCacheEvents.insertId('EventRedaction', roomId, threadId),
+          deleteProgress[index],
+        );
+
+        tinyConsole.log(
+          `${this.consoleTag(roomId, threadId)} Deleting ${tinyText}: ${deleteProgress[index].getId()}`,
+          deleteProgress[index].getTs(),
+        );
+
+        lastId = deleteProgress[index].getId();
+      }
     }
-    return null;
   }
 }
 

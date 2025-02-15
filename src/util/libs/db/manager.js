@@ -598,27 +598,32 @@ class TinyDbManager extends EventEmitter {
     });
   }
 
-  _setRedaction(eventId, roomId, dbName, isRedacted = false) {
+  _setRedaction(eventId, roomId, threadId, dbName, isRedacted = false) {
     const tinyThis = this;
     this._deletedIds[eventId] = isRedacted;
+    const queryData = {
+      in: dbName,
+      set: {
+        redaction: isRedacted,
+      },
+      where: {
+        room_id: roomId,
+        event_id: eventId,
+      },
+    };
+
+    if (typeof threadId === 'string' && threadId.length > 0) queryData.where.thread_id = threadId;
+
     return new Promise((resolve, reject) =>
       tinyThis
-        ._updateQuery({
-          in: dbName,
-          set: {
-            redaction: isRedacted,
-          },
-          where: {
-            room_id: roomId,
-            event_id: eventId,
-          },
-        })
+        ._updateQuery(queryData)
         .then((noOfRowsUpdated) => {
           if (typeof noOfRowsUpdated === 'number' && noOfRowsUpdated > 0)
             tinyThis.emit('dbEventRedaction', {
               in: dbName,
               eventId,
               roomId,
+              threadId,
               noOfRowsUpdated,
               isRedacted,
             });
@@ -638,6 +643,7 @@ class TinyDbManager extends EventEmitter {
           await this._setRedaction(
             content.redacts,
             event.getRoomId(),
+            event.getThread()?.id,
             getTableName(eventsDb[dbIndex]),
             true,
           );
@@ -648,6 +654,7 @@ class TinyDbManager extends EventEmitter {
               await this._setRedaction(
                 content.redacts[item],
                 event.getRoomId(),
+                event.getThread()?.id,
                 getTableName(eventsDb[dbIndex]),
                 true,
               );
@@ -659,6 +666,7 @@ class TinyDbManager extends EventEmitter {
           await this._setRedaction(
             `~${event.getRoomId()}:${unsigned.transaction_id}`,
             event.getRoomId(),
+            event.getThread()?.id,
             getTableName(eventsDb[dbIndex]),
             true,
           );

@@ -57,7 +57,7 @@ class TimelineCacheBase extends TimelineCacheTmItem {
   }
 
   // Create
-  create(roomId, threadId) {
+  createData(roomId, threadId) {
     this.cache[this.getCacheId(roomId, threadId)] = {
       timeline: [],
       page: 0,
@@ -68,19 +68,20 @@ class TimelineCacheBase extends TimelineCacheTmItem {
       editedTimeline: new Map(),
       reactionTimeline: new Map(),
       reactionTimelineTs: {},
+      eventsQueue: { data: [], busy: 0 },
     };
     return this.cache[roomId];
   }
 
   // Get
-  get(roomId, threadId, forceCreate = false) {
+  getData(roomId, threadId, forceCreate = false) {
     const valueId = this.getCacheId(roomId, threadId);
     if (this.cache[valueId]) return this.cache[valueId];
-    else if (forceCreate) return this.create(roomId, threadId);
+    else if (forceCreate) return this.createData(roomId, threadId);
     return null;
   }
 
-  delete(roomId, threadId) {
+  deleteData(roomId, threadId) {
     const valueId = this.getCacheId(roomId, threadId);
     if (this.cache[valueId]) {
       delete this.cache[valueId];
@@ -90,9 +91,9 @@ class TimelineCacheBase extends TimelineCacheTmItem {
   }
 
   // Reset
-  reset() {
+  resetData() {
     for (const valueId in this.cache) {
-      this.delete(valueId);
+      this.deleteData(valueId);
     }
   }
 }

@@ -4,6 +4,7 @@ import tinyConsole from '@src/util/libs/console';
 
 import storageManager from '@src/util/libs/localStorage/StorageManager';
 import { timelineCache } from '@src/util/libs/localStorage/cache';
+import TimelineCacheEvents from '@src/util/libs/localStorage/TimelineCache/Events';
 
 import initMatrix from '../initMatrix';
 import cons from './cons';
@@ -11,11 +12,7 @@ import cons from './cons';
 import { updateRoomInfo } from '../action/navigation';
 import urlParams from '../../util/libs/urlParams';
 import { getLastLinkedTimeline, getLiveReaders, getEventReaders } from './Timeline/functions';
-import TinyEventChecker from './Notifications/validator';
-import { memberEventAllowed } from '@src/util/Events';
 import { waitForTrue } from '@src/util/libs/timeoutLib';
-
-const tinyCheckEvent = new TinyEventChecker();
 
 // Class
 class RoomTimeline extends EventEmitter {
@@ -37,7 +34,6 @@ class RoomTimeline extends EventEmitter {
     this.setMaxListeners(__ENV_APP__.MAX_LISTENERS);
     this._selectEvent = null;
     this.forceLoad = false;
-    this._eventsQueue = { data: [], busy: 0 };
     this._closed = false;
 
     this.roomId = roomId;
@@ -46,7 +42,7 @@ class RoomTimeline extends EventEmitter {
     this.firstStart = false;
 
     // These are local timelines
-    const timelineCacheData = timelineCache.get(roomId, threadId, true);
+    const timelineCacheData = timelineCache.getData(roomId, threadId, true);
 
     this.timelineCache = timelineCacheData;
     this.timeline = this.timelineCache.timeline;
@@ -79,17 +75,6 @@ class RoomTimeline extends EventEmitter {
     const tinyThis = this;
 
     // Start timeline events
-    this._syncComplete = async (roomId, threadId) => {
-      if (
-        tinyThis._closed ||
-        roomId !== this.roomId ||
-        (this.threadId && this.threadId !== threadId)
-      )
-        return;
-      await this._insertReactions(this.timeline);
-      await this.checkEventThreads(this.timeline);
-    };
-
     this._startTimeline = async (data, eventId) => {
       tinyConsole.log(`${this._consoleTag} Starting timeline`);
       const tinyError = (err) => {
@@ -130,14 +115,26 @@ class RoomTimeline extends EventEmitter {
               const getMsgTinyCfg = tinyThis._buildPagination({ page: 1 });
               const events = await storageManager.getMessages(getMsgTinyCfg);
               while (tinyThis.timelineCache.timeline.length > 0) {
-                tinyThis._deletingEventById(tinyThis.timelineCache.timeline[0].getId());
+                timelineCache._deletingEventById(
+                  tinyThis.roomId,
+                  tinyThis.threadId,
+                  tinyThis.timelineCache.timeline[0].getId(),
+                );
               }
 
               for (const item in events) {
-                tinyThis._insertIntoTimeline(events[item], undefined, true, true, true);
+                timelineCache.insertIntoTimeline(
+                  events[item],
+                  tinyThis.roomId,
+                  tinyThis.threadId,
+                  tinyThis.timelineCache,
+                  true,
+                  true,
+                  true,
+                );
               }
               await tinyThis.waitTimeline();
-              await this._insertReactions(events);
+              await timelineCache._insertReactions(this.roomId, this.threadId, events);
               tinyThis.forceLoad = false;
             } else tinyThis._selectEvent = eventId;
           }
@@ -161,118 +158,20 @@ class RoomTimeline extends EventEmitter {
       }
     };
 
-    // Message events
-    this._onMessage = async (r, mEvent) => {
-      await tinyThis.waitTimeline();
-      if (!tinyCheckEvent.check(mEvent)) return;
-      const tmc = tinyThis.getTimelineCache(mEvent);
-      if (!tmc && !mEvent.isRedacted()) return;
-      tinyConsole.log(`${tinyThis._consoleTag} New message: ${mEvent.getId()}`);
-      tmc.pages = await storageManager.getMessagesPagination(
-        this._buildPagination({ threadId: mEvent.getThreadId(), roomId: mEvent.getRoomId() }),
-      );
-      // Check event
-      if (!mEvent.isSending() || mEvent.getSender() === initMatrix.matrixClient.getUserId()) {
-        // Send into the timeline
-        tinyThis._insertIntoTimeline(mEvent, tmc);
-      }
-    };
+    this._onNewEventAdded = (mEvent) => this.emit(cons.events.roomTimeline.EVENT, mEvent);
+    this._onNewEventRemoved = (mEvent) =>
+      this.emit(cons.events.roomTimeline.EVENT_REDACTED, mEvent);
 
-    this._onYourMessage = async (data, mEvent) => {
-      await tinyThis.waitTimeline();
-      if (!tinyCheckEvent.check(mEvent)) return;
-      const tmc = tinyThis.getTimelineCache(mEvent);
-      if (!tmc) return;
-      tinyThis._insertIntoTimeline(mEvent, tmc);
-    };
+    timelineCache.on(
+      TimelineCacheEvents.insertId('Event', this.roomId, this.threadId),
+      this._onNewEventAdded,
+    );
 
-    this._onYourMessageComplete = async (data, mEvent) => {
-      const tmc = tinyThis.getTimelineCache(mEvent);
-      if (!tmc) return;
-      const eventId = mEvent.getId();
-      const msgIndex = tmc.timeline.findIndex((item) => item.getId() === eventId);
-      if (msgIndex > -1) {
-        this.timelineCache.timeline.splice(msgIndex, 1);
-        this._deletingEventPlaces(eventId);
-      }
-    };
+    timelineCache.on(
+      TimelineCacheEvents.insertId('EventRedaction', this.roomId, this.threadId),
+      this._onNewEventRemoved,
+    );
 
-    this._onYourMessageError = async (data, mEvent) => {
-      await tinyThis.waitTimeline();
-      if (!tinyCheckEvent.check(mEvent)) return;
-      const tmc = tinyThis.getTimelineCache(mEvent);
-      if (!tmc) return;
-      const eventId = mEvent.getId();
-      const msgIndex = tmc.timeline.findIndex((item) => item.getId() === eventId);
-      if (msgIndex > -1) {
-      }
-    };
-
-    // Reaction events
-    this._onReaction = async (r, mEvent) => {
-      await tinyThis.waitTimeline();
-      if (!tinyCheckEvent.check(mEvent)) return;
-      if (!tinyThis.belongToRoom(mEvent)) return;
-      tinyThis._insertReaction(mEvent);
-    };
-
-    // Timeline events
-    this._onTimeline = async (r, mEvent) => {
-      await tinyThis.waitTimeline();
-      if (!tinyCheckEvent.check(mEvent)) return;
-      const tmc = tinyThis.getTimelineCache(mEvent);
-      if (!tmc) return;
-      tinyConsole.log(`${tinyThis._consoleTag} New timeline event: ${mEvent.getId()}`);
-      if (mEvent.getType() !== 'm.room.redaction') tinyThis._insertIntoTimeline(mEvent, tmc);
-      else tinyThis._deletingEvent(mEvent);
-    };
-
-    this._onRedaction = async (info) => {
-      await tinyThis.waitTimeline();
-      if (!tinyCheckEvent.checkIds(info.roomId, info.eventId)) return;
-      const { eventId, isRedacted, roomId } = info;
-      if (!isRedacted || roomId !== this.roomId) return;
-      tinyConsole.log(`${tinyThis._consoleTag} New redaction: ${eventId}`);
-      tinyThis._deletingEventById(eventId);
-    };
-
-    // Thread added events
-    this._onThreadEvent = async (r, event) => {
-      await tinyThis.waitTimeline();
-      if (!tinyCheckEvent.checkIds(event.room_id, event.event_id)) return;
-      if (!event.room_id !== tinyThis.roomId) return;
-      tinyConsole.log(`${tinyThis._consoleTag} New thread event: ${event.event_id}`);
-      const mEvent = this.findEventById(event.event_id);
-      if (!mEvent) return;
-      await mEvent.insertThread();
-    };
-
-    // Updated events
-    this._onEventsUpdated = async (type, mEvent, roomId /*, threadId */) => {
-      await tinyThis.waitTimeline();
-      const eventId = mEvent.getId();
-
-      if (type === 'redact') {
-        tinyConsole.log(`${tinyThis._consoleTag} New redaction from local: ${eventId}`);
-        tinyThis._deletingEventById(eventId);
-      }
-    };
-
-    // Event Status Events
-    storageManager.on('_eventUpdated', this._onEventsUpdated);
-    storageManager.on('dbEventCachePreparing', this._onYourMessage);
-    storageManager.on('dbEventCacheReady', this._onYourMessageComplete);
-    storageManager.on('dbEventCacheError', this._onYourMessageError);
-
-    // Prepare events
-    storageManager.on('timelineSyncComplete', this._syncComplete);
-    storageManager.on('timelineSyncNext', this._syncComplete);
-    storageManager.on('dbMessage', this._onMessage);
-    storageManager.on('dbMessageUpdate', this._onMessage);
-    storageManager.on('dbReaction', this._onReaction);
-    storageManager.on('dbTimeline', this._onTimeline);
-    storageManager.on('dbEventRedaction', this._onRedaction);
-    storageManager.on('dbThreads', this._onThreadEvent);
     storageManager.on(
       `dbTimelineLoaded-${this.roomId}${this.threadId ? `-${this.threadId}` : ''}`,
       this._startTimeline,
@@ -342,146 +241,6 @@ class RoomTimeline extends EventEmitter {
     }
   }
 
-  // Belong to Room
-  belongToRoom(event) {
-    return (
-      event.getRoomId() === this.roomId && (!this.threadId || event.getThreadId() === this.threadId)
-    );
-  }
-
-  belongToTimelineList(event) {
-    return this.getTimelineCache(event) ? true : false;
-  }
-
-  // Can load page
-  canLoadNextPage() {
-    return !this.isRoomSyncing() && !this.isOngoingPagination && this.initialized;
-  }
-
-  // Is room syncing
-  isRoomSyncing() {
-    return storageManager.isRoomSyncing(this.roomId, this.threadId);
-  }
-
-  // Is room syncing last received events
-  isRoomSyncingTmLast() {
-    return storageManager.isRoomSyncingTmLast(this.roomId, this.threadId);
-  }
-
-  // Build pagination
-  _buildPagination(config = {}) {
-    const threadId = config.threadId || this.threadId;
-    const roomId = config.roomId || this.roomId;
-    return timelineCache.buildPagination(roomId, threadId, config);
-  }
-
-  async checkEventThreads(newEvent) {
-    // Get event list
-    const queryEvents = [];
-    const queryEvents2 = [];
-    if (!Array.isArray(newEvent)) {
-      if (!newEvent.thread) {
-        queryEvents.push(newEvent.getId());
-        queryEvents2.push(newEvent);
-      }
-    } else
-      for (const item in newEvent) {
-        if (!newEvent[item].thread) {
-          queryEvents.push(newEvent[item].getId());
-          queryEvents2.push(newEvent[item]);
-        }
-      }
-
-    // Get thread
-    if (queryEvents.length > 0) {
-      const tEvents = await storageManager.getThreads({
-        roomId: this.roomId,
-        eventId: queryEvents,
-      });
-
-      if (tEvents) {
-        for (const item in tEvents) {
-          const threadEvent = tEvents[item];
-
-          if (
-            threadEvent.thread &&
-            typeof threadEvent.thread.fetch === 'function' &&
-            !threadEvent.thread.initialized
-          )
-            await threadEvent.thread.fetch();
-
-          // Replace to new event
-          queryEvents2
-            .find((event) => event.getId() === threadEvent.getId())
-            .replaceThread(threadEvent);
-        }
-      }
-    }
-  }
-
-  async _addEventQueue(ignoredReactions = false) {
-    // Add event
-    const tinyThis = this;
-    const eventQueue = this._eventsQueue.data.shift();
-    if (eventQueue) {
-      // Complete
-      const tinyComplete = () => {
-        if (tinyThis._eventsQueue.data.length < 1) this._eventsQueue.busy--;
-        else tinyThis._addEventQueue(ignoredReactions);
-      };
-
-      try {
-        const { mEvent, tmc, isFirstTime, forceAdd } = eventQueue;
-        // Validate
-        if (!memberEventAllowed(mEvent.getMemberEventType(), true)) {
-          tinyComplete();
-          return;
-        }
-
-        // Complete
-        const eventInserted = await timelineCache.updateItem(
-          mEvent,
-          tmc,
-          (removedEvent) => {
-            tinyThis._deletingEventPlaces(removedEvent.getId());
-            // Event removed
-          },
-          forceAdd,
-        );
-        if (eventInserted) {
-          if (tmc.roomId === this.roomId && (!tmc.threadId || tmc.threadId === this.threadId)) {
-            if (mEvent.isEdited())
-              this.getEditedTimeline().set(mEvent.getId(), [mEvent.getEditedContent()]);
-            if (!isFirstTime) this.emit(cons.events.roomTimeline.EVENT, mEvent);
-            // Event added
-          }
-        }
-      } catch (err) {
-        tinyConsole.error(err);
-        alert(err.message, 'Timeline updater error!');
-      }
-
-      // Complete
-      tinyComplete();
-    }
-  }
-
-  // Insert into timeline
-  _insertIntoTimeline(
-    mEvent,
-    tmc = this.timelineCache,
-    isFirstTime = false,
-    forceAdd = false,
-    ignoredReactions = false,
-  ) {
-    this._eventsQueue.data.push({ mEvent, tmc, isFirstTime, forceAdd });
-    this._eventsQueue.data.sort((a, b) => a.mEvent.getTs() - b.mEvent.getTs());
-    if (this._eventsQueue.busy < 1) {
-      this._eventsQueue.busy++;
-      this._addEventQueue(ignoredReactions);
-    }
-  }
-
   // Pagination
   async paginateTimeline(backwards = false) {
     // Initialization
@@ -524,7 +283,11 @@ class RoomTimeline extends EventEmitter {
         // Remove old timeline
         const clearTimeline = () => {
           while (tinyThis.timelineCache.timeline.length > 0) {
-            tinyThis._deletingEventById(tinyThis.timelineCache.timeline[0].getId());
+            timelineCache._deletingEventById(
+              tinyThis.roomId,
+              tinyThis.threadId,
+              tinyThis.timelineCache.timeline[0].getId(),
+            );
           }
         };
 
@@ -554,10 +317,18 @@ class RoomTimeline extends EventEmitter {
         // Insert events into the timeline
         if (Array.isArray(events)) {
           for (const item in events) {
-            this._insertIntoTimeline(events[item], undefined, true, true, true);
+            timelineCache.insertIntoTimeline(
+              events[item],
+              this.roomId,
+              this.threadId,
+              this.timelineCache,
+              true,
+              true,
+              true,
+            );
           }
           await this.waitTimeline();
-          await this._insertReactions(events);
+          await timelineCache._insertReactions(this.roomId, this.threadId, events);
         }
       }
 
@@ -632,24 +403,20 @@ class RoomTimeline extends EventEmitter {
 
   removeInternalListeners() {
     if (!this._closed) {
-      this._eventsQueue.data = [];
-      this._eventsQueue.busy = 0;
       this.initialized = false;
 
       // this._disableYdoc();
 
-      storageManager.off('_eventUpdated', this._onEventsUpdated);
-      storageManager.off('timelineSyncComplete', this._syncComplete);
-      storageManager.off('timelineSyncNext', this._syncComplete);
-      storageManager.off('dbEventCachePreparing', this._onYourMessage);
-      storageManager.off('dbEventCacheReady', this._onYourMessageComplete);
-      storageManager.off('dbEventCacheError', this._onYourMessageError);
-      storageManager.off('dbMessage', this._onMessage);
-      storageManager.off('dbMessageUpdate', this._onMessage);
-      storageManager.off('dbReaction', this._onReaction);
-      storageManager.off('dbTimeline', this._onTimeline);
-      storageManager.off('dbEventRedaction', this._onRedaction);
-      storageManager.off('dbThreads', this._onThreadEvent);
+      timelineCache.off(
+        TimelineCacheEvents.insertId('Event', this.roomId, this.threadId),
+        this._onNewEventAdded,
+      );
+
+      timelineCache.off(
+        TimelineCacheEvents.insertId('EventRedaction', this.roomId, this.threadId),
+        this._onNewEventRemoved,
+      );
+
       storageManager.off(
         `dbTimelineLoaded-${this.roomId}${this.threadId ? `-${this.threadId}` : ''}`,
         this._startTimeline,
@@ -657,6 +424,39 @@ class RoomTimeline extends EventEmitter {
 
       this._closed = true;
     }
+  }
+
+  // Build pagination
+  _buildPagination(config = {}) {
+    const threadId = config.threadId || this.threadId;
+    const roomId = config.roomId || this.roomId;
+    return timelineCache.buildPagination(roomId, threadId, config);
+  }
+
+  // Belong to Room
+  belongToRoom(event) {
+    return (
+      event.getRoomId() === this.roomId && (!this.threadId || event.getThreadId() === this.threadId)
+    );
+  }
+
+  belongToTimelineList(event) {
+    return this.getTimelineCache(event) ? true : false;
+  }
+
+  // Can load page
+  canLoadNextPage() {
+    return !this.isRoomSyncing() && !this.isOngoingPagination && this.initialized;
+  }
+
+  // Is room syncing
+  isRoomSyncing() {
+    return storageManager.isRoomSyncing(this.roomId, this.threadId);
+  }
+
+  // Is room syncing last received events
+  isRoomSyncingTmLast() {
+    return storageManager.isRoomSyncingTmLast(this.roomId, this.threadId);
   }
 
   // Get User renders
@@ -677,22 +477,8 @@ class RoomTimeline extends EventEmitter {
     return this.getEventIndex(eventId) > -1 ? true : false;
   }
 
-  // Other scripts
-  waitTimeline() {
-    const tinyThis = this;
-    return waitForTrue(() => tinyThis._eventsQueue.busy < 1, 300);
-  }
-
-  getEventIndex(eventId) {
-    return this.timelineCache.timeline.findIndex((mEvent) => mEvent.getId() === eventId);
-  }
-
   findEventByIdInTimelineSet(eventId) {
     return this.findEventById(eventId);
-  }
-
-  findEventById(eventId) {
-    return this.timelineCache.timeline[this.getEventIndex(eventId)] ?? null;
   }
 
   isEncrypted() {
@@ -711,38 +497,19 @@ class RoomTimeline extends EventEmitter {
   getTimelineCache(event) {
     const threadId = event.getThreadId();
     const roomId = event.getRoomId();
-    return timelineCache.get(roomId, threadId);
+    return timelineCache.getData(roomId, threadId);
   }
 
-  _insertReaction(mEvent) {
-    const result = timelineCache.insertReaction(this.roomId, this.threadId, mEvent);
-    if (result.inserted) this.emit(cons.events.roomTimeline.EVENT, mEvent);
-    if (result.deleted) this.emit(cons.events.roomTimeline.EVENT_REDACTED, mEvent);
+  findEventById(eventId) {
+    return timelineCache.findEventById(this.roomId, this.threadId, eventId);
   }
 
-  async _insertReactions(events) {
-    const result = await timelineCache.insertReactions(this.roomId, this.threadId, events);
-    for (const index in result) {
-      if (result[index].data.inserted)
-        this.emit(cons.events.roomTimeline.EVENT, result[index].mEvent);
-      if (result[index].data.deleted)
-        this.emit(cons.events.roomTimeline.EVENT_REDACTED, result[index].mEvent);
-    }
+  getEventIndex(eventId) {
+    return timelineCache.getEventIndex(this.roomId, this.threadId, eventId);
   }
 
-  _deletingEvent(event) {
-    const rEvent = timelineCache.deletingEvent(this.roomId, this.threadId, event);
-    if (rEvent) this.emit(cons.events.roomTimeline.EVENT_REDACTED, rEvent);
-  }
-
-  _deletingEventById(redacts) {
-    const rEvent = timelineCache.deletingEventById(this.roomId, this.threadId, redacts);
-    if (rEvent) this.emit(cons.events.roomTimeline.EVENT_REDACTED, rEvent);
-  }
-
-  _deletingEventPlaces(redacts) {
-    const rEvent = timelineCache.deletingEventPlaces(this.roomId, this.threadId, redacts);
-    if (rEvent) this.emit(cons.events.roomTimeline.EVENT_REDACTED, rEvent);
+  waitTimeline() {
+    return timelineCache.waitTimeline(this.roomId, this.threadId);
   }
 
   getPages() {
@@ -770,11 +537,11 @@ class RoomTimeline extends EventEmitter {
   }
 
   getEditedTimeline() {
-    return timelineCache.get(this.roomId, this.threadId)?.editedTimeline;
+    return timelineCache.getData(this.roomId, this.threadId)?.editedTimeline;
   }
 
   getReactionTimeline() {
-    return timelineCache.get(this.roomId, this.threadId)?.reactionTimeline;
+    return timelineCache.getData(this.roomId, this.threadId)?.reactionTimeline;
   }
 }
 
