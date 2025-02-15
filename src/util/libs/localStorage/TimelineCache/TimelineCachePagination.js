@@ -81,7 +81,7 @@ class TimelineCachePagination extends EventEmitter {
         const syncComplete = async (roomId, threadId) => {
           const tmc = tinyThis.getData(roomId, threadId);
           if (!tmc) return;
-          await tinyThis._insertReactionsResult(roomId, threadId, tmc.timeline);
+          await tinyThis._insertReactions(roomId, threadId, tmc.timeline);
           if (!threadId) await tinyThis._checkEventThreads(roomId, tmc.timeline);
         };
         storageManager.on('timelineSyncComplete', syncComplete);
@@ -349,25 +349,6 @@ class TimelineCachePagination extends EventEmitter {
   }
 
   // Prepare events
-  async _insertReactionsResult(roomId, threadId, events) {
-    const result = await this.insertReactions(roomId, threadId, events);
-    for (const index in result) {
-      if (result[index].data) {
-        if (result[index].data.inserted) {
-          this.emit(TimelineCacheEvents.Event, result[index].mEvent);
-          this.emit(TimelineCacheEvents.insertId('Event', roomId, threadId), result[index].mEvent);
-        }
-        if (result[index].data.deleted) {
-          this.emit(TimelineCacheEvents.EventRedaction, result[index].mEvent);
-          this.emit(
-            TimelineCacheEvents.insertId('EventRedaction', roomId, threadId),
-            result[index].mEvent,
-          );
-        }
-      }
-    }
-  }
-
   _deletingEventPlaces(roomId, threadId, redacts) {
     const rEvent = this.deletingEventPlaces(roomId, threadId, redacts);
     if (rEvent) {
