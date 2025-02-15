@@ -100,7 +100,6 @@ class TimelineCacheTmItem extends TimelineCacheReactions {
 
           // Get new Ts update
           const ts = rEvent.getTs();
-          rEvent.forceRedaction();
 
           // Complete
           tinyConsole.log(
@@ -124,10 +123,7 @@ class TimelineCacheTmItem extends TimelineCacheReactions {
 
   deletingEventById(roomId, threadId, redacts, tinyText = 'event') {
     const deleteTinyEvent = (rEvent) => {
-      if (rEvent) {
-        rEvent.forceRedaction();
-        return rEvent;
-      }
+      if (rEvent) return rEvent;
       return null;
     };
 

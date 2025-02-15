@@ -64,26 +64,7 @@ function Room() {
   });
 
   useEffect(() => {
-    const onRoomModeSelected = (roomType) => {
-      setIsRoomMode(roomType === 'room' ? true : false);
-    };
-    const setRoomSelected = (roomId, threadId, eventId, forceScroll) => {
-      tinyConsole.log(
-        `[selected-room] ${roomId}${threadId ? `:${threadId}` : ''}${eventId ? ` ${eventId}` : ''}`,
-      );
-
-      try {
-        const roomTimeline = new RoomTimeline(roomId, threadId);
-        sendRoomInfo({
-          roomTimeline,
-          eventId: eventId ?? null,
-          forceScroll,
-        });
-      } catch (err) {
-        tinyConsole.error(err);
-        alert(err.message, 'Timeline start error!');
-      }
-    };
+    const onRoomModeSelected = (roomType) => setIsRoomMode(roomType === 'room' ? true : false);
     const handleRoomSelected = (
       roomId,
       prevRoomId,
@@ -106,7 +87,22 @@ function Room() {
             : objType(threadData, 'object')
               ? threadData.threadId
               : null;
-        setRoomSelected(roomId, threadId, eventId, forceScroll);
+
+        tinyConsole.log(
+          `[selected-room] ${roomId}${threadId ? `:${threadId}` : ''}${eventId ? ` ${eventId}` : ''}`,
+        );
+
+        try {
+          const roomTimeline = new RoomTimeline(roomId, threadId);
+          sendRoomInfo({
+            roomTimeline,
+            eventId: eventId ?? null,
+            forceScroll,
+          });
+        } catch (err) {
+          tinyConsole.error(err);
+          alert(err.message, 'Timeline start error!');
+        }
       } else {
         // TODO: add ability to join room if roomId is invalid
         sendRoomInfo({

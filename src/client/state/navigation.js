@@ -467,7 +467,8 @@ class Navigation extends EventEmitter {
         setSelectThread(action.threadId);
 
         tinyAPI.emit('selectedRoom', action.roomId, action.forceScroll);
-        if (action.roomId) this._selectTabWithRoom(action.roomId, action.forceScroll);
+        if (action.roomId)
+          this._selectTabWithRoom(action.roomId, action.threadId, action.forceScroll);
         const tinyThread =
           typeof action.threadId === 'string'
             ? action.threadId

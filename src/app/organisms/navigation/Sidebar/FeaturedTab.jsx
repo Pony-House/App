@@ -37,6 +37,7 @@ export default function FeaturedTab() {
   const ethereumButton = useRef(null);
   const [userWeb3, setUserWeb3] = useState(getUserWeb3Account());
   const [selectedUser, setSelectedUser] = useState(null);
+  const [, setSelectedThread] = useState(null);
   const { roomList, accountData, notifications } = initMatrix;
   const [selectedTab] = useSelectedTab();
   useNotificationUpdate();
@@ -100,7 +101,11 @@ export default function FeaturedTab() {
       setEthereumStatusButton(null);
     }
 
-    const updateUserRoomSelected = (roomId) => setSelectedUser(roomId);
+    const updateUserRoomSelected = (roomId, eventId, threadId) => {
+      setSelectedUser(roomId);
+      setSelectedThread(threadId);
+    };
+
     const ethereumGetUpdate = (ethereumData) => setUserWeb3(ethereumData);
     navigation.on(cons.events.navigation.ETHEREUM_UPDATED, ethereumGetUpdate);
     navigation.on(cons.events.navigation.SELECTED_ROOM, updateUserRoomSelected);

@@ -96,8 +96,6 @@ class TimelineCacheReactions extends TimelineCachePagination {
         // Exist event
         const index = mEvents.find((ev) => ev.getId() === mEvent.getId());
         if (index > -1) {
-          mEvent.forceRedaction();
-
           // Complete
           tinyConsole.log(
             `${this.consoleTag(roomId, threadId)} Reaction removed (2): ${mEvent.getId()}`,

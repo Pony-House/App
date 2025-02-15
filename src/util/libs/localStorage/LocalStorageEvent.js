@@ -205,11 +205,6 @@ class LocalStorageEvent extends EventEmitter {
     objType(this.event?.replace_to, 'object')
       ? true
       : false;
-
-  forceRedaction = () => {
-    this._forceRedaction = true;
-    this.event.redaction = true;
-  };
 }
 
 export default LocalStorageEvent;
